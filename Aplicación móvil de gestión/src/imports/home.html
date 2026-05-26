@@ -1,0 +1,395 @@
+{% extends 'base.html' %}
+{% block title %}Inicio | Tuki System{% endblock %}
+
+{% block content %}
+<style>
+  :root{
+    --g:#218a72; --gd:#1b6f5c; --gy:#f5e663;
+    --ink:#111827; --muted:#6b7280; --bg:#f4f6f9;
+  }
+
+  /* ── página entera ── */
+  body{ background:var(--bg); }
+
+  /* ── HERO ── */
+  .hero{
+    background:linear-gradient(135deg,#29a285 0%,#218a72 45%,#1b6f5c 100%);
+    padding:4rem 0 7rem;
+    position:relative;
+  }
+  /* patrón sutil */
+  .hero::before{
+    content:"";
+    position:absolute;inset:0;
+    background-image:radial-gradient(circle,rgba(255,255,255,.07) 1px,transparent 1px);
+    background-size:28px 28px;
+    pointer-events:none;
+  }
+  /* curva blanca al fondo */
+  .hero::after{
+    content:"";
+    position:absolute;bottom:-1px;left:0;right:0;height:64px;
+    background:var(--bg);
+    clip-path:ellipse(55% 100% at 50% 100%);
+  }
+
+  .hero-inner{ position:relative;z-index:1; }
+  .hero h1{
+    font-weight:800;
+    font-size:clamp(1.75rem,4.5vw,2.75rem);
+    color:#fff; letter-spacing:-.3px;
+  }
+  .hero-sub{ color:#d1fae5; font-size:1.05rem; max-width:500px; line-height:1.65; }
+  .btn-cta{
+    background:var(--gy); border:none; color:var(--gd);
+    font-weight:700; padding:.65rem 1.5rem;
+    border-radius:.6rem; transition:transform .15s,box-shadow .15s;
+  }
+  .btn-cta:hover{ transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,.18); color:var(--gd); }
+  .btn-ghost{
+    background:rgba(255,255,255,.12); border:1.5px solid rgba(255,255,255,.45);
+    color:#fff; font-weight:600; padding:.65rem 1.5rem; border-radius:.6rem;
+    transition:background .15s;
+  }
+  .btn-ghost:hover{ background:rgba(255,255,255,.22); color:#fff; }
+
+  /* ── KPI STRIP ── */
+  .kpi-strip{
+    margin-top:-3.5rem;
+    position:relative;z-index:10;
+  }
+  .kpi-card{
+    background:#fff;
+    border:0;border-radius:1rem;
+    box-shadow:0 4px 20px rgba(17,24,39,.08);
+    padding:1.1rem 1.25rem;
+    transition:transform .2s,box-shadow .2s;
+  }
+  .kpi-card:hover{ transform:translateY(-3px); box-shadow:0 10px 30px rgba(17,24,39,.11); }
+  .kpi-icon{
+    width:40px;height:40px;border-radius:.6rem;
+    display:flex;align-items:center;justify-content:center;
+    font-size:1.1rem;flex-shrink:0;
+  }
+  .kpi-val{ font-size:1.75rem;font-weight:800;line-height:1.1;color:var(--ink); }
+  .kpi-lbl{ font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.6px; }
+
+  /* colores por tipo */
+  .ki-green .kpi-icon{ background:#ecfdf5;color:#059669; }
+  .ki-red   .kpi-icon{ background:#fef2f2;color:#dc2626; }
+  .ki-blue  .kpi-icon{ background:#eff6ff;color:#2563eb; }
+  .ki-amber .kpi-icon{ background:#fffbeb;color:#d97706; }
+
+  /* skeleton shimmer */
+  .skel{
+    display:inline-block;border-radius:.35rem;
+    background:linear-gradient(90deg,#e5e7eb 25%,#f3f4f6 50%,#e5e7eb 75%);
+    background-size:300% 100%;
+    animation:shimmer 1.3s ease infinite;
+  }
+  @keyframes shimmer{ 0%{background-position:100% 0} 100%{background-position:-100% 0} }
+
+  /* ── SECCIÓN PRINCIPAL ── */
+  .main-section{ padding:2.5rem 0 3rem; }
+  .section-label{ font-size:.72rem;font-weight:700;color:var(--g);text-transform:uppercase;letter-spacing:.8px;margin-bottom:.5rem; }
+  .section-title{ font-size:1.15rem;font-weight:700;color:var(--ink);margin-bottom:1.25rem; }
+
+  /* acciones */
+  .action-card{
+    background:#fff; border:0; border-radius:1rem;
+    box-shadow:0 3px 14px rgba(17,24,39,.07);
+    text-decoration:none; color:inherit; display:block;
+    padding:1rem 1rem;
+    transition:transform .2s,box-shadow .2s;
+  }
+  .action-card:hover{
+    transform:translateY(-4px);
+    box-shadow:0 10px 28px rgba(17,24,39,.11);
+    color:inherit;
+  }
+  .action-icon{
+    width:38px;height:38px;border-radius:.75rem;
+    font-size:1.4rem;display:flex;align-items:center;justify-content:center;
+    margin-bottom:.6rem;
+  }
+  .action-card .t{ font-weight:700;font-size:.95rem;color:var(--ink); }
+  .action-card .s{ font-size:.8rem;color:var(--muted);margin-top:.15rem; }
+
+  /* panel lateral */
+  .side-card{
+    background:#fff;border:0;border-radius:1rem;
+    box-shadow:0 3px 14px rgba(17,24,39,.07);
+    padding:1.25rem 1.35rem;
+  }
+  .side-card + .side-card{ margin-top:1rem; }
+  .chart-wrap{ min-height:200px;display:flex;align-items:center;justify-content:center; }
+  .chart-skel{
+    width:130px;height:130px;border-radius:50%;
+    background:linear-gradient(90deg,#e5e7eb 25%,#f3f4f6 50%,#e5e7eb 75%);
+    background-size:300% 100%;animation:shimmer 1.3s ease infinite;
+  }
+
+  /* alerta vencidos */
+  .warn-card{
+    background:#fef2f2;border:1px solid #fecaca;border-radius:1rem;
+    padding:1rem 1.25rem;
+  }
+
+  @media(max-width:575px){
+    .hero{ padding:2.75rem 0 6rem; }
+    .kpi-val{ font-size:1.4rem; }
+    .action-icon{ width:40px;height:40px;font-size:1.2rem; }
+  }
+</style>
+
+<!-- ────────────────── HERO ────────────────── -->
+<section class="hero">
+  <div class="container hero-inner">
+    <div class="row align-items-center gy-4">
+      <div class="col-lg-8">
+        <span class="badge rounded-pill px-3 py-2 mb-3 fw-semibold"
+              style="background:rgba(255,255,255,.15);color:#fff;font-size:.78rem;letter-spacing:.5px;">
+          TUKI SYSTEM
+        </span>
+        <h1 class="mb-3">Gestioná tus alquileres<br>con claridad</h1>
+        <p class="hero-sub mb-4">
+          Stock, clientes y rentabilidad en un solo lugar.<br>Simple, ordenado y siempre actualizado.
+        </p>
+        <div class="d-flex gap-2 flex-wrap">
+          <a href="{{ url_for('new_rental') }}"    class="btn btn-cta">+ Nuevo Alquiler</a>
+          <a href="{{ url_for('rentals_list') }}"  class="btn btn-ghost">Ver Alquileres</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ────────────────── KPI STRIP ────────────────── -->
+<div class="container kpi-strip">
+  <div class="row g-3">
+
+    <div class="col-6 col-lg-3">
+      <div class="kpi-card ki-green">
+        <div class="d-flex align-items-center gap-3">
+          <div class="kpi-icon">✓</div>
+          <div>
+            <div class="kpi-lbl">Activos</div>
+            <div class="kpi-val"><span class="skel" id="kActivos" style="width:2.2rem;height:1.6rem;">&nbsp;</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-6 col-lg-3">
+      <div class="kpi-card ki-red">
+        <div class="d-flex align-items-center gap-3">
+          <div class="kpi-icon">!</div>
+          <div>
+            <div class="kpi-lbl">Vencidos</div>
+            <div class="kpi-val"><span class="skel" id="kVencidos" style="width:2.2rem;height:1.6rem;">&nbsp;</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-6 col-lg-3">
+      <div class="kpi-card ki-blue">
+        <div class="d-flex align-items-center gap-3">
+          <div class="kpi-icon">♟</div>
+          <div>
+            <div class="kpi-lbl">Clientes</div>
+            <div class="kpi-val"><span class="skel" id="kClientes" style="width:2.2rem;height:1.6rem;">&nbsp;</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-6 col-lg-3">
+      <div class="kpi-card ki-amber">
+        <div class="d-flex align-items-center gap-3">
+          <div class="kpi-icon">$</div>
+          <div>
+            <div class="kpi-lbl">Ingresos mes</div>
+            <div class="kpi-val" style="font-size:1.25rem">
+              <span class="skel" id="kIngresos" style="width:3.5rem;height:1.6rem;">&nbsp;</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ────────────────── MAIN ────────────────── -->
+<section class="main-section">
+  <div class="container">
+    <div class="row g-4">
+
+      <!-- Acciones rápidas -->
+      <div class="col-lg-8">
+        <div class="section-label">Panel</div>
+        <div class="section-title">Acciones rápidas</div>
+        <div class="row g-3">
+
+          <div class="col-sm-6 col-md-4">
+            <a href="{{ url_for('new_rental') }}" class="action-card">
+              <div class="action-icon" style="background:#ecfdf5;">📋</div>
+              <div class="t">Nuevo Alquiler</div>
+              <div class="s">Registrá un alquiler nuevo</div>
+            </a>
+          </div>
+
+          <div class="col-sm-6 col-md-4">
+            <a href="{{ url_for('rentals_list') }}" class="action-card">
+              <div class="action-icon" style="background:#eff6ff;">📄</div>
+              <div class="t">Ver Alquileres</div>
+              <div class="s">Listado con filtros y estados</div>
+            </a>
+          </div>
+
+          <div class="col-sm-6 col-md-4">
+            <a href="{{ url_for('rentals_calendar') }}" class="action-card">
+              <div class="action-icon" style="background:#fdf2f8;">📅</div>
+              <div class="t">Calendario</div>
+              <div class="s">Vista de alquileres por fecha</div>
+            </a>
+          </div>
+
+          <div class="col-sm-6 col-md-4">
+            <a href="{{ url_for('stock_control') }}" class="action-card">
+              <div class="action-icon" style="background:#fffbeb;">📦</div>
+              <div class="t">Stock</div>
+              <div class="s">Inventario y disponibilidad</div>
+            </a>
+          </div>
+
+          <div class="col-sm-6 col-md-4">
+            <a href="{{ url_for('clients_list') }}" class="action-card">
+              <div class="action-icon" style="background:#f5f3ff;">👥</div>
+              <div class="t">Clientes</div>
+              <div class="s">Base de clientes completa</div>
+            </a>
+          </div>
+
+          <div class="col-sm-6 col-md-4">
+            <a href="{{ url_for('stats') }}" class="action-card">
+              <div class="action-icon" style="background:#f0fdf4;">📊</div>
+              <div class="t">Estadísticas</div>
+              <div class="s">ROI, ganancias y análisis</div>
+            </a>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Panel lateral -->
+      <div class="col-lg-4">
+
+        <!-- Gráfico -->
+        <div class="side-card">
+          <div class="section-label mb-1">Insights</div>
+          <div class="fw-700 mb-2" style="font-size:.95rem;font-weight:700;color:var(--ink);">Origen de clientes</div>
+          <div class="chart-wrap">
+            <div id="chartSkel" class="chart-skel"></div>
+            <canvas id="sourceChart" style="display:none;max-height:200px;"></canvas>
+          </div>
+          <p id="chartEmpty" class="text-center text-muted small mb-0 mt-1" style="display:none;">Sin datos disponibles.</p>
+        </div>
+
+        <!-- Alerta vencidos (oculta hasta cargar) -->
+        <div class="warn-card mt-3 d-none" id="warnVencidos">
+          <div class="d-flex align-items-start gap-2">
+            <span style="font-size:1.25rem;flex-shrink:0;">⚠️</span>
+            <div>
+              <div class="fw-semibold" style="color:#991b1b;font-size:.9rem;">Alquileres vencidos</div>
+              <div class="text-muted small mt-1">
+                Hay <strong id="warnNum">—</strong> alquiler(es) sin devolver y fuera de fecha.
+              </div>
+            </div>
+          </div>
+          <a href="{{ url_for('rentals_list') }}"
+             class="btn btn-sm btn-danger w-100 mt-2" style="border-radius:.5rem;">
+            Revisar ahora
+          </a>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+<script defer>
+document.addEventListener('DOMContentLoaded', () => {
+
+  /* ── helpers ── */
+  const set = (id, txt, removeSkel=true) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (removeSkel) el.className = '';
+    el.textContent = txt;
+  };
+  const fmt = (n) => n > 0
+    ? '$' + Math.round(n).toLocaleString('es-AR')
+    : '—';
+
+  /* ── KPIs ── */
+  fetch('/api/home/stats')
+    .then(r => r.ok ? r.json() : Promise.reject())
+    .then(d => {
+      set('kActivos',  d.activos  ?? '—');
+      set('kVencidos', d.vencidos ?? '—');
+      set('kClientes', d.total_clientes ?? '—');
+      set('kIngresos', fmt(d.ingresos_mes ?? 0));
+
+      if (d.vencidos > 0) {
+        document.getElementById('warnVencidos')?.classList.remove('d-none');
+        set('warnNum', d.vencidos, false);
+      }
+    })
+    .catch(() => {
+      ['kActivos','kVencidos','kClientes','kIngresos'].forEach(id => set(id, '—'));
+    });
+
+  /* ── Gráfico origen ── */
+  fetch('/clients/source_stats')
+    .then(r => r.ok ? r.json() : Promise.reject())
+    .then(({ labels, data }) => {
+      document.getElementById('chartSkel').style.display = 'none';
+      if (!labels?.length) { document.getElementById('chartEmpty').style.display = 'block'; return; }
+
+      const canvas = document.getElementById('sourceChart');
+      canvas.style.display = 'block';
+      const colors = ['#218a72','#f5e663','#6ee7b7','#93c5fd','#fca5a5','#fde68a','#c4b5fd'];
+      new Chart(canvas, {
+        type: 'doughnut',
+        data: {
+          labels,
+          datasets: [{
+            data,
+            backgroundColor: colors.slice(0, data.length),
+            borderWidth: 2, borderColor: '#fff'
+          }]
+        },
+        options: {
+          responsive: true, cutout: '62%',
+          plugins: {
+            legend: { position:'bottom', labels:{ usePointStyle:true, padding:10, font:{size:11} } },
+            tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed}%` } }
+          }
+        }
+      });
+    })
+    .catch(() => {
+      document.getElementById('chartSkel').style.display = 'none';
+      document.getElementById('chartEmpty').style.display = 'block';
+    });
+
+});
+</script>
+{% endblock %}
