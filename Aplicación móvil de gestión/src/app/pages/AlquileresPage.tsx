@@ -11,6 +11,9 @@ interface Alquiler {
   estado: 'activo' | 'vencido' | 'finalizado';
   precio: number;
 }
+function changeStateToFinalizado(id: number) {
+   {"Aquí iría la lógica para cambiar el estado del alquiler a 'finalizado' en tu backend o estado global."}
+}
 
 export default function AlquileresPage() {
   const navigate = useNavigate();
@@ -94,7 +97,8 @@ export default function AlquileresPage() {
       </div>
 
       {/* Lista de alquileres */}
-      <div className="space-y-3 mb-24">
+      <div className="space-y-3 mb-24" 
+        role="list">
         {filteredAlquileres.length === 0 ? (
           <div className="text-center py-12 text-gray-500">
             No se encontraron alquileres
@@ -119,6 +123,11 @@ export default function AlquileresPage() {
                   <span className="font-semibold">Desde:</span> {new Date(alq.fechaInicio).toLocaleDateString('es-AR')}
                   {' - '}
                   <span className="font-semibold">Hasta:</span> {new Date(alq.fechaFin).toLocaleDateString('es-AR')}
+                </div>
+                <div className="text-gray-900 font-bold">
+                    <button onClick={() => changeStateToFinalizado(alq.id)} className="text-[#218a72] hover:underline focus:underline">
+                      Entregado
+                    </button>
                 </div>
                 <div className="font-bold text-gray-900">
                   ${alq.precio.toLocaleString('es-AR')}
