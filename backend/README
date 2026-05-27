@@ -1,0 +1,9 @@
+Para usarla, es muy simple:
+
+Nos posicionamos dentro de la carpeta.
+
+hacemos  npm install  y luego nomp run dev para iniciar el SV.
+
+Para probar el SV, pueden usar la URL http://localhost:3000/api/test que devuelve un mensaje de prueba. Desde ahí pueden agregar más rutas para manejar alquileres, clientes, etc.
+
+para correrlo en producción, podmeos usar npm start.
