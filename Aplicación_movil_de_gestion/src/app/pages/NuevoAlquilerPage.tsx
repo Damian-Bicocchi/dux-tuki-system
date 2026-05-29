@@ -17,7 +17,7 @@ export default function NuevoAlquilerPage() {
     e.preventDefault();
     // Aquí iría la lógica para guardar
     alert('Alquiler creado exitosamente');
-    navigate('/alquileres');
+    navigate('/app/alquileres');
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -160,7 +160,7 @@ export default function NuevoAlquilerPage() {
           </button>
           <button
             type="button"
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/app/')}
             className="px-6 py-4 border-2 border-gray-300 text-gray-700 rounded-xl font-bold hover:bg-gray-50 focus:bg-gray-50 transition-colors focus:outline-none focus:ring-4 focus:ring-gray-300"
             aria-label="Cancelar y volver al inicio"
           >

@@ -1,5 +1,8 @@
 import { createBrowserRouter } from 'react-router';
+
 import RootLayout from './layouts/RootLayout';
+
+import LoginPage from './pages/LoginPage';
 import HomePage from './pages/HomePage';
 import NuevoAlquilerPage from './pages/NuevoAlquilerPage';
 import AlquileresPage from './pages/AlquileresPage';
@@ -11,6 +14,11 @@ import CalendarioPage from './pages/CalendarioPage';
 export const router = createBrowserRouter([
   {
     path: '/',
+    Component: LoginPage,
+  },
+
+  {
+    path: '/app',
     Component: RootLayout,
     children: [
       { index: true, Component: HomePage },

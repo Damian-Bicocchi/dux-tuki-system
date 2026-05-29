@@ -62,13 +62,13 @@ export default function RootLayout() {
   }, []);
 
   const menuItems = [
-    { icon: Home, title: 'Inicio', path: '/' },
-    { icon: Plus, title: 'Nuevo Alquiler', path: '/nuevo-alquiler' },
-    { icon: List, title: 'Ver Alquileres', path: '/alquileres' },
-    { icon: Calendar, title: 'Calendario de vencimiento', path: '/calendario' },
-    { icon: Package, title: 'Stock', path: '/stock' },
-    { icon: Users, title: 'Clientes', path: '/clientes' },
-    { icon: BarChart3, title: 'Estadísticas', path: '/estadisticas' },
+    { icon: Home, title: 'Inicio', path: '/app/' },
+    { icon: Plus, title: 'Nuevo Alquiler', path: '/app/nuevo-alquiler' },
+    { icon: List, title: 'Ver Alquileres', path: '/app//alquileres' },
+    { icon: Calendar, title: 'Calendario de vencimiento', path: '/app//calendario' },
+    { icon: Package, title: 'Stock', path: '/app//stock' },
+    { icon: Users, title: 'Clientes', path: '/app//clientes' },
+    { icon: BarChart3, title: 'Estadísticas', path: '/app//estadisticas' },
   ];
 
   const currentPage = menuItems.find(item => item.path === location.pathname);

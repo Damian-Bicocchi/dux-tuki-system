@@ -254,7 +254,7 @@ export default function HomePage() {
                 </p>
                 <button
                   onClick={() =>
-                    navigate("/alquileres?filter=vencido")
+                    navigate("/app/alquileres?filter=vencido")
                   }
                   className="mt-4 w-full bg-red-700 text-white py-3.5 px-4 rounded-xl font-semibold hover:bg-red-800 focus:bg-red-800 transition-colors shadow-sm focus:outline-none focus:ring-4 focus:ring-red-300"
                   aria-label={`Revisar ${stats.vencidos} alquileres vencidos`}
@@ -327,7 +327,7 @@ export default function HomePage() {
 
       {/* CTA flotante */}
       <button
-        onClick={() => navigate("/nuevo-alquiler")}
+        onClick={() => navigate("/app/nuevo-alquiler")}
         className="fixed bottom-8 right-6 bg-[#f5e663] text-[#1b6f5c] rounded-full shadow-xl flex items-center justify-center gap-2 px-6 py-4 hover:scale-105 focus:scale-105 active:scale-95 transition-transform z-30 border-2 border-white focus:outline-none focus:ring-4 focus:ring-[#f5e663]/50"
         aria-label="Crear nuevo alquiler"
       >
