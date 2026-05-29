@@ -100,7 +100,7 @@ git clone https://github.com/Damian-Bicocchi/dux-tuki-system.git
 # 5. Entrar al proyecto
 
 ```bash
-cd tuki-system/Aplicación\ móvil\ de\ gestión/
+cd tuki-system/Aplicación_movil_de_gestion/
 ```
 
 ---
