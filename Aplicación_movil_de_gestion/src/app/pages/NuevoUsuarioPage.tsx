@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { UserPlus, X, Eye, EyeOff } from 'lucide-react';
+import { UserPlus, X, Eye, EyeOff, AlertCircle } from 'lucide-react';
 
 export default function NuevoUsuarioPage() {
   const navigate = useNavigate();
@@ -8,25 +8,25 @@ export default function NuevoUsuarioPage() {
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'administrador' // Valor por defecto
+    role: 'administrador'
   });
 
-  // Estados para manejar la visibilidad de las contraseñas
+  // Estados de visibilidad y manejo de errores accesible
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validación: verificar que las contraseñas coincidan
     if (formData.password !== formData.confirmPassword) {
-      alert('Las contraseñas no coinciden. Por favor, verificalas.');
+      setErrorMessage('Las contraseñas no coinciden. Por favor, verificalas.');
       return;
     }
 
-    // Aquí iría la lógica para registrar el usuario en el backend
-    alert('Usuario creado exitosamente');
-    navigate('/app/'); // O la ruta que manejes
+    setErrorMessage('');
+    alert('Usuario creado exitosamente'); // Aquí iría tu modal o toast accesible
+    navigate('/app/');
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -34,16 +34,33 @@ export default function NuevoUsuarioPage() {
       ...formData,
       [e.target.name]: e.target.value
     });
+    // Limpiamos el error si el usuario vuelve a escribir
+    if (errorMessage) setErrorMessage('');
   };
 
   return (
     <div className="px-5 py-6 max-w-2xl mx-auto">
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <h2>Registrar nuevo usuario</h2>
+      {/* Título de la página debidamente jerarquizado */}
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">Registrar nuevo usuario</h1>
+
+      <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+        
+        {/* Contenedor de Error Accesible (role="alert") */}
+        {errorMessage && (
+          <div 
+            id="form-error-summary"
+            role="alert" 
+            className="flex items-center gap-3 p-4 bg-red-50 border-2 border-red-200 text-red-700 rounded-xl font-medium text-sm"
+          >
+            <AlertCircle size={20} aria-hidden="true" className="flex-shrink-0" />
+            <span>{errorMessage}</span>
+          </div>
+        )}
+
         {/* Correo Electrónico */}
         <div>
           <label htmlFor="email" className="block text-sm font-bold text-gray-700 mb-2">
-            Correo electrónico *
+            Correo electrónico <span className="text-red-600" aria-hidden="true">*</span>
           </label>
           <input
             type="email"
@@ -61,7 +78,7 @@ export default function NuevoUsuarioPage() {
         {/* Contraseña */}
         <div>
           <label htmlFor="password" className="block text-sm font-bold text-gray-700 mb-2">
-            Contraseña *
+            Contraseña <span className="text-red-600" aria-hidden="true">*</span>
           </label>
           <div className="relative">
             <input
@@ -71,18 +88,21 @@ export default function NuevoUsuarioPage() {
               value={formData.password}
               onChange={handleChange}
               required
-              minLength={6} // Opcional: longitud mínima de seguridad
+              minLength={6}
+              aria-required="true"
+              aria-invalid={errorMessage ? "true" : "false"}
+              aria-describedby={errorMessage ? "form-error-summary" : undefined}
               className="w-full pl-4 pr-12 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors"
               placeholder="••••••••"
-              aria-required="true"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#218a72] rounded-lg p-0.5"
               aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+              aria-pressed={showPassword}
             >
-              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              {showPassword ? <EyeOff size={20} aria-hidden="true" /> : <Eye size={20} aria-hidden="true" />}
             </button>
           </div>
         </div>
@@ -90,7 +110,7 @@ export default function NuevoUsuarioPage() {
         {/* Repetir Contraseña */}
         <div>
           <label htmlFor="confirmPassword" className="block text-sm font-bold text-gray-700 mb-2">
-            Repetir contraseña *
+            Repetir contraseña <span className="text-red-600" aria-hidden="true">*</span>
           </label>
           <div className="relative">
             <input
@@ -100,17 +120,20 @@ export default function NuevoUsuarioPage() {
               value={formData.confirmPassword}
               onChange={handleChange}
               required
+              aria-required="true"
+              aria-invalid={errorMessage ? "true" : "false"}
+              aria-describedby={errorMessage ? "form-error-summary" : undefined}
               className="w-full pl-4 pr-12 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors"
               placeholder="••••••••"
-              aria-required="true"
             />
             <button
               type="button"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#218a72] rounded-lg p-0.5"
               aria-label={showConfirmPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+              aria-pressed={showConfirmPassword}
             >
-              {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              {showConfirmPassword ? <EyeOff size={20} aria-hidden="true" /> : <Eye size={20} aria-hidden="true" />}
             </button>
           </div>
         </div>
@@ -118,7 +141,7 @@ export default function NuevoUsuarioPage() {
         {/* Rol del Usuario */}
         <div>
           <label htmlFor="role" className="block text-sm font-bold text-gray-700 mb-2">
-            Rol asignado *
+            Rol asignado <span className="text-red-600" aria-hidden="true">*</span>
           </label>
           <select
             id="role"
@@ -126,8 +149,8 @@ export default function NuevoUsuarioPage() {
             value={formData.role}
             onChange={handleChange}
             required
-            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors"
             aria-required="true"
+            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors"
           >
             <option value="administrador">Administrador</option>
           </select>
@@ -137,18 +160,18 @@ export default function NuevoUsuarioPage() {
         <div className="flex gap-3 pt-4">
           <button
             type="submit"
-            className="flex-1 bg-[#218a72] text-white py-4 px-6 rounded-xl font-bold hover:bg-[#1b6f5c] focus:bg-[#1b6f5c] transition-colors focus:outline-none focus:ring-4 focus:ring-[#218a72]/30 flex items-center justify-center gap-2"
-          >
-            <UserPlus size={20} />
+            className="flex-1 bg-[#1b6f5c] text-white py-4 px-6 rounded-xl font-bold hover:bg-[#145345] focus:bg-[#145345] transition-colors focus:outline-none focus:ring-4 focus:ring-[#1b6f5c]/30 flex items-center justify-center gap-2"
+            >
+            <UserPlus size={20} aria-hidden="true" />
             Confirmar usuario
-          </button>
+            </button>
           <button
             type="button"
             onClick={() => navigate('/app/')}
-            className="px-6 py-4 border-2 border-gray-300 text-gray-700 rounded-xl font-bold hover:bg-gray-50 focus:bg-gray-50 transition-colors focus:outline-none focus:ring-4 focus:ring-gray-300"
+            className="px-6 py-4 border-2 border-gray-300 text-gray-700 rounded-xl font-bold hover:bg-gray-50 focus:bg-gray-50 transition-colors focus:outline-none focus:ring-4 focus:ring-gray-300 flex items-center justify-center"
             aria-label="Cancelar y volver al inicio"
           >
-            <X size={20} />
+            <X size={20} aria-hidden="true" />
           </button>
         </div>
       </form>
