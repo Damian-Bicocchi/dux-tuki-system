@@ -23,10 +23,45 @@ const db = new sqlite3.Database(dbPath, (err) => {
     }
 });
 
+function intializeDatabase(){
+    const createClientesTable = `
+    CREATE TABLE IF NOT EXISTS clientes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        telefono TEXT
+    )
+    `;
+    const createAlquileresTable = `
+    CREATE TABLE IF NOT EXISTS alquileres (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        cliente_id INTEGER NOT NULL,
+        fecha_inicio TEXT NOT NULL,
+        fecha_fin TEXT NOT NULL,
+        FOREIGN KEY (cliente_id) REFERENCES clientes(id)
+    )
+    `;
+    db.run(createClientesTable, (err) => {
+        if (err) {
+            console.error('❌ Error al crear la tabla clientes:', err.message);
+        } else {
+            console.log('✅ Tabla clientes creada o ya existe.');
+        }
+    });
+
+    db.run(createAlquileresTable, (err) => {
+        if (err) {
+            console.error('❌ Error al crear la tabla alquileres:', err.message);
+        } else {
+            console.log('✅ Tabla alquileres creada o ya existe.');
+        }
+    });
+}
 
 // Ruta raíz de prueba
 app.get('/', (req, res) => {
     res.json({ message: 'Bienvenido a la API de Dux Tuki System' });
+    intializeDatabase();
 });
 
 // Ruta de ejemplo: listar todas las tablas para verificar la conexión
@@ -48,7 +83,31 @@ app.get('/api/tablas', (req, res) => {
         },
     );
 });
+// Endpoint para obtener todos los clientes
 
+app.get('/api/clientes', (req, res) => {
+    db.all("SELECT * FROM clientes", [], (err, rows) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        res.json(rows);
+    });
+});
+
+
+// Endpoint para obtener un cliente en particular por su ID
+app.get('/api/clientes/:id',(req, res) => {
+    const { id } = req.params;
+    db.get("SELECT * FROM clientes WHERE id = ?", [id], (err, row) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        if (!row) {
+            return res.status(404).json({ message: "Cliente no encontrado" });
+        }
+        res.json(row);
+    });
+});
 
 // Endpoint para obtener todos los alquileres (opcional)
 app.get('/api/alquileres', (req, res) => {
