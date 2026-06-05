@@ -19,9 +19,9 @@ module.exports = (db) => {
             db.get('SELECT stock_total FROM articulos WHERE id = ?', [articulo_id], (err, articulo) => {
                 if (err) return reject(err);
                 if (!articulo) return reject(new Error(`Artículo ${articulo_id} no encontrado`));
-
+                //Coalesce suma la cantidad ocupada, si no hay nada, va a devolver 0
                 let query = `
-                    SELECT COALESCE(SUM(ai.cantidad), 0) AS ocupadas
+                    SELECT COALESCE(SUM(ai.cantidad), 0) AS ocupadas 
                     FROM alquiler_items ai
                     JOIN alquileres al ON ai.alquiler_id = al.id
                     WHERE ai.articulo_id = ?
@@ -52,6 +52,12 @@ module.exports = (db) => {
         });
     }
 
+    function calcularPrecioTotal(items,dias){
+        return items.reduce(
+            (acc, item) => acc + item.precio_unitario_dia * item.cantidad * dias,
+            0
+        );
+    }
     // Obtiene un alquiler completo (con cliente e items)
     function getAlquilerCompleto(id, callback) {
         db.get(
@@ -89,7 +95,8 @@ module.exports = (db) => {
             JOIN clientes c ON al.cliente_id = c.id
             WHERE 1=1
         `;
-        const params = [];
+
+        // el where 1=1 da siempre true, por lo que permite que construyamos condiciones adicionales con AND sin preocuparnos de si es la primera o no.
 
         if (estado)      { query += ' AND al.estado = ?';            params.push(estado); }
         if (cliente_id)  { query += ' AND al.cliente_id = ?';        params.push(cliente_id); }
@@ -162,10 +169,7 @@ module.exports = (db) => {
             );
 
             // Calcular precio total
-            const precio_total = itemsConPrecio.reduce(
-                (acc, item) => acc + item.precio_unitario_dia * item.cantidad * dias,
-                0
-            );
+            const precio_total = calcularPrecioTotal(itemsConPrecio,dias);
 
             // Insertar alquiler
             db.run(
