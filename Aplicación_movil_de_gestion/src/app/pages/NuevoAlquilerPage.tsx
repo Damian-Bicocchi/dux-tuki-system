@@ -170,7 +170,7 @@ export default function NuevoAlquilerPage() {
     };
   }, [items, diasAlquiler]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.SubmitEvent) => {
     e.preventDefault();
     if (!clienteSeleccionado) return alert('Por favor, selecciona un cliente válido.');
     if (items.some(i => !i.equipoId)) return alert('Por favor, completa todos los campos de los equipos.');
@@ -208,7 +208,6 @@ export default function NuevoAlquilerPage() {
                   onKeyDown={handleKeyDown}
                   className="w-full pl-11 pr-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors"
                   required={!clienteSeleccionado}
-                  aria-required="true"
                   role="combobox"
                   aria-expanded={mostrarDropdown && clientesFiltrados.length > 0}
                   aria-autocomplete="list"
@@ -218,16 +217,17 @@ export default function NuevoAlquilerPage() {
                 />
               </div>
 
-              <button
-                type="button"
-                onClick={() => navigate('/app/clientes/nuevo')}
-                className="px-4 py-3 bg-[#218a72]/10 text-[#218a72] border-2 border-[#218a72]/20 rounded-xl font-bold hover:bg-[#218a72]/20 focus:bg-[#218a72]/20 transition-colors focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 flex items-center gap-2 whitespace-nowrap text-sm"
-                aria-label="Registrar un nuevo cliente en el sistema"
-              >
-                <Plus size={18} aria-hidden="true" />
-                <span>Registrar nuevo cliente</span>
-              </button>
-            </div>
+    {/* Botón corregido y estilizado */}
+    <button
+      type="button"
+      onClick={() => navigate('/app/clientes/nuevo')}
+      className="px-4 py-3 bg-[#218a72]/10 text-[#218a72] border-2 border-[#218a72]/20 rounded-xl font-bold hover:bg-[#218a72]/20 focus:bg-[#218a72]/20 transition-colors focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 flex items-center gap-2 whitespace-nowrap text-sm"
+      aria-label="Registrar nuevo cliente"
+    >
+      <Plus size={18} aria-hidden="true" />
+      <span>Registrar nuevo cliente</span>
+    </button>
+  </div>
 
             {/* Listbox de resultados */}
             {mostrarDropdown && clientesFiltrados.length > 0 && (

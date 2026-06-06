@@ -199,9 +199,11 @@ export default function RootLayout() {
     },
   ];
 
-  const currentPage = menuItems.find(
-    (item) => item.path === location.pathname,
-  );
+  const currentPage =
+    menuItems.find((item) => item.path === location.pathname) ??
+    menuItems.find(
+      (item) => item.path !== "/app/" && location.pathname.startsWith(item.path.replace(/\/+$/, "")),
+    );
 
   return (
     <div className="min-h-screen bg-gray-50">
