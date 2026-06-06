@@ -66,7 +66,7 @@ const WEEK_DAYS_FULL  = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 const WEEK_DAYS_SHORT = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
 
 export default function CalendarioPage() {
-  const [currentDate, setCurrentDate] = useState(new Date(2026, 4, 10));
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
 
   const alquileres: Alquiler[] = [

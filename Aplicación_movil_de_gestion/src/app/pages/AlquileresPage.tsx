@@ -77,13 +77,17 @@ function ResumenAlquilerModal({
   }, [onClose, returnFocusTo]);
 
   const getEstadoColor = (estado: string) => {
-    switch (estado) {
-      case 'activo': return 'bg-green-100 text-green-800 border-green-300';
-      case 'vencido': return 'bg-red-100 text-red-800 border-red-300';
-      case 'finalizado': return 'bg-gray-100 text-gray-800 border-gray-300';
-      default: return 'bg-gray-100 text-gray-800 border-gray-300';
-    }
-  };
+  switch (estado) {
+    case 'activo': 
+      return 'bg-green-700 text-white border-transparent';
+    case 'vencido': 
+      return 'bg-red-700 text-white border-transparent';
+    case 'finalizado': 
+      return 'bg-zinc-600 text-white border-transparent';
+    default: 
+      return 'bg-zinc-600 text-white border-transparent';
+  }
+};
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center">
