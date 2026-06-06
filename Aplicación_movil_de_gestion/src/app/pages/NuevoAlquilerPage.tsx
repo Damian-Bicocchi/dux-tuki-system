@@ -162,7 +162,7 @@ export default function NuevoAlquilerPage() {
     return { itemsUnicos, unidadesTotales, subtotal, totalConDeposito: subtotal + (Number(deposito) || 0) };
   }, [items, deposito, diasAlquiler]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.SubmitEvent) => {
     e.preventDefault();
     if (!clienteSeleccionado) return alert('Por favor, selecciona un cliente válido.');
     if (items.some(i => !i.equipoId)) return alert('Por favor, completa todos los campos de los equipos.');
@@ -182,32 +182,43 @@ export default function NuevoAlquilerPage() {
             <label htmlFor="cliente-search" className="block text-sm font-bold text-gray-700 mb-2">
               Cliente *
             </label>
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-800" size={18} aria-hidden="true" />
-              <input
-                id="cliente-search"
-                type="text"
-                placeholder="Buscar por nombre o nro de cliente..."
-                value={buscarCliente}
-                onChange={(e) => {
-                  setBuscarCliente(e.target.value);
-                  setMostrarDropdown(true);
-                  if (clienteSeleccionado) setClienteSeleccionado(null);
-                }}
-                onFocus={() => setMostrarDropdown(true)}
-                onKeyDown={handleKeyDown} // Escucha las flechas y Enter
-                className="w-full pl-11 pr-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors"
-                required={!clienteSeleccionado}
-                
-                // Atributos ARIA Dinámicos para indicar el estado del teclado al lector de pantalla
-                role="combobox"
-                aria-expanded={mostrarDropdown && clientesFiltrados.length > 0}
-                aria-autocomplete="list"
-                aria-controls="clientes-listbox"
-                aria-haspopup="listbox"
-                aria-activedescendant={focusedIndex >= 0 ? `opcion-cliente-${focusedIndex}` : undefined}
-              />
-            </div>
+            <div className="flex gap-2 items-stretch">
+              <div className="relative flex-1">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-800" size={18} aria-hidden="true" />
+                <input
+                  id="cliente-search"
+                  type="text"
+                  placeholder="Buscar por nombre o nro de cliente..."
+                  value={buscarCliente}
+                  onChange={(e) => {
+                    setBuscarCliente(e.target.value);
+                    setMostrarDropdown(true);
+                    if (clienteSeleccionado) setClienteSeleccionado(null);
+                  }}
+                  onFocus={() => setMostrarDropdown(true)}
+                  onKeyDown={handleKeyDown}
+                  className="w-full pl-11 pr-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors"
+                  required={!clienteSeleccionado}
+                  role="combobox"
+                  aria-expanded={mostrarDropdown && clientesFiltrados.length > 0}
+                  aria-autocomplete="list"
+                  aria-controls="clientes-listbox"
+                  aria-haspopup="listbox"
+                  aria-activedescendant={focusedIndex >= 0 ? `opcion-cliente-${focusedIndex}` : undefined}
+                />
+              </div>
+
+    {/* Botón corregido y estilizado */}
+    <button
+      type="button"
+      onClick={() => navigate('/app/clientes/nuevo')}
+      className="px-4 py-3 bg-[#218a72]/10 text-[#218a72] border-2 border-[#218a72]/20 rounded-xl font-bold hover:bg-[#218a72]/20 focus:bg-[#218a72]/20 transition-colors focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 flex items-center gap-2 whitespace-nowrap text-sm"
+      aria-label="Registrar nuevo cliente"
+    >
+      <Plus size={18} aria-hidden="true" />
+      <span>Registrar nuevo cliente</span>
+    </button>
+  </div>
 
             {/* Listbox de resultados */}
             {mostrarDropdown && clientesFiltrados.length > 0 && (
