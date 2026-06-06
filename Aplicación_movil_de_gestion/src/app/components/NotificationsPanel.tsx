@@ -145,12 +145,15 @@ export default function NotificationsPanel({
     onUnreadCountChange?.(unreadCount);
   }, [unreadCount, onUnreadCountChange]);
 
-  // Focus al abrir
+  // Focus al abrir y restaurar al cerrar
   useEffect(() => {
-    if (isOpen) {
-      const timer = setTimeout(() => closeButtonRef.current?.focus(), 50);
-      return () => clearTimeout(timer);
-    }
+    if (!isOpen) return;
+    const previouslyFocused = document.activeElement as HTMLElement;
+    const timer = setTimeout(() => closeButtonRef.current?.focus(), 50);
+    return () => {
+      clearTimeout(timer);
+      previouslyFocused?.focus();
+    };
   }, [isOpen]);
 
   // Escape + trampa de foco

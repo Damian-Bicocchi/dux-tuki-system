@@ -152,23 +152,27 @@ export default function RootLayout() {
               className="px-5 py-4 space-y-1"
               aria-label="Menú principal"
             >
-              {menuItems.map((item, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => {
-                    navigate(item.path);
-                    setMenuOpen(false);
-                  }}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-white ${
-                    location.pathname === item.path
-                      ? 'bg-white/20'
-                      : 'hover:bg-white/10 focus:bg-white/10'
-                  }`}
-                >
-                  <item.icon size={20} className="flex-shrink-0" aria-hidden="true" />
-                  <span className="font-medium">{item.title}</span>
-                </button>
-              ))}
+              {menuItems.map((item, idx) => {
+                const isActive = location.pathname === item.path;
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      navigate(item.path);
+                      setMenuOpen(false);
+                    }}
+                    aria-current={isActive ? 'page' : undefined}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-white ${
+                      isActive
+                        ? 'bg-white/20'
+                        : 'hover:bg-white/10 focus:bg-white/10'
+                    }`}
+                  >
+                    <item.icon size={20} className="flex-shrink-0" aria-hidden="true" />
+                    <span className="font-medium">{item.title}</span>
+                  </button>
+                );
+              })}
             </nav>
           </div>
         )}
