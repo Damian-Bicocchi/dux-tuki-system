@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { Save, X, Plus, Search } from 'lucide-react';
+import { Save, X, Plus, Search, ArrowLeft } from 'lucide-react';
 
 const CLIENTES_MOCK = [
   { id: '1', nombre: 'Juan Pérez', numero: 'CLI-001', documento: '35444888' },
@@ -21,6 +21,7 @@ interface ItemAlquiler {
   equipoId: string;
   cantidad: number;
   precioUnitario: number;
+  deposito: number;
 }
 
 const formatearFechaVista = (fechaStr: string): string => {
@@ -43,10 +44,9 @@ export default function NuevoAlquilerPage() {
 
   const [fechaInicio, setFechaInicio] = useState('');
   const [fechaFin, setFechaFin] = useState('');
-  const [deposito, setDeposito] = useState('');
 
   const [items, setItems] = useState<ItemAlquiler[]>([
-    { equipoId: '', cantidad: 1, precioUnitario: 0 }
+    { equipoId: '', cantidad: 1, precioUnitario: 0, deposito: 0 }
   ]);
 
   const clientesFiltrados = useMemo(() => {
@@ -60,12 +60,10 @@ export default function NuevoAlquilerPage() {
     );
   }, [buscarCliente]);
 
-  // Resetear el índice del teclado cuando cambian los resultados de búsqueda
   useEffect(() => {
     setFocusedIndex(-1);
   }, [clientesFiltrados]);
 
-  // Cerrar el dropdown si el usuario hace click fuera del componente
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
@@ -76,13 +74,12 @@ export default function NuevoAlquilerPage() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // MANEJADOR DE EVENTOS DE TECLADO (Keydown)
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (!mostrarDropdown || clientesFiltrados.length === 0) return;
 
     switch (e.key) {
       case 'ArrowDown':
-        e.preventDefault(); // Evita que el cursor se mueva en el input
+        e.preventDefault();
         setFocusedIndex((prevIndex) => 
           prevIndex < clientesFiltrados.length - 1 ? prevIndex + 1 : 0
         );
@@ -94,7 +91,7 @@ export default function NuevoAlquilerPage() {
         );
         break;
       case 'Enter':
-        e.preventDefault(); // Evita el submit accidental del formulario
+        e.preventDefault();
         if (focusedIndex >= 0 && focusedIndex < clientesFiltrados.length) {
           seleccionarCliente(clientesFiltrados[focusedIndex]);
         }
@@ -105,7 +102,6 @@ export default function NuevoAlquilerPage() {
         setFocusedIndex(-1);
         break;
       case 'Tab':
-        // Si el usuario presiona Tab, simplemente cerramos la lista y dejamos que continúe el flujo nativo
         setMostrarDropdown(false);
         break;
     }
@@ -128,7 +124,7 @@ export default function NuevoAlquilerPage() {
   }, [fechaInicio, fechaFin]);
 
   const handleAddItem = () => {
-    setItems([...items, { equipoId: '', cantidad: 1, precioUnitario: 0 }]);
+    setItems([...items, { equipoId: '', cantidad: 1, precioUnitario: 0, deposito: 0 }]);
   };
 
   const handleRemoveItem = (index: number) => {
@@ -156,11 +152,23 @@ export default function NuevoAlquilerPage() {
     const itemsValidos = items.filter((item) => item.equipoId !== '');
     const itemsUnicos = itemsValidos.length;
     const unidadesTotales = itemsValidos.reduce((acc, curr) => acc + (Number(curr.cantidad) || 0), 0);
+    
     const subtotal = itemsValidos.reduce((acc, curr) => {
       return acc + ((Number(curr.cantidad) || 0) * (Number(curr.precioUnitario) || 0) * diasAlquiler);
     }, 0);
-    return { itemsUnicos, unidadesTotales, subtotal, totalConDeposito: subtotal + (Number(deposito) || 0) };
-  }, [items, deposito, diasAlquiler]);
+
+    const totalDeposito = itemsValidos.reduce((acc, curr) => {
+      return acc + ((Number(curr.cantidad) || 0) * (Number(curr.deposito) || 0));
+    }, 0);
+
+    return { 
+      itemsUnicos, 
+      unidadesTotales, 
+      subtotal, 
+      totalDeposito,
+      totalConDeposito: subtotal + totalDeposito 
+    };
+  }, [items, diasAlquiler]);
 
   const handleSubmit = (e: React.SubmitEvent) => {
     e.preventDefault();
@@ -172,15 +180,16 @@ export default function NuevoAlquilerPage() {
 
   return (
     <div className="px-4 py-6 max-w-6xl mx-auto">
+      <h1 className="sr-only">Formulario de registro de nuevo alquiler</h1>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         
         {/* COLUMNA FORMULARIO */}
         <form onSubmit={handleSubmit} className="lg:col-span-2 space-y-6 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
           
-          {/* Cliente Autocomplete Operable por Teclado */}
+          {/* Cliente Autocomplete */}
           <div className="relative" ref={containerRef}>
             <label htmlFor="cliente-search" className="block text-sm font-bold text-gray-700 mb-2">
-              Cliente *
+              Cliente
             </label>
             <div className="flex gap-2 items-stretch">
               <div className="relative flex-1">
@@ -236,16 +245,15 @@ export default function NuevoAlquilerPage() {
                       role="option"
                       aria-selected={focusedIndex === idx}
                       onClick={() => seleccionarCliente(c)}
-                      // Cambiamos el estilo si el elemento está enfocado por el teclado
                       className={`w-full text-left px-4 py-3 flex justify-between items-center transition-colors focus:outline-none ${
                         focusedIndex === idx ? 'bg-[#218a72]/10 text-gray-900 font-medium' : 'hover:bg-gray-50'
                       }`}
                     >
                       <div>
                         <span className="font-semibold block text-gray-800">{c.nombre}</span>
-                        <span className="text-xs text-gray-500">Doc: {c.documento}</span>
+                        <span className="text-xs text-gray-500">Documento: {c.documento}</span>
                       </div>
-                      <span className="text-xs bg-gray-100 px-2 py-1 rounded text-gray-600 font-mono">{c.numero}</span>
+                      <span className="text-xs bg-gray-100 px-2 py-1 rounded text-gray-600 font-mono" aria-label={`Número de cliente ${c.numero}`}>{c.numero}</span>
                     </button>
                   </li>
                 ))}
@@ -263,7 +271,7 @@ export default function NuevoAlquilerPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label htmlFor="fechaInicio" className="block text-sm font-bold text-gray-700 mb-2">
-                Fecha inicio *
+                Fecha inicio
               </label>
               <input
                 type="date"
@@ -271,13 +279,14 @@ export default function NuevoAlquilerPage() {
                 value={fechaInicio}
                 onChange={(e) => setFechaInicio(e.target.value)}
                 required
+                aria-required="true"
                 max={fechaFin}
                 className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors"
               />
             </div>
             <div>
               <label htmlFor="fechaFin" className="block text-sm font-bold text-gray-700 mb-2">
-                Fecha fin *
+                Fecha fin
               </label>
               <input
                 type="date"
@@ -285,13 +294,14 @@ export default function NuevoAlquilerPage() {
                 value={fechaFin}
                 onChange={(e) => setFechaFin(e.target.value)}
                 required
+                aria-required="true"
                 min={fechaInicio}
                 className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors"
               />
             </div>
           </div>
 
-          <hr className="border-gray-100" />
+          <hr className="border-gray-100" aria-hidden="true" />
 
           {/* Listado de Equipos */}
           <div>
@@ -299,30 +309,41 @@ export default function NuevoAlquilerPage() {
               <h2 id="titulo-dispositivos" className="text-sm font-bold text-gray-700 uppercase tracking-wider">
                 Dispositivos a Alquilar
               </h2>
-              
             </div>
 
-            <div className="space-y-3" role="group" aria-labelledby="titulo-dispositivos">
+            <p id="desc-tabla-equipos" className="sr-only">
+              Sección de lista de equipos organizada en bloques independientes de dos filas para mayor claridad visual.
+            </p>
+
+            <div className="space-y-4" role="group" aria-labelledby="titulo-dispositivos" aria-describedby="desc-tabla-equipos">
               {items.map((item, index) => {
                 const equipoInputId = `equipo-select-${index}`;
                 const cantidadInputId = `equipo-cantidad-${index}`;
                 const precioInputId = `equipo-precio-${index}`;
+                const depositoInputId = `equipo-deposito-${index}`;
+                const descDepositoId = `desc-deposito-${index}`;
 
                 return (
                   <div 
                     key={index} 
-                    className="grid grid-cols-1 sm:grid-cols-12 gap-3 p-4 bg-gray-50 rounded-xl border border-gray-200 items-end relative"
+                    role="region"
+                    aria-label={`Formulario de dispositivo número ${index + 1}`}
+                    className="p-4 bg-gray-50 rounded-2xl border border-gray-200 space-y-4 relative"
                   >
-                    <div className="sm:col-span-5">
-                      <label htmlFor={equipoInputId} className="block text-xs font-bold text-gray-800 mb-1">
-                        Equipo * (Fila {index + 1})
+                    <span id={descDepositoId} className="sr-only">Monto del depósito de garantía por cada unidad de este dispositivo.</span>
+
+                    {/* FILA 1: Selección del Equipo completo */}
+                    <div>
+                      <label htmlFor={equipoInputId} className="block text-sm font-bold text-gray-800 mb-1.5">
+                        Equipo (Fila {index + 1})
                       </label>
                       <select
                         id={equipoInputId}
                         value={item.equipoId}
                         onChange={(e) => handleItemChange(index, 'equipoId', e.target.value)}
                         required
-                        className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg bg-white text-sm focus:outline-none focus:border-[#218a72]"
+                        aria-required="true"
+                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl bg-white text-base focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors"
                       >
                         <option value="">Seleccionar equipo</option>
                         {EQUIPOS_DISPONIBLES.map((eq) => (
@@ -331,10 +352,12 @@ export default function NuevoAlquilerPage() {
                       </select>
                     </div>
 
-                    {/* Cantidad */}
+                    {/* FILA 2: Valores métricos del equipo */}
+                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+                      {/* Cantidad */}
                       <div className="sm:col-span-3">
-                        <label htmlFor={cantidadInputId} className="block text-xs font-bold text-gray-800 mb-1">
-                          Cantidad *
+                        <label htmlFor={cantidadInputId} className="block text-sm font-bold text-gray-800 mb-1.5">
+                          Cantidad
                         </label>
                         <input
                           type="number"
@@ -343,20 +366,18 @@ export default function NuevoAlquilerPage() {
                           value={item.cantidad}
                           onChange={(e) => handleItemChange(index, 'cantidad', parseInt(e.target.value) || 0)}
                           required
-                          // bg-white: Fondo blanco explícito
-                          // focus:ring-4 focus:ring-[#218a72]/20: Anillo de enfoque igual a los demás inputs
-                          // [appearance:textfield]...: Oculta las flechas internas nativas de los inputs numéricos
-                          className="w-full px-3 py-2 border-2 border-gray-300 rounded-xl bg-white text-sm focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          aria-required="true"
+                          className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl bg-white text-base focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </div>
 
                       {/* Precio Unitario */}
-                      <div className="sm:col-span-3">
-                        <label htmlFor={precioInputId} className="block text-xs font-bold text-gray-800 mb-1">
-                          Precio Unit. *
+                      <div className="sm:col-span-4">
+                        <label htmlFor={precioInputId} className="block text-sm font-bold text-gray-800 mb-1.5">
+                          Precio Unit.
                         </label>
                         <div className="relative">
-                          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm" aria-hidden="true">$</span>
+                          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-base" aria-hidden="true">$</span>
                           <input
                             type="number"
                             id={precioInputId}
@@ -364,60 +385,73 @@ export default function NuevoAlquilerPage() {
                             value={item.precioUnitario}
                             onChange={(e) => handleItemChange(index, 'precioUnitario', parseFloat(e.target.value) || 0)}
                             required
-                            // Ajustamos pl-7 para que el texto empiece un poco después del símbolo $
-                            className="w-full pl-7 pr-3 py-2 border-2 border-gray-300 rounded-xl bg-white text-sm focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            aria-required="true"
+                            className="w-full pl-8 pr-4 py-3 border-2 border-gray-300 rounded-xl bg-white text-base focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        />
+                        </div>
+                      </div>
+
+                      {/* Depósito de Garantía */}
+                      <div className="sm:col-span-4">
+                        <label htmlFor={depositoInputId} className="block text-sm font-bold text-gray-800 mb-1.5">
+                          Dep. Garantía
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-base" aria-hidden="true">$</span>
+                          <input
+                            type="number"
+                            id={depositoInputId}
+                            min="0"
+                            value={item.deposito || ''}
+                            onChange={(e) => handleItemChange(index, 'deposito', parseFloat(e.target.value) || 0)}
+                            placeholder="0"
+                            aria-describedby={descDepositoId}
+                            className="w-full pl-8 pr-4 py-3 border-2 border-gray-300 rounded-xl bg-white text-base focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           />
                         </div>
                       </div>
 
-                    <div className="sm:col-span-1 flex justify-center sm:justify-end pb-1">
-                      <button
-                        type="button"
-                        disabled={items.length === 1}
-                        onClick={() => handleRemoveItem(index)}
-                        className="p-2 text-red-500 hover:bg-red-50 disabled:opacity-30 disabled:hover:bg-transparent rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500"
-                        aria-label={`Eliminar fila ${index + 1}`}
-                      >
-                        <X size={18} aria-hidden="true" />
-                      </button>
+                      {/* Botón Eliminar */}
+                      <div className="sm:col-span-1 flex justify-center sm:justify-end">
+                        <button
+                          type="button"
+                          disabled={items.length === 1}
+                          onClick={() => handleRemoveItem(index)}
+                          className="p-3 text-red-500 hover:bg-red-50 disabled:opacity-30 disabled:hover:bg-transparent rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-red-500"
+                          aria-label={`Eliminar bloque de dispositivo número ${index + 1}`}
+                        >
+                          <X size={22} aria-hidden="true" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
               })}
             </div>
-            
           </div>
+
           <button
-                type="button"
-                onClick={handleAddItem}
-                className="text-xs bg-[#218a72]/10 text-[#218a72] hover:bg-[#218a72]/20 px-3 py-2 rounded-lg font-bold flex items-center gap-1 transition-colors focus:outline-none focus:ring-2 focus:ring-[#218a72]"
-              >
-                <Plus size={14} aria-hidden="true" /> Añadir equipo
-              </button>
+            type="button"
+            onClick={handleAddItem}
+            className="text-xs bg-[#218a72]/10 text-[#218a72] hover:bg-[#218a72]/20 px-3 py-2 rounded-lg font-bold flex items-center gap-1 transition-colors focus:outline-none focus:ring-2 focus:ring-[#218a72]"
+            aria-label="Añadir un nuevo bloque de dispositivo al listado"
+          >
+            <Plus size={14} aria-hidden="true" /> Añadir equipo
+          </button>
 
-          <hr className="border-gray-100" />
-
-          {/* Depósito de garantía */}
-          <div>
-            <label htmlFor="deposito" className="block text-sm font-bold text-gray-700 mb-2">
-              Depósito de garantía (Global, Opcional)
-            </label>
-            <div className="relative max-w-xs">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-800 font-semibold" aria-hidden="true">$</span>
-              <input
-                type="number"
-                id="deposito"
-                value={deposito}
-                onChange={(e) => setDeposito(e.target.value)}
-                min="0"
-                className="w-full pl-8 pr-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors"
-                placeholder="0"
-              />
-            </div>
-          </div>
+          <hr className="border-gray-100" aria-hidden="true" />
 
           {/* Botones de acción */}
           <div className="flex gap-3 pt-4">
+            <button
+              type="button"
+              onClick={() => navigate('/app/alquileres')}
+              className="px-6 py-4 border-2 border-gray-300 text-gray-700 rounded-xl font-bold hover:bg-gray-50 focus:bg-gray-50 transition-colors focus:outline-none focus:ring-4 focus:ring-gray-300 flex items-center gap-2"
+              aria-label="Regresar al listado general de alquileres"
+            >
+              <ArrowLeft size={20} aria-hidden="true" />
+              Volver
+            </button>
             <button
               type="submit"
               className="flex-1 bg-[#166b58] text-white py-4 px-6 rounded-xl font-bold hover:bg-[#125546] focus:bg-[#125546] transition-colors focus:outline-none focus:ring-4 focus:ring-[#166b58]/30 flex items-center justify-center gap-2"
@@ -428,8 +462,8 @@ export default function NuevoAlquilerPage() {
             <button
               type="button"
               onClick={() => navigate('/app/')}
-              className="px-6 py-4 border-2 border-gray-300 text-gray-700 rounded-xl font-bold hover:bg-gray-50 focus:bg-gray-50 transition-colors focus:outline-none focus:ring-4 focus:ring-gray-300"
-              aria-label="Cancelar creación de alquiler y volver"
+              className="px-6 py-4 border-2 border-gray-200 text-gray-400 rounded-xl font-bold hover:bg-gray-50 hover:text-gray-600 transition-colors focus:outline-none"
+              aria-label="Cancelar y salir al panel raíz"
             >
               <X size={20} aria-hidden="true" />
             </button>
@@ -467,7 +501,7 @@ export default function NuevoAlquilerPage() {
                   <div className="text-gray-600 space-y-1">
                     <p>Desde: <span className="font-semibold text-gray-800">{formatearFechaVista(fechaInicio) || 'No especificada'}</span></p>
                     <p>Hasta: <span className="font-semibold text-gray-800">{formatearFechaVista(fechaFin) || 'No especificada'}</span></p>
-                    <p className="text-xs bg-[#218a72]/10 text-[#218a72] font-bold px-2 py-1 rounded inline-block">
+                    <p className="text-xs bg-[#218a72]/10 text-[#218a72] font-bold px-2 py-1 rounded inline-block" aria-live="polite">
                       {diasAlquiler} {diasAlquiler === 1 ? 'día' : 'días'} de alquiler
                     </p>
                   </div>
@@ -493,14 +527,14 @@ export default function NuevoAlquilerPage() {
             <dl className="space-y-2">
               <div className="flex justify-between text-sm text-gray-800">
                 <dt>Subtotal equipos ({diasAlquiler} {diasAlquiler === 1 ? 'día' : 'días'}):</dt>
-                <dd className="font-semibold text-gray-800" aria-label={`${resumen.subtotal} pesos`}>
+                <dd className="font-semibold text-gray-800">
                   ${resumen.subtotal.toLocaleString('es-AR')}
                 </dd>
               </div>
               <div className="flex justify-between text-sm text-gray-800">
-                <dt>Depósito garantía:</dt>
-                <dd className="font-semibold text-gray-800" aria-label={`${Number(deposito) || 0} pesos`}>
-                  ${(Number(deposito) || 0).toLocaleString('es-AR')}
+                <dt>Total depósitos garantía:</dt>
+                <dd className="font-semibold text-gray-800">
+                  ${resumen.totalDeposito.toLocaleString('es-AR')}
                 </dd>
               </div>
               
