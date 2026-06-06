@@ -394,7 +394,7 @@ export default function NuevoAlquilerPage() {
                       {/* Depósito de Garantía */}
                       <div className="sm:col-span-4">
                         <label htmlFor={depositoInputId} className="block text-sm font-bold text-gray-800 mb-1.5">
-                          Dep. Garantía
+                          Depósito Garantía (opcional)
                         </label>
                         <div className="relative">
                           <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-base" aria-hidden="true">$</span>
