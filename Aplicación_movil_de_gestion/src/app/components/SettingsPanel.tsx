@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { X, Type, Contrast, Maximize2, Zap, Eye } from 'lucide-react';
 
 interface SettingsPanelProps {
@@ -16,6 +17,43 @@ export interface AccessibilitySettings {
 }
 
 export default function SettingsPanel({ isOpen, onClose, settings, onSettingsChange }: SettingsPanelProps) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
+  // Focus al abrir, trampa de teclado, Escape, y restaurar foco al cerrar
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const previouslyFocused = document.activeElement as HTMLElement;
+    const timer = setTimeout(() => closeButtonRef.current?.focus(), 50);
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { onClose(); return; }
+      if (e.key === 'Tab' && panelRef.current) {
+        const focusable = Array.from(
+          panelRef.current.querySelectorAll<HTMLElement>(
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+          )
+        ).filter((el) => !el.hasAttribute('disabled'));
+        if (!focusable.length) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault(); last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault(); first.focus();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('keydown', handleKeyDown);
+      previouslyFocused?.focus();
+    };
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const fontSizeOptions = [
@@ -47,22 +85,29 @@ export default function SettingsPanel({ isOpen, onClose, settings, onSettingsCha
 
       {/* Panel */}
       <div
+        ref={panelRef}
         className="fixed inset-x-0 bottom-0 bg-white rounded-t-3xl shadow-2xl z-50 max-h-[85vh] overflow-y-auto"
         role="dialog"
         aria-labelledby="settings-title"
         aria-modal="true"
       >
+        {/* Handle decorativo */}
+        <div className="flex justify-center pt-3 pb-1" aria-hidden="true">
+          <div className="w-10 h-1 bg-gray-300 rounded-full" />
+        </div>
+
         {/* Header */}
         <div className="sticky top-0 bg-white border-b-2 border-gray-100 px-5 py-4 flex items-center justify-between">
           <h2 id="settings-title" className="text-xl font-bold text-gray-900">
             Configuración de Accesibilidad
           </h2>
           <button
+            ref={closeButtonRef}
             onClick={onClose}
             className="p-2.5 hover:bg-gray-100 rounded-xl transition-colors focus:outline-none focus:ring-4 focus:ring-gray-300"
-            aria-label="Cerrar configuración"
+            aria-label="Cerrar configuración de accesibilidad"
           >
-            <X size={24} />
+            <X size={24} aria-hidden="true" />
           </button>
         </div>
 
@@ -74,7 +119,8 @@ export default function SettingsPanel({ isOpen, onClose, settings, onSettingsCha
               <Type size={20} className="text-[#218a72]" aria-hidden="true" />
               <h3 className="font-bold text-gray-900 text-base">Tamaño de letra</h3>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2" role="group" aria-labelledby="fontsize-group-label">
+              <span id="fontsize-group-label" className="sr-only">Opciones de tamaño de letra</span>
               {fontSizeOptions.map((option) => (
                 <button
                   key={option.value}
@@ -92,7 +138,7 @@ export default function SettingsPanel({ isOpen, onClose, settings, onSettingsCha
                       <div className="text-sm text-gray-500 mt-0.5">{option.size}</div>
                     </div>
                     {settings.fontSize === option.value && (
-                      <div className="w-6 h-6 rounded-full bg-[#218a72] flex items-center justify-center">
+                      <div className="w-6 h-6 rounded-full bg-[#218a72] flex items-center justify-center" aria-hidden="true">
                         <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                         </svg>
@@ -110,7 +156,8 @@ export default function SettingsPanel({ isOpen, onClose, settings, onSettingsCha
               <Contrast size={20} className="text-[#218a72]" aria-hidden="true" />
               <h3 className="font-bold text-gray-900 text-base">Contraste de colores</h3>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2" role="group" aria-labelledby="contrast-group-label">
+              <span id="contrast-group-label" className="sr-only">Opciones de contraste</span>
               {contrastOptions.map((option) => (
                 <button
                   key={option.value}
@@ -125,7 +172,7 @@ export default function SettingsPanel({ isOpen, onClose, settings, onSettingsCha
                   <div className="flex items-center justify-between">
                     <div className="font-semibold text-gray-900">{option.label}</div>
                     {settings.contrast === option.value && (
-                      <div className="w-6 h-6 rounded-full bg-[#218a72] flex items-center justify-center">
+                      <div className="w-6 h-6 rounded-full bg-[#218a72] flex items-center justify-center" aria-hidden="true">
                         <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                         </svg>
@@ -143,7 +190,8 @@ export default function SettingsPanel({ isOpen, onClose, settings, onSettingsCha
               <Maximize2 size={20} className="text-[#218a72]" aria-hidden="true" />
               <h3 className="font-bold text-gray-900 text-base">Espaciado</h3>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2" role="group" aria-labelledby="spacing-group-label">
+              <span id="spacing-group-label" className="sr-only">Opciones de espaciado</span>
               {spacingOptions.map((option) => (
                 <button
                   key={option.value}
@@ -158,7 +206,7 @@ export default function SettingsPanel({ isOpen, onClose, settings, onSettingsCha
                   <div className="flex items-center justify-between">
                     <div className="font-semibold text-gray-900">{option.label}</div>
                     {settings.spacing === option.value && (
-                      <div className="w-6 h-6 rounded-full bg-[#218a72] flex items-center justify-center">
+                      <div className="w-6 h-6 rounded-full bg-[#218a72] flex items-center justify-center" aria-hidden="true">
                         <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                         </svg>
@@ -192,15 +240,10 @@ export default function SettingsPanel({ isOpen, onClose, settings, onSettingsCha
                   <div className="text-sm text-gray-500 mt-1">Minimiza animaciones y transiciones</div>
                 </div>
                 <div
-                  className={`w-12 h-7 rounded-full transition-colors ${
-                    settings.reduceMotion ? 'bg-[#218a72]' : 'bg-gray-300'
-                  }`}
+                  className={`w-12 h-7 rounded-full transition-colors ${settings.reduceMotion ? 'bg-[#218a72]' : 'bg-gray-300'}`}
+                  aria-hidden="true"
                 >
-                  <div
-                    className={`w-5 h-5 bg-white rounded-full mt-1 transition-transform ${
-                      settings.reduceMotion ? 'ml-6' : 'ml-1'
-                    }`}
-                  />
+                  <div className={`w-5 h-5 bg-white rounded-full mt-1 transition-transform ${settings.reduceMotion ? 'ml-6' : 'ml-1'}`} />
                 </div>
               </div>
             </button>
@@ -228,15 +271,10 @@ export default function SettingsPanel({ isOpen, onClose, settings, onSettingsCha
                   <div className="text-sm text-gray-500 mt-1">Usa colores alternativos más distinguibles</div>
                 </div>
                 <div
-                  className={`w-12 h-7 rounded-full transition-colors ${
-                    settings.colorBlindMode ? 'bg-[#218a72]' : 'bg-gray-300'
-                  }`}
+                  className={`w-12 h-7 rounded-full transition-colors ${settings.colorBlindMode ? 'bg-[#218a72]' : 'bg-gray-300'}`}
+                  aria-hidden="true"
                 >
-                  <div
-                    className={`w-5 h-5 bg-white rounded-full mt-1 transition-transform ${
-                      settings.colorBlindMode ? 'ml-6' : 'ml-1'
-                    }`}
-                  />
+                  <div className={`w-5 h-5 bg-white rounded-full mt-1 transition-transform ${settings.colorBlindMode ? 'ml-6' : 'ml-1'}`} />
                 </div>
               </div>
             </button>
@@ -249,7 +287,7 @@ export default function SettingsPanel({ isOpen, onClose, settings, onSettingsCha
               contrast: 'normal',
               spacing: 'normal',
               reduceMotion: false,
-              colorBlindMode: false
+              colorBlindMode: false,
             })}
             className="w-full p-4 rounded-xl border-2 border-gray-300 bg-white text-gray-900 font-semibold hover:bg-gray-50 transition-colors focus:outline-none focus:ring-4 focus:ring-gray-300"
           >

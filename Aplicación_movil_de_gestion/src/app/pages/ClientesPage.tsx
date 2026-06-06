@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Search, Mail, Phone, UserPlus, X, IdCard } from 'lucide-react';
 
 interface Cliente {
@@ -21,11 +21,45 @@ export default function ClientesPage() {
     { id: 5, nombre: 'Roberto Sánchez', email: 'roberto@email.com', dni: '28567890', alquileres: 12, ultimoAlquiler: '2026-05-03' },
   ]);
 
-  const [formData, setFormData] = useState({
-    nombre: '',
-    email: '',
-    dni: '',
-  });
+  const [formData, setFormData] = useState({ nombre: '', email: '', dni: '' });
+
+  const openButtonRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
+  // Manejo de foco: focus al abrir, trampa de teclado, Escape, restaurar al cerrar
+  useEffect(() => {
+    if (!showModal) return;
+
+    const previouslyFocused = document.activeElement as HTMLElement;
+    const timer = setTimeout(() => closeButtonRef.current?.focus(), 50);
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { setShowModal(false); return; }
+      if (e.key === 'Tab' && panelRef.current) {
+        const focusable = Array.from(
+          panelRef.current.querySelectorAll<HTMLElement>(
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+          )
+        ).filter((el) => !el.hasAttribute('disabled'));
+        if (!focusable.length) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault(); last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault(); first.focus();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('keydown', handleKeyDown);
+      previouslyFocused?.focus();
+    };
+  }, [showModal]);
 
   const filteredClientes = clientes.filter(cliente =>
     cliente.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -35,10 +69,7 @@ export default function ClientesPage() {
 
   const handleRegistrarCliente = (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!formData.nombre || !formData.email || !formData.dni) {
-      return;
-    }
+    if (!formData.nombre || !formData.email || !formData.dni) return;
 
     const nuevoCliente: Cliente = {
       id: clientes.length + 1,
@@ -88,9 +119,7 @@ export default function ClientesPage() {
       {/* Lista de clientes */}
       <div className="space-y-3">
         {filteredClientes.length === 0 ? (
-          <div className="text-center py-12 text-gray-500">
-            No se encontraron clientes
-          </div>
+          <div className="text-center py-12 text-gray-500">No se encontraron clientes</div>
         ) : (
           filteredClientes.map(cliente => (
             <article
@@ -98,7 +127,10 @@ export default function ClientesPage() {
               className="bg-white border-2 border-gray-100 rounded-2xl p-5 hover:border-[#218a72] transition-colors"
             >
               <div className="flex items-start gap-4 mb-4">
-                <div className="w-12 h-12 rounded-full bg-[#218a72] text-white flex items-center justify-center font-bold text-lg flex-shrink-0">
+                <div
+                  className="w-12 h-12 rounded-full bg-[#218a72] text-white flex items-center justify-center font-bold text-lg flex-shrink-0"
+                  aria-hidden="true"
+                >
                   {cliente.nombre.charAt(0)}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -106,7 +138,11 @@ export default function ClientesPage() {
                   <div className="space-y-1.5">
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <Mail size={16} className="text-gray-400 flex-shrink-0" aria-hidden="true" />
-                      <a href={`mailto:${cliente.email}`} className="hover:text-[#218a72] transition-colors truncate">
+                      <a
+                        href={`mailto:${cliente.email}`}
+                        className="hover:text-[#218a72] transition-colors truncate focus:outline-none focus:ring-2 focus:ring-[#218a72] focus:ring-offset-1 rounded"
+                        aria-label={`Enviar email a ${cliente.nombre}: ${cliente.email}`}
+                      >
                         {cliente.email}
                       </a>
                     </div>
@@ -136,78 +172,95 @@ export default function ClientesPage() {
 
       {/* Botón flotante registrar */}
       <button
+        ref={openButtonRef}
         onClick={() => setShowModal(true)}
         className="fixed bottom-20 right-5 w-14 h-14 bg-[#218a72] hover:bg-[#1b6f5c] text-white rounded-full shadow-lg flex items-center justify-center focus:outline-none focus:ring-4 focus:ring-[#218a72]/30 transition-all active:scale-95"
         aria-label="Registrar nuevo cliente"
+        aria-haspopup="dialog"
       >
-        <UserPlus size={24} />
+        <UserPlus size={24} aria-hidden="true" />
       </button>
 
       {/* Modal de registro */}
       {showModal && (
-        <div
-          className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 animate-in fade-in duration-200"
-          onClick={() => setShowModal(false)}
-        >
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center animate-in fade-in duration-200">
+          {/* Overlay */}
           <div
-            className="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-6 animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 duration-300"
-            onClick={(e) => e.stopPropagation()}
+            className="absolute inset-0 bg-black/50"
+            aria-hidden="true"
+            onClick={() => setShowModal(false)}
+          />
+
+          {/* Panel del diálogo */}
+          <div
+            ref={panelRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="registrar-cliente-titulo"
+            className="relative bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-6 animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 duration-300"
           >
             <div className="flex items-center justify-between mb-6">
-              <h2 className="font-bold text-xl text-gray-900">Registrar cliente</h2>
+              <h2 id="registrar-cliente-titulo" className="font-bold text-xl text-gray-900">
+                Registrar cliente
+              </h2>
               <button
+                ref={closeButtonRef}
                 onClick={() => setShowModal(false)}
                 className="p-2 hover:bg-gray-100 rounded-lg transition-colors focus:outline-none focus:ring-4 focus:ring-gray-200"
-                aria-label="Cerrar"
+                aria-label="Cerrar formulario de registro de cliente"
               >
-                <X size={20} className="text-gray-600" />
+                <X size={20} className="text-gray-600" aria-hidden="true" />
               </button>
             </div>
 
-            <form onSubmit={handleRegistrarCliente} className="space-y-4">
+            <form onSubmit={handleRegistrarCliente} className="space-y-4" aria-label="Formulario de nuevo cliente">
               <div>
-                <label htmlFor="nombre" className="block text-sm font-bold text-gray-700 mb-2">
-                  Nombre completo
+                <label htmlFor="cliente-nombre" className="block text-sm font-bold text-gray-700 mb-2">
+                  Nombre completo <span aria-hidden="true">*</span>
                 </label>
                 <input
-                  id="nombre"
+                  id="cliente-nombre"
                   type="text"
                   value={formData.nombre}
                   onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
                   placeholder="Ej: Juan Pérez"
                   className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors"
                   required
+                  aria-required="true"
                 />
               </div>
 
               <div>
-                <label htmlFor="email" className="block text-sm font-bold text-gray-700 mb-2">
-                  Email
+                <label htmlFor="cliente-email" className="block text-sm font-bold text-gray-700 mb-2">
+                  Email <span aria-hidden="true">*</span>
                 </label>
                 <input
-                  id="email"
+                  id="cliente-email"
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   placeholder="Ej: juan@email.com"
                   className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors"
                   required
+                  aria-required="true"
                 />
               </div>
 
               <div>
-                <label htmlFor="dni" className="block text-sm font-bold text-gray-700 mb-2">
-                  DNI
+                <label htmlFor="cliente-dni" className="block text-sm font-bold text-gray-700 mb-2">
+                  DNI <span aria-hidden="true">*</span>
                 </label>
                 <input
-                  id="dni"
+                  id="cliente-dni"
                   type="text"
                   value={formData.dni}
                   onChange={(e) => setFormData({ ...formData, dni: e.target.value.replace(/\D/g, '') })}
                   placeholder="Ej: 35123456"
                   className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors"
                   required
+                  aria-required="true"
                   maxLength={8}
+                  inputMode="numeric"
                 />
               </div>
 

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { Search, Package, Plus, X } from "lucide-react";
 
 interface Item {
@@ -113,6 +113,44 @@ export default function StockPage() {
     return "disponible";
   };
 
+  const openButtonRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
+  // Manejo de foco: focus al abrir, trampa de teclado, Escape, restaurar al cerrar
+  useEffect(() => {
+    if (!isModalOpen) return;
+
+    const previouslyFocused = document.activeElement as HTMLElement;
+    const timer = setTimeout(() => closeButtonRef.current?.focus(), 50);
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { setIsModalOpen(false); return; }
+      if (e.key === 'Tab' && panelRef.current) {
+        const focusable = Array.from(
+          panelRef.current.querySelectorAll<HTMLElement>(
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+          )
+        ).filter((el) => !el.hasAttribute('disabled'));
+        if (!focusable.length) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault(); last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault(); first.focus();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('keydown', handleKeyDown);
+      previouslyFocused?.focus();
+    };
+  }, [isModalOpen]);
+
   const handleOpenModal = () => {
     setFormData({ nombre: "", categoria: "", cantidad: 1 });
     setIsModalOpen(true);
@@ -173,11 +211,13 @@ export default function StockPage() {
           Inventario
         </h2>
         <button
+          ref={openButtonRef}
           onClick={handleOpenModal}
           className="bg-[#218a72] text-white px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-[#196b58] transition-colors shadow-sm font-medium focus:outline-none focus:ring-4 focus:ring-[#218a72]/30"
           aria-label="Agregar o modificar stock"
+          aria-haspopup="dialog"
         >
-          <Plus size={20} />
+          <Plus size={20} aria-hidden="true" />
           <span>Agregar Stock</span>
         </button>
       </div>
@@ -314,18 +354,33 @@ export default function StockPage() {
 
       {/* Modal para Ingresar/Modificar Stock */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Overlay */}
+          <div
+            className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm"
+            aria-hidden="true"
+            onClick={() => setIsModalOpen(false)}
+          />
+
+          {/* Panel del diálogo */}
+          <div
+            ref={panelRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="stock-modal-titulo"
+            className="relative bg-white rounded-2xl w-full max-w-md shadow-2xl flex flex-col max-h-[90vh]"
+          >
             <div className="flex items-center justify-between p-5 border-b border-gray-100">
-              <h3 className="text-lg font-bold text-[#085041]">
+              <h3 id="stock-modal-titulo" className="text-lg font-bold text-[#085041]">
                 Ingresar/Modificar Stock
               </h3>
               <button
+                ref={closeButtonRef}
                 onClick={() => setIsModalOpen(false)}
-                className="text-gray-400 hover:text-gray-700 hover:bg-gray-100 p-2 rounded-xl transition-colors"
-                aria-label="Cerrar modal"
+                className="text-gray-400 hover:text-gray-700 hover:bg-gray-100 p-2 rounded-xl transition-colors focus:outline-none focus:ring-4 focus:ring-gray-200"
+                aria-label="Cerrar formulario de stock"
               >
-                <X size={20} />
+                <X size={20} aria-hidden="true" />
               </button>
             </div>
 
