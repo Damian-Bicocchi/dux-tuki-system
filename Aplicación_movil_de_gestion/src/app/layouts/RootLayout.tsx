@@ -183,19 +183,19 @@ export default function RootLayout() {
     {
       icon: List,
       title: "Ver Alquileres",
-      path: "/app//alquileres",
+      path: "/app/alquileres",
     },
     {
       icon: Calendar,
       title: "Calendario de vencimiento",
-      path: "/app//calendario",
+      path: "/app/calendario",
     },
-    { icon: Package, title: "Stock", path: "/app//stock" },
-    { icon: Users, title: "Clientes", path: "/app//clientes" },
+    { icon: Package, title: "Stock", path: "/app/stock" },
+    { icon: Users, title: "Clientes", path: "/app/clientes" },
     {
       icon: BarChart3,
       title: "Estadísticas",
-      path: "/app//estadisticas",
+      path: "/app/estadisticas",
     },
   ];
 
