@@ -1,266 +1,104 @@
-import { useState, useMemo, useRef, useEffect } from "react";
-import { Search, Package, Plus, X } from "lucide-react";
-
-interface Item {
-  id: number;
-  nombre: string;
-  categoria: string;
-  disponibles: number;
-  total: number;
-  estado: "disponible" | "bajo" | "agotado";
-}
-
-const INITIAL_ITEMS: Item[] = [
-  {
-    id: 1,
-    nombre: "Cámara Sony A7 III",
-    categoria: "Cámaras",
-    disponibles: 2,
-    total: 3,
-    estado: "disponible",
-  },
-  {
-    id: 2,
-    nombre: "Cámara Canon 5D Mark IV",
-    categoria: "Cámaras",
-    disponibles: 1,
-    total: 2,
-    estado: "bajo",
-  },
-  {
-    id: 3,
-    nombre: "Micrófono Rode NTG3",
-    categoria: "Audio",
-    disponibles: 0,
-    total: 2,
-    estado: "agotado",
-  },
-  {
-    id: 4,
-    nombre: "Trípode Manfrotto",
-    categoria: "Accesorios",
-    disponibles: 4,
-    total: 5,
-    estado: "disponible",
-  },
-  {
-    id: 5,
-    nombre: "Kit de luces LED",
-    categoria: "Iluminación",
-    disponibles: 1,
-    total: 3,
-    estado: "bajo",
-  },
-  {
-    id: 6,
-    nombre: "Slider motorizado",
-    categoria: "Accesorios",
-    disponibles: 2,
-    total: 2,
-    estado: "disponible",
-  },
-];
+import { useState, useMemo, useEffect } from "react";
+import { useNavigate } from "react-router";
+import { Search, Package, Plus, X, ChevronRight } from "lucide-react";
+import {
+  getStockItems,
+  saveStockItems,
+  addStockItem,
+  calcularEstado,
+  type StockItem,
+} from "../data/stockData";
 
 export default function StockPage() {
-  const [items, setItems] = useState<Item[]>(INITIAL_ITEMS);
+  const navigate = useNavigate();
+  const [items, setItems] = useState<StockItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterCategoria, setFilterCategoria] =
-    useState<string>("todas");
-
-  // Estado del modal
+  const [filterCategoria, setFilterCategoria] = useState<string>("todas");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    nombre: "",
-    categoria: "",
-    cantidad: 1,
-  });
+  const [formData, setFormData] = useState({ nombre: "", categoria: "", cantidad: 1 });
 
-  const categoriasUnicas = useMemo(() => {
-    return Array.from(new Set(items.map((i) => i.categoria)));
-  }, [items]);
+  useEffect(() => {
+    setItems(getStockItems());
+  }, []);
 
-  const categorias = ["todas", ...categoriasUnicas];
+  const categoriasUnicas = useMemo(
+    () => Array.from(new Set(items.map((i) => i.categoria))),
+    [items],
+  );
 
   const filteredItems = items.filter((item) => {
-    const matchSearch = item.nombre
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
-    const matchFilter =
-      filterCategoria === "todas" ||
-      item.categoria === filterCategoria;
+    const matchSearch = item.nombre.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchFilter = filterCategoria === "todas" || item.categoria === filterCategoria;
     return matchSearch && matchFilter;
   });
 
-  const getEstadoColor = (estado: string) => {
-    switch (estado) {
-      case "disponible":
-        return "bg-green-100 text-green-800 border-green-300";
-      case "bajo":
-        return "bg-amber-100 text-amber-800 border-amber-300";
-      case "agotado":
-        return "bg-red-100 text-red-800 border-red-300";
-      default:
-        return "bg-gray-100 text-gray-800 border-gray-300";
-    }
+  const getEstadoStyle = (disponibles: number, total: number) => {
+    const e = calcularEstado(disponibles, total);
+    if (e === "disponible") return { badge: "bg-green-100 text-green-800 border-green-300", bar: "bg-green-500" };
+    if (e === "bajo")       return { badge: "bg-amber-100 text-amber-800 border-amber-300", bar: "bg-amber-500" };
+    return                         { badge: "bg-red-100 text-red-800 border-red-300",       bar: "bg-red-500" };
   };
 
-  const calcularEstado = (
-    disponibles: number,
-    total: number,
-  ): "disponible" | "bajo" | "agotado" => {
-    if (disponibles === 0) return "agotado";
-    if (disponibles <= total * 0.3) return "bajo";
-    return "disponible";
-  };
-
-  const openButtonRef = useRef<HTMLButtonElement>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
-  const closeButtonRef = useRef<HTMLButtonElement>(null);
-
-  // Manejo de foco: focus al abrir, trampa de teclado, Escape, restaurar al cerrar
-  useEffect(() => {
-    if (!isModalOpen) return;
-
-    const previouslyFocused = document.activeElement as HTMLElement;
-    const timer = setTimeout(() => closeButtonRef.current?.focus(), 50);
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { setIsModalOpen(false); return; }
-      if (e.key === 'Tab' && panelRef.current) {
-        const focusable = Array.from(
-          panelRef.current.querySelectorAll<HTMLElement>(
-            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-          )
-        ).filter((el) => !el.hasAttribute('disabled'));
-        if (!focusable.length) return;
-        const first = focusable[0];
-        const last = focusable[focusable.length - 1];
-        if (e.shiftKey && document.activeElement === first) {
-          e.preventDefault(); last.focus();
-        } else if (!e.shiftKey && document.activeElement === last) {
-          e.preventDefault(); first.focus();
-        }
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      clearTimeout(timer);
-      document.removeEventListener('keydown', handleKeyDown);
-      previouslyFocused?.focus();
-    };
-  }, [isModalOpen]);
-
-  const handleOpenModal = () => {
-    setFormData({ nombre: "", categoria: "", cantidad: 1 });
-    setIsModalOpen(true);
+  const estadoLabel = (disponibles: number, total: number) => {
+    const e = calcularEstado(disponibles, total);
+    return e === "disponible" ? "Disponible" : e === "bajo" ? "Stock bajo" : "Agotado";
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.nombre.trim() || formData.cantidad <= 0)
-      return;
+    if (!formData.nombre.trim() || formData.cantidad <= 0) return;
 
-    setItems((prevItems) => {
-      const existingItemIndex = prevItems.findIndex(
-        (item) =>
-          item.nombre.trim().toLowerCase() ===
-          formData.nombre.trim().toLowerCase(),
+    const existing = items.find(
+      (i) => i.nombre.trim().toLowerCase() === formData.nombre.trim().toLowerCase(),
+    );
+
+    let updatedItems: StockItem[];
+    if (existing) {
+      updatedItems = items.map((i) =>
+        i.id === existing.id
+          ? { ...i, total: i.total + formData.cantidad, disponibles: i.disponibles + formData.cantidad }
+          : i,
       );
-
-      if (existingItemIndex !== -1) {
-        // Actualizar item existente
-        const newItems = [...prevItems];
-        const existingItem = newItems[existingItemIndex];
-
-        const newTotal = existingItem.total + formData.cantidad;
-        const newDisponibles =
-          existingItem.disponibles + formData.cantidad;
-
-        newItems[existingItemIndex] = {
-          ...existingItem,
-          total: newTotal,
-          disponibles: newDisponibles,
-          estado: calcularEstado(newDisponibles, newTotal),
-        };
-        return newItems;
-      } else {
-        // Crear nuevo item
-        const newItem: Item = {
-          id: Math.max(...prevItems.map((i) => i.id), 0) + 1,
-          nombre: formData.nombre.trim(),
-          categoria: formData.categoria.trim() || "Otros",
-          total: formData.cantidad,
-          disponibles: formData.cantidad,
-          estado: calcularEstado(
-            formData.cantidad,
-            formData.cantidad,
-          ),
-        };
-        return [...prevItems, newItem];
-      }
-    });
+      saveStockItems(updatedItems);
+      setItems(updatedItems);
+    } else {
+      const newItem = addStockItem({
+        nombre: formData.nombre.trim(),
+        categoria: formData.categoria.trim() || "Otros",
+        total: formData.cantidad,
+        disponibles: formData.cantidad,
+      });
+      setItems([...items, newItem]);
+    }
 
     setIsModalOpen(false);
+    setFormData({ nombre: "", categoria: "", cantidad: 1 });
   };
 
   return (
-    <div className="px-5 py-6 relative">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-extrabold text-[#085041]">
-          Inventario
-        </h2>
-        <button
-          ref={openButtonRef}
-          onClick={handleOpenModal}
-          className="bg-[#218a72] text-white px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-[#196b58] transition-colors shadow-sm font-medium focus:outline-none focus:ring-4 focus:ring-[#218a72]/30"
-          aria-label="Agregar o modificar stock"
-          aria-haspopup="dialog"
-        >
-          <Plus size={20} aria-hidden="true" />
-          <span>Agregar Stock</span>
-        </button>
+    <div className="px-5 py-6 pb-10 relative">
+
+      {/* KPIs */}
+      <div className="grid grid-cols-3 gap-3 mb-5" role="list" aria-label="Resumen de stock">
+        <KpiCard value={items.filter((i) => calcularEstado(i.disponibles, i.total) === "disponible").length} label="Disponibles" bg="bg-green-50" border="border-green-200" text="text-green-800" sub="text-green-700" />
+        <KpiCard value={items.filter((i) => calcularEstado(i.disponibles, i.total) === "bajo").length}       label="Stock bajo"  bg="bg-amber-50" border="border-amber-200" text="text-amber-800" sub="text-amber-700" />
+        <KpiCard value={items.filter((i) => calcularEstado(i.disponibles, i.total) === "agotado").length}    label="Agotados"    bg="bg-red-50"   border="border-red-200"   text="text-red-800"   sub="text-red-700" />
       </div>
 
-      {/* Resumen */}
-      <div className="grid grid-cols-3 gap-3 mb-6">
-        <div className="bg-green-50 border-2 border-green-200 rounded-2xl p-4 text-center">
-          <div className="text-2xl font-extrabold text-green-800 mb-1">
-            {
-              items.filter((i) => i.estado === "disponible")
-                .length
-            }
-          </div>
-          <div className="text-[10px] sm:text-xs font-bold text-green-700 uppercase tracking-wide">
-            Disponibles
-          </div>
-        </div>
-        <div className="bg-amber-50 border-2 border-amber-200 rounded-2xl p-4 text-center">
-          <div className="text-2xl font-extrabold text-amber-800 mb-1">
-            {items.filter((i) => i.estado === "bajo").length}
-          </div>
-          <div className="text-[10px] sm:text-xs font-bold text-amber-700 uppercase tracking-wide">
-            Stock bajo
-          </div>
-        </div>
-        <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-4 text-center">
-          <div className="text-2xl font-extrabold text-red-800 mb-1">
-            {items.filter((i) => i.estado === "agotado").length}
-          </div>
-          <div className="text-[10px] sm:text-xs font-bold text-red-700 uppercase tracking-wide">
-            Agotados
-          </div>
-        </div>
-      </div>
+      {/* Botón principal */}
+      <button
+        onClick={() => { setFormData({ nombre: "", categoria: "", cantidad: 1 }); setIsModalOpen(true); }}
+        className="w-full flex items-center justify-center gap-2 py-3.5 mb-5 bg-[#218a72] hover:bg-[#1b6f5c] active:scale-[0.98] text-white rounded-xl font-bold transition-all focus:outline-none focus:ring-4 focus:ring-[#218a72]/30"
+        aria-label="Agregar stock"
+      >
+        <Plus size={20} aria-hidden="true" />
+        <span>Agregar stock</span>
+      </button>
 
-      {/* Buscador y filtros */}
-      <div className="mb-6 flex flex-col sm:flex-row gap-3">
+      {/* Buscador y filtro */}
+      <div className="mb-5 flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
-          <Search
-            className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
-            size={20}
-            aria-hidden="true"
-          />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} aria-hidden="true" />
           <input
             type="search"
             value={searchTerm}
@@ -270,233 +108,175 @@ export default function StockPage() {
             aria-label="Buscar equipos"
           />
         </div>
-
         <div className="flex items-center gap-2 flex-1 sm:max-w-[200px]">
-          <Package
-            size={18}
-            className="text-gray-500 hidden sm:block"
-            aria-hidden="true"
-          />
+          <Package size={18} className="text-gray-500 hidden sm:block" aria-hidden="true" />
           <select
-  value={filterCategoria}
-  onChange={(e) => setFilterCategoria(e.target.value)}
-  className="w-full sm:flex-1 px-4 py-3 border-2 border-gray-200 bg-white rounded-xl focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors appearance-none text-sm"
-  aria-label="Filtrar por categoría"
->
-  {categorias.map((cat) => (
-    <option key={cat} value={cat}>
-      {cat === "todas" ? "Todas las categorías" : cat}
-    </option>
-  ))}
-</select>
+            value={filterCategoria}
+            onChange={(e) => setFilterCategoria(e.target.value)}
+            className="w-full px-4 py-3 border-2 border-gray-200 bg-white rounded-xl focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors text-sm"
+            aria-label="Filtrar por categoría"
+          >
+            <option value="todas">Todas las categorías</option>
+            {categoriasUnicas.map((cat) => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
         </div>
       </div>
 
-      {/* Lista de items */}
-      <div className="space-y-3">
+      {/* Lista */}
+      <div className="space-y-3" role="list" aria-label="Inventario de equipos">
         {filteredItems.length === 0 ? (
-          <div className="text-center py-12 text-gray-500 font-medium bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
+          <div className="text-center py-12 text-gray-500 font-medium bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200" role="listitem">
             No se encontraron equipos
           </div>
         ) : (
-          filteredItems.map((item) => (
-            <article
-              key={item.id}
-              className="bg-white border-2 border-gray-100 rounded-2xl p-5 hover:border-[#218a72] transition-colors"
-            >
-              <div className="flex items-start justify-between gap-3 mb-3">
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-bold text-gray-900 text-base mb-1">
-                    {item.nombre}
-                  </h3>
-                  <p className="text-sm text-gray-600 font-medium">
-                    {item.categoria}
-                  </p>
+          filteredItems.map((item) => {
+            const style = getEstadoStyle(item.disponibles, item.total);
+            const pct = item.total > 0 ? (item.disponibles / item.total) * 100 : 0;
+            return (
+              <button
+                key={item.id}
+                onClick={() => navigate(`/app/stock/${item.id}`)}
+                className="w-full text-left bg-white border-2 border-gray-100 rounded-2xl p-5 hover:border-[#218a72] hover:shadow-sm active:scale-[0.99] transition-all focus:outline-none focus:ring-4 focus:ring-[#218a72]/20"
+                role="listitem"
+                aria-label={`${item.nombre}, ${item.categoria}, ${estadoLabel(item.disponibles, item.total)}, ${item.disponibles} de ${item.total} unidades`}
+              >
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-gray-900 text-base mb-0.5">{item.nombre}</h3>
+                    <p className="text-sm text-gray-500 font-medium">{item.categoria}</p>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className={`px-3 py-1 rounded-lg text-[10px] sm:text-xs font-bold border-2 whitespace-nowrap ${style.badge}`}>
+                      {estadoLabel(item.disponibles, item.total)}
+                    </span>
+                    <ChevronRight size={16} className="text-gray-400" aria-hidden="true" />
+                  </div>
                 </div>
-                <span
-                  className={`px-3 py-1 rounded-lg text-[10px] sm:text-xs font-bold border-2 whitespace-nowrap ${getEstadoColor(item.estado)}`}
-                >
-                  {item.estado === "disponible"
-                    ? "Disponible"
-                    : item.estado === "bajo"
-                      ? "Stock bajo"
-                      : "Agotado"}
-                </span>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="flex-1 bg-gray-100 rounded-full h-3 overflow-hidden">
-                  <div
-                    className={`h-full transition-all ${
-                      item.disponibles === 0
-                        ? "bg-red-500"
-                        : item.disponibles <= item.total * 0.3
-                          ? "bg-amber-500"
-                          : "bg-green-500"
-                    }`}
-                    style={{
-                      width: `${item.total > 0 ? (item.disponibles / item.total) * 100 : 0}%`,
-                    }}
-                    role="progressbar"
-                    aria-valuenow={item.disponibles}
-                    aria-valuemin={0}
-                    aria-valuemax={item.total}
-                    aria-label={`${item.disponibles} de ${item.total} unidades disponibles`}
-                  />
+                <div className="flex items-center gap-4">
+                  <div className="flex-1 bg-gray-100 rounded-full h-2.5 overflow-hidden">
+                    <div
+                      className={`h-full transition-all ${style.bar}`}
+                      style={{ width: `${pct}%` }}
+                      role="progressbar"
+                      aria-valuenow={item.disponibles}
+                      aria-valuemin={0}
+                      aria-valuemax={item.total}
+                      aria-label={`${item.disponibles} de ${item.total} unidades disponibles`}
+                    />
+                  </div>
+                  <div className="text-sm font-extrabold text-gray-700 whitespace-nowrap">
+                    {item.disponibles}/{item.total}
+                  </div>
                 </div>
-                <div className="text-sm font-extrabold text-gray-700 whitespace-nowrap">
-                  {item.disponibles}/{item.total}
-                </div>
-              </div>
-            </article>
-          ))
+              </button>
+            );
+          })
         )}
       </div>
 
-      {/* Modal para Ingresar/Modificar Stock */}
+      {/* Modal agregar stock */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          {/* Overlay */}
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm"
+          onClick={() => setIsModalOpen(false)}
+        >
           <div
-            className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm"
-            aria-hidden="true"
-            onClick={() => setIsModalOpen(false)}
-          />
-
-          {/* Panel del diálogo */}
-          <div
-            ref={panelRef}
+            className="bg-white rounded-t-3xl sm:rounded-2xl w-full max-w-md shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
-            aria-labelledby="stock-modal-titulo"
-            className="relative bg-white rounded-2xl w-full max-w-md shadow-2xl flex flex-col max-h-[90vh]"
+            aria-labelledby="modal-stock-titulo"
           >
             <div className="flex items-center justify-between p-5 border-b border-gray-100">
-              <h3 id="stock-modal-titulo" className="text-lg font-bold text-[#085041]">
-                Ingresar/Modificar Stock
+              <h3 id="modal-stock-titulo" className="text-lg font-bold text-[#085041]">
+                Ingresar / Modificar stock
               </h3>
               <button
-                ref={closeButtonRef}
                 onClick={() => setIsModalOpen(false)}
-                className="text-gray-400 hover:text-gray-700 hover:bg-gray-100 p-2 rounded-xl transition-colors focus:outline-none focus:ring-4 focus:ring-gray-200"
-                aria-label="Cerrar formulario de stock"
+                className="text-gray-400 hover:text-gray-700 hover:bg-gray-100 p-2 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300"
+                aria-label="Cerrar"
               >
-                <X size={20} aria-hidden="true" />
+                <X size={20} />
               </button>
             </div>
 
-            <form
-              onSubmit={handleSubmit}
-              className="p-5 flex flex-col gap-4 overflow-y-auto"
-            >
+            <form onSubmit={handleSubmit} className="p-5 flex flex-col gap-4">
               <div>
-                <label
-                  htmlFor="nombre"
-                  className="block text-sm font-bold text-gray-700 mb-1.5"
-                >
+                <label htmlFor="nombre-stock" className="block text-sm font-bold text-gray-700 mb-1.5">
                   Nombre del equipo
                 </label>
                 <input
-                  id="nombre"
+                  id="nombre-stock"
                   type="text"
                   required
                   list="equipos-existentes"
                   value={formData.nombre}
                   onChange={(e) => {
                     const val = e.target.value;
-                    const existing = items.find(
-                      (i) =>
-                        i.nombre.toLowerCase() ===
-                        val.toLowerCase(),
-                    );
-                    if (existing) {
-                      setFormData((prev) => ({
-                        ...prev,
-                        nombre: existing.nombre,
-                        categoria: existing.categoria,
-                      }));
-                    } else {
-                      setFormData((prev) => ({
-                        ...prev,
-                        nombre: val,
-                      }));
-                    }
+                    const existing = items.find((i) => i.nombre.toLowerCase() === val.toLowerCase());
+                    setFormData((prev) => ({
+                      ...prev,
+                      nombre: existing ? existing.nombre : val,
+                      categoria: existing ? existing.categoria : prev.categoria,
+                    }));
                   }}
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors"
                   placeholder="Ej: Micrófono Rode NTG3"
                 />
                 <datalist id="equipos-existentes">
-                  {items.map((item) => (
-                    <option key={item.id} value={item.nombre} />
-                  ))}
+                  {items.map((item) => <option key={item.id} value={item.nombre} />)}
                 </datalist>
                 <p className="text-xs text-gray-500 mt-1.5">
-                  Si ingresas un nombre existente, se sumará al
-                  stock actual en lugar de crear un duplicado.
+                  Si ingresás un nombre existente, se sumará al stock actual.
                 </p>
               </div>
 
               <div>
-                <label
-                  htmlFor="categoria"
-                  className="block text-sm font-bold text-gray-700 mb-1.5"
-                >
+                <label htmlFor="categoria-stock" className="block text-sm font-bold text-gray-700 mb-1.5">
                   Categoría
                 </label>
                 <input
-                  id="categoria"
+                  id="categoria-stock"
                   type="text"
                   list="categorias-existentes"
                   value={formData.categoria}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      categoria: e.target.value,
-                    }))
-                  }
+                  onChange={(e) => setFormData((prev) => ({ ...prev, categoria: e.target.value }))}
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors"
                   placeholder="Ej: Audio, Cámaras..."
                 />
                 <datalist id="categorias-existentes">
-                  {categoriasUnicas.map((cat) => (
-                    <option key={cat} value={cat} />
-                  ))}
+                  {categoriasUnicas.map((cat) => <option key={cat} value={cat} />)}
                 </datalist>
               </div>
 
               <div>
-                <label
-                  htmlFor="cantidad"
-                  className="block text-sm font-bold text-gray-700 mb-1.5"
-                >
+                <label htmlFor="cantidad-stock" className="block text-sm font-bold text-gray-700 mb-1.5">
                   Cantidad a agregar
                 </label>
                 <input
-  id="cantidad"
-  type="number"
-  min="1"
-  required
-  value={formData.cantidad}
-  onChange={(e) =>
-    setFormData((prev) => ({
-      ...prev,
-      cantidad: parseInt(e.target.value) || 0,
-    }))
-  }
-  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-/>
+                  id="cantidad-stock"
+                  type="number"
+                  min="1"
+                  required
+                  value={formData.cantidad}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, cantidad: parseInt(e.target.value) || 0 }))}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                />
               </div>
 
-              <div className="mt-4 pt-4 border-t border-gray-100 flex gap-3 justify-end">
+              <div className="flex gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-5 py-2.5 text-gray-600 font-bold hover:bg-gray-100 rounded-xl transition-colors"
+                  className="flex-1 py-3 border-2 border-gray-200 bg-white text-gray-700 rounded-xl font-bold hover:bg-gray-50 transition-colors focus:outline-none focus:ring-4 focus:ring-gray-200"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 bg-[#218a72] text-white font-bold rounded-xl hover:bg-[#196b58] transition-colors focus:ring-4 focus:ring-[#218a72]/30"
+                  className="flex-1 py-3 bg-[#218a72] text-white rounded-xl font-bold hover:bg-[#196b58] transition-colors focus:outline-none focus:ring-4 focus:ring-[#218a72]/30"
                 >
                   Guardar
                 </button>
@@ -505,6 +285,15 @@ export default function StockPage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function KpiCard({ value, label, bg, border, text, sub }: { value: number; label: string; bg: string; border: string; text: string; sub: string }) {
+  return (
+    <div className={`${bg} border-2 ${border} rounded-2xl p-4 text-center`} aria-label={`${value} ${label}`}>
+      <div className={`text-2xl font-extrabold ${text} mb-1`} aria-hidden="true">{value}</div>
+      <div className={`text-[10px] sm:text-xs font-bold ${sub} uppercase tracking-wide`} aria-hidden="true">{label}</div>
     </div>
   );
 }
