@@ -1,5 +1,8 @@
 import { createBrowserRouter } from "react-router";
+
 import RootLayout from "./layouts/RootLayout";
+import ErrorPage from "./pages/ErrorPage";
+
 import LoginPage from "./pages/LoginPage";
 import AyudaPage from "./pages/AyudaPage";
 import HomePage from "./pages/HomePage";
@@ -12,20 +15,23 @@ import NuevoClientePage from "./pages/NuevoClientePage";
 import StockDetallePage from "./pages/StockDetallePage";
 import EstadisticasPage from "./pages/EstadisticasPage";
 import CalendarioPage from "./pages/CalendarioPage";
-import NuevoUsuarioPage from "./pages/NuevoUsuarioPage";
+import AdministracionPage from "./pages/AdministracionPage";
 
 export const router = createBrowserRouter([
   {
     path: "/",
     Component: LoginPage,
+    errorElement: <ErrorPage />,
   },
   {
     path: "/ayuda",
     Component: AyudaPage,
+    errorElement: <ErrorPage />,
   },
   {
     path: "/app",
     Component: RootLayout,
+    errorElement: <ErrorPage />,
     children: [
       { index: true, Component: HomePage },
       { path: "nuevo-alquiler", Component: NuevoAlquilerPage },
@@ -37,7 +43,7 @@ export const router = createBrowserRouter([
       { path: "clientes/nuevo", Component: NuevoClientePage },
       { path: "clientes/:id", Component: ClienteDetallePage },
       { path: "estadisticas", Component: EstadisticasPage },
-      { path: "sistema", Component: NuevoUsuarioPage },
+      { path: "sistema", Component: AdministracionPage },
     ],
   },
 ]);
