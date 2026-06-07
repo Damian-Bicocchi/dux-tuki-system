@@ -14,6 +14,7 @@ import {
   Users,
   BarChart3,
   LogOut,
+  MonitorCog
 } from "lucide-react";
 import SettingsPanel, {
   AccessibilitySettings,
@@ -187,7 +188,7 @@ export default function RootLayout() {
     },
     {
       icon: Calendar,
-      title: "Calendario de vencimiento",
+      title: "Alquileres del día",
       path: "/app/calendario",
     },
     { icon: Package, title: "Stock", path: "/app/stock" },
@@ -197,6 +198,11 @@ export default function RootLayout() {
       title: "Estadísticas",
       path: "/app/estadisticas",
     },
+    {
+      icon: MonitorCog,
+      title: "Opciones de administrador",
+      path: "/app/sistema"
+    }
   ];
 
   const currentPage =
