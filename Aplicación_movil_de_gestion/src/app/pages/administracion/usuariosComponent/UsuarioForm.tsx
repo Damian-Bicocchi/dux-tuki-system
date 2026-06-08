@@ -49,6 +49,12 @@ export function UsuarioForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    // 1. Validaciones locales básicas
+    if (!formData.email || !formData.password || !formData.confirmPassword) {
+      setError('Por favor, completá todos los campos obligatorios.');
+      return;
+    }
+
     if (formData.password !== formData.confirmPassword) {
       setError(
         'Las contraseñas no coinciden. Verificá los datos ingresados.'
@@ -56,8 +62,14 @@ export function UsuarioForm({
       return;
     }
 
+    // 2. Si todo está bien, limpiamos errores
     setError('');
+    
+    // 3. Ejecutamos la acción de guardar (comunicación con el backend/padre)
     onSubmit(formData);
+
+    // 4. Mostramos el alert de éxito
+    alert('¡Usuario creado con éxito!');
   };
 
   return (

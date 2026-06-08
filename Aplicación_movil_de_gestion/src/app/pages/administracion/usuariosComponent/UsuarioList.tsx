@@ -19,7 +19,7 @@ export function UsuariosList({
       <table className="w-full border-collapse">
         <thead>
           <tr className="border-b border-gray-200">
-            <th className="text-left py-3 px-4">Nombre</th>
+            
             <th className="text-left py-3 px-4">Email</th>
             <th className="text-left py-3 px-4">Rol</th>
             <th className="text-right py-3 px-4">Acciones</th>
@@ -32,9 +32,7 @@ export function UsuariosList({
               key={usuario.id}
               className="border-b border-gray-100"
             >
-              <td className="py-3 px-4">
-                {usuario.nombre}
-              </td>
+              
 
               <td className="py-3 px-4">
                 {usuario.email}

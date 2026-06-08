@@ -10,44 +10,55 @@ import {
   AlertTriangle,
   Clock,
   List,
+  MonitorCog
 } from "lucide-react";
- 
+
 const ACCENT = "#218a72";
 const ACCENT_DARK = "#1b6f5c";
 const ACCENT_LIGHT = "#E1F5EE";
- 
+
 interface FeatureCardProps {
   icon: React.ElementType;
   title: string;
   description: string;
 }
- 
-function FeatureCard({ icon: Icon, title, description }: FeatureCardProps) {
+
+function FeatureCard({
+  icon: Icon,
+  title,
+  description,
+}: FeatureCardProps) {
   return (
-    <div
-      className="bg-white rounded-2xl p-5 border-2 border-gray-100 flex gap-4 items-start"
-    >
+    <div className="bg-white rounded-2xl p-5 border-2 border-gray-100 flex gap-4 items-start">
       <div
         className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
         style={{ background: ACCENT_LIGHT }}
         aria-hidden="true"
       >
-        <Icon size={22} style={{ color: ACCENT }} strokeWidth={2} />
+        <Icon
+          size={22}
+          style={{ color: ACCENT }}
+          strokeWidth={2}
+        />
       </div>
       <div>
-        <h3 className="font-bold text-gray-900 text-base mb-1">{title}</h3>
-        <p className="text-sm text-gray-600 leading-relaxed">{description}</p>
+        <h3 className="font-bold text-gray-900 text-base mb-1">
+          {title}
+        </h3>
+        <p className="text-sm text-gray-600 leading-relaxed">
+          {description}
+        </p>
       </div>
     </div>
   );
 }
- 
+
 interface StepProps {
   number: number;
   title: string;
   description: string;
 }
- 
+
 function Step({ number, title, description }: StepProps) {
   return (
     <li className="flex gap-4 items-start">
@@ -59,19 +70,22 @@ function Step({ number, title, description }: StepProps) {
         {number}
       </div>
       <div>
-        <p className="font-bold text-gray-900 text-sm">{title}</p>
-        <p className="text-sm text-gray-600 leading-relaxed mt-0.5">{description}</p>
+        <p className="font-bold text-gray-900 text-sm">
+          {title}
+        </p>
+        <p className="text-sm text-gray-600 leading-relaxed mt-0.5">
+          {description}
+        </p>
       </div>
     </li>
   );
 }
- 
+
 export default function AyudaPage() {
   const navigate = useNavigate();
- 
+
   return (
     <div className="min-h-screen bg-gray-50">
- 
       {/* Skip link */}
       <a
         href="#contenido-principal"
@@ -79,11 +93,13 @@ export default function AyudaPage() {
       >
         Saltar al contenido principal
       </a>
- 
+
       {/* Header */}
       <header
         className="sticky top-0 z-40 shadow-sm"
-        style={{ background: `linear-gradient(135deg, #29a285, ${ACCENT}, ${ACCENT_DARK})` }}
+        style={{
+          background: `linear-gradient(135deg, #29a285, ${ACCENT}, ${ACCENT_DARK})`,
+        }}
       >
         <div className="max-w-3xl mx-auto px-5 py-4 flex items-center gap-4">
           <button
@@ -91,7 +107,11 @@ export default function AyudaPage() {
             className="p-2 rounded-xl hover:bg-white/10 transition-colors focus:outline-none focus:ring-2 focus:ring-white"
             aria-label="Volver al inicio de sesión"
           >
-            <ArrowLeft size={22} className="text-white" aria-hidden="true" />
+            <ArrowLeft
+              size={22}
+              className="text-white"
+              aria-hidden="true"
+            />
           </button>
           <div>
             <p className="text-white/70 text-xs font-semibold uppercase tracking-wider">
@@ -103,25 +123,30 @@ export default function AyudaPage() {
           </div>
         </div>
       </header>
- 
+
       {/* Contenido */}
       <main
         id="contenido-principal"
         className="max-w-3xl mx-auto px-5 py-8 space-y-10"
       >
- 
         {/* Hero de la sección */}
         <section aria-labelledby="intro-titulo">
           <div
             className="rounded-3xl p-7 md:p-10 text-white text-center"
-            style={{ background: `linear-gradient(135deg, #29a285, ${ACCENT_DARK})` }}
+            style={{
+              background: `linear-gradient(135deg, #29a285, ${ACCENT_DARK})`,
+            }}
           >
             <div
               className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5"
               style={{ background: "rgba(255,255,255,0.15)" }}
               aria-hidden="true"
             >
-              <Film size={34} className="text-white" strokeWidth={1.8} />
+              <Film
+                size={34}
+                className="text-white"
+                strokeWidth={1.8}
+              />
             </div>
             <h2
               id="intro-titulo"
@@ -130,13 +155,14 @@ export default function AyudaPage() {
               ¿Qué es Tuki System?
             </h2>
             <p className="text-white/85 text-base md:text-lg leading-relaxed max-w-lg mx-auto">
-              Tuki es un sistema de gestión de alquileres de equipos cinematográficos.
-              Permite controlar el stock, los clientes y el estado de cada alquiler
+              Tuki es un sistema de gestión de alquileres de
+              equipos cinematográficos. Permite controlar el
+              stock, los clientes y el estado de cada alquiler
               desde un solo lugar.
             </p>
           </div>
         </section>
- 
+
         {/* Funcionalidades */}
         <section aria-labelledby="funcionalidades-titulo">
           <div className="mb-4">
@@ -153,8 +179,11 @@ export default function AyudaPage() {
               ¿Qué podés hacer?
             </h2>
           </div>
- 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3" role="list">
+
+          <div
+            className="grid grid-cols-1 md:grid-cols-2 gap-3"
+            role="list"
+          >
             {[
               {
                 icon: Package,
@@ -170,9 +199,9 @@ export default function AyudaPage() {
               },
               {
                 icon: Calendar,
-                title: "Calendario",
+                title: "Alquileres del dia",
                 description:
-                  "Visualizá todos los alquileres activos por fecha y detectá vencimientos.",
+                  "Visualizá los alquileres en la fecha, cuales inician o vencen en el dia de hoy.",
               },
               {
                 icon: Users,
@@ -192,6 +221,11 @@ export default function AyudaPage() {
                 description:
                   "El sistema te avisa automáticamente cuando hay alquileres vencidos sin devolver.",
               },
+              {
+                icon: MonitorCog,
+                title: "Opciones de administrador",
+                description: "Permite al administrador crear nuevos usuarios para el sistema"
+              }
             ].map((f) => (
               <div key={f.title} role="listitem">
                 <FeatureCard {...f} />
@@ -199,9 +233,9 @@ export default function AyudaPage() {
             ))}
           </div>
         </section>
- 
+
         {/* Estados de alquiler */}
-        <section aria-labelledby="estados-titulo">
+        {/* <section aria-labelledby="estados-titulo">
           <div className="mb-4">
             <p
               className="text-xs font-bold uppercase tracking-wider mb-1"
@@ -216,9 +250,12 @@ export default function AyudaPage() {
               Estados de un alquiler
             </h2>
           </div>
- 
+
           <div className="bg-white rounded-2xl border-2 border-gray-100 overflow-hidden">
-            <ul role="list" aria-label="Estados posibles de un alquiler">
+            <ul
+              role="list"
+              aria-label="Estados posibles de un alquiler"
+            >
               {[
                 {
                   color: "#1D9E75",
@@ -266,16 +303,25 @@ export default function AyudaPage() {
                   <li
                     key={estado.label}
                     className={`flex items-start gap-4 px-5 py-4 ${
-                      i < arr.length - 1 ? "border-b border-gray-100" : ""
+                      i < arr.length - 1
+                        ? "border-b border-gray-100"
+                        : ""
                     }`}
                     aria-label={`${estado.label}: ${estado.desc}`}
                   >
                     <div
                       className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
-                      style={{ background: estado.bg, border: `1.5px solid ${estado.border}` }}
+                      style={{
+                        background: estado.bg,
+                        border: `1.5px solid ${estado.border}`,
+                      }}
                       aria-hidden="true"
                     >
-                      <Icon size={17} style={{ color: estado.color }} strokeWidth={2} />
+                      <Icon
+                        size={17}
+                        style={{ color: estado.color }}
+                        strokeWidth={2}
+                      />
                     </div>
                     <div>
                       <p
@@ -293,8 +339,8 @@ export default function AyudaPage() {
               })}
             </ul>
           </div>
-        </section>
- 
+        </section> */}
+
         {/* Flujo de uso */}
         <section aria-labelledby="flujo-titulo">
           <div className="mb-4">
@@ -311,7 +357,7 @@ export default function AyudaPage() {
               ¿Cómo empezar?
             </h2>
           </div>
- 
+
           <div className="bg-white rounded-2xl border-2 border-gray-100 p-6">
             <ol
               className="space-y-5"
@@ -334,7 +380,7 @@ export default function AyudaPage() {
                 description='Desde "Nuevo Alquiler", asociá un equipo y un cliente, definí las fechas y confirmá.'
               />
               <Step
-                number={4}  
+                number={4}
                 title="Seguí el estado desde el panel"
                 description="El home te muestra en tiempo real cuántos alquileres están activos, vencidos e ingresos del mes."
               />
@@ -346,7 +392,7 @@ export default function AyudaPage() {
             </ol>
           </div>
         </section>
- 
+
         {/* CTA volver */}
         <div className="pb-8">
           <button
@@ -361,9 +407,7 @@ export default function AyudaPage() {
             Ir a iniciar sesión
           </button>
         </div>
- 
       </main>
     </div>
   );
 }
- 
