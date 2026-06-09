@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { ArrowLeft, UserPlus, Mail, IdCard, Phone, User } from 'lucide-react';
 import { addCliente } from '../data/clientesData';
+import { SuccessModal } from '../components/SuccessModal';
 
 export default function NuevoClientePage() {
   const navigate = useNavigate();
@@ -13,6 +14,8 @@ export default function NuevoClientePage() {
   });
   const [errors, setErrors] = useState<Partial<typeof formData>>({});
   const [submitted, setSubmitted] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [clienteNombre, setClienteNombre] = useState('');
 
   function validate() {
     const errs: Partial<typeof formData> = {};
@@ -44,7 +47,8 @@ export default function NuevoClientePage() {
       dni: formData.dni.trim(),
       ...(formData.telefono.trim() ? { telefono: formData.telefono.trim() } : {}),
     });
-    navigate('/app/clientes', { replace: true });
+    setClienteNombre(formData.nombre.trim());
+    setShowSuccess(true);
   }
 
   function handleChange(field: keyof typeof formData, value: string) {
@@ -75,6 +79,13 @@ export default function NuevoClientePage() {
           <p className="text-sm text-gray-500">Completá los datos para registrarlo</p>
         </div>
       </div>
+
+      <SuccessModal
+        isOpen={showSuccess}
+        title="¡Cliente registrado!"
+        message={`${clienteNombre} fue agregado correctamente al sistema.`}
+        onClose={() => navigate('/app/clientes', { replace: true })}
+      />
 
       <form onSubmit={handleSubmit} className="space-y-5" noValidate aria-label="Formulario de registro de cliente">
         {/* Nombre */}

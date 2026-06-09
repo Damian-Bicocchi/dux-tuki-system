@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
+import { useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 
 interface UsuarioFormData {
   email: string;
@@ -17,32 +17,32 @@ interface UsuarioFormProps {
 export function UsuarioForm({
   initialValues,
   onSubmit,
-  submitLabel = 'Guardar',
+  submitLabel = "Guardar",
 }: UsuarioFormProps) {
   const [formData, setFormData] = useState<UsuarioFormData>(
     initialValues ?? {
-      email: '',
-      password: '',
-      confirmPassword: '',
-      rol: 'Administrador',
-    }
+      email: "",
+      password: "",
+      confirmPassword: "",
+      rol: "Administrador",
+    },
   );
 
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] =
     useState(false);
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       [e.target.name]: e.target.value,
     }));
 
     if (error) {
-      setError('');
+      setError("");
     }
   };
 
@@ -50,26 +50,29 @@ export function UsuarioForm({
     e.preventDefault();
 
     // 1. Validaciones locales básicas
-    if (!formData.email || !formData.password || !formData.confirmPassword) {
-      setError('Por favor, completá todos los campos obligatorios.');
+    if (
+      !formData.email ||
+      !formData.password ||
+      !formData.confirmPassword
+    ) {
+      setError(
+        "Por favor, completá todos los campos obligatorios.",
+      );
       return;
     }
 
     if (formData.password !== formData.confirmPassword) {
       setError(
-        'Las contraseñas no coinciden. Verificá los datos ingresados.'
+        "Las contraseñas no coinciden. Verificá los datos ingresados.",
       );
       return;
     }
 
     // 2. Si todo está bien, limpiamos errores
-    setError('');
-    
+    setError("");
+
     // 3. Ejecutamos la acción de guardar (comunicación con el backend/padre)
     onSubmit(formData);
-
-    // 4. Mostramos el alert de éxito
-    alert('¡Usuario creado con éxito!');
   };
 
   return (
@@ -112,10 +115,8 @@ export function UsuarioForm({
           onChange={handleChange}
           required
           aria-required="true"
-          aria-invalid={error ? 'true' : 'false'}
-          aria-describedby={
-            error ? 'form-error' : undefined
-          }
+          aria-invalid={error ? "true" : "false"}
+          aria-describedby={error ? "form-error" : undefined}
           autoComplete="email"
           className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72]"
         />
@@ -137,30 +138,26 @@ export function UsuarioForm({
 
         <div className="relative">
           <input
-            type={showPassword ? 'text' : 'password'}
+            type={showPassword ? "text" : "password"}
             id="password"
             name="password"
             value={formData.password}
             onChange={handleChange}
             required
             aria-required="true"
-            aria-invalid={error ? 'true' : 'false'}
-            aria-describedby={
-              error ? 'form-error' : undefined
-            }
+            aria-invalid={error ? "true" : "false"}
+            aria-describedby={error ? "form-error" : undefined}
             autoComplete="new-password"
             className="w-full border border-gray-300 rounded-xl px-4 py-3 pr-12 focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72]"
           />
 
           <button
             type="button"
-            onClick={() =>
-              setShowPassword(prev => !prev)
-            }
+            onClick={() => setShowPassword((prev) => !prev)}
             aria-label={
               showPassword
-                ? 'Ocultar contraseña'
-                : 'Mostrar contraseña'
+                ? "Ocultar contraseña"
+                : "Mostrar contraseña"
             }
             aria-pressed={showPassword}
             className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-md text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#218a72]"
@@ -190,21 +187,15 @@ export function UsuarioForm({
 
         <div className="relative">
           <input
-            type={
-              showConfirmPassword
-                ? 'text'
-                : 'password'
-            }
+            type={showConfirmPassword ? "text" : "password"}
             id="confirmPassword"
             name="confirmPassword"
             value={formData.confirmPassword}
             onChange={handleChange}
             required
             aria-required="true"
-            aria-invalid={error ? 'true' : 'false'}
-            aria-describedby={
-              error ? 'form-error' : undefined
-            }
+            aria-invalid={error ? "true" : "false"}
+            aria-describedby={error ? "form-error" : undefined}
             autoComplete="new-password"
             className="w-full border border-gray-300 rounded-xl px-4 py-3 pr-12 focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72]"
           />
@@ -212,12 +203,12 @@ export function UsuarioForm({
           <button
             type="button"
             onClick={() =>
-              setShowConfirmPassword(prev => !prev)
+              setShowConfirmPassword((prev) => !prev)
             }
             aria-label={
               showConfirmPassword
-                ? 'Ocultar confirmación de contraseña'
-                : 'Mostrar confirmación de contraseña'
+                ? "Ocultar confirmación de contraseña"
+                : "Mostrar confirmación de contraseña"
             }
             aria-pressed={showConfirmPassword}
             className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-md text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#218a72]"
@@ -232,10 +223,7 @@ export function UsuarioForm({
       </div>
 
       <div>
-        <label
-          htmlFor="rol"
-          className="block font-medium mb-2"
-        >
+        <label htmlFor="rol" className="block font-medium mb-2">
           Rol
         </label>
 
@@ -247,9 +235,7 @@ export function UsuarioForm({
           aria-required="true"
           className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72]"
         >
-          <option value="Administrador">
-            Administrador
-          </option>
+          <option value="Administrador">Administrador</option>
         </select>
       </div>
 
