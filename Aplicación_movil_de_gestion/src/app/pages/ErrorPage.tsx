@@ -1,5 +1,3 @@
-// ErrorPage.tsx
-
 import { useRouteError, isRouteErrorResponse } from 'react-router';
 
 export default function ErrorPage() {
