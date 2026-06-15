@@ -2,9 +2,15 @@ const express = require('express');
 const cors = require('cors');
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const bcrypt = require('bcrypt');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+const ADMIN_USERNAME = 'admin';
+const ADMIN_PASSWORD = 'Hola1234'; 
+const SALT_ROUNDS = 10;
+
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
 app.use(cors());
@@ -74,6 +80,43 @@ function initializeDatabase() {
                 FOREIGN KEY (cliente_id) REFERENCES clientes(id)
             )
         `);
+        bcrypt.hash(ADMIN_PASSWORD, SALT_ROUNDS, (err, hashedPassword) => {
+            if (err) {
+                console.error('Error al hashear la contraseña del admin:', err.message);    
+            } else {
+                const dbPath = path.resolve(__dirname, '../BD/database.db');
+                const db = new sqlite3.Database(dbPath, (err) => {
+                    if (err) {
+                        console.error('Error al conectar con la BD para crear admin:', err.message);
+                    }
+                    db.run('PRAGMA foreign_keys = ON');
+                    db.run(`
+                        CREATE TABLE IF NOT EXISTS usuarios (
+                            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                            username    TEXT NOT NULL UNIQUE,
+                            password    TEXT NOT NULL,
+                            created_at  TEXT DEFAULT (datetime('now','localtime'))
+                        );
+                    `, () => {
+                        db.get('SELECT * FROM usuarios WHERE username = ?', [ADMIN_USERNAME], (err, row) => {
+                            if (err) {
+                                console.error('Error al verificar existencia del admin:', err.message);
+                            } else if (!row) {
+                                db.run('INSERT INTO usuarios (username, password) VALUES (?, ?)', [ADMIN_USERNAME, hashedPassword], function(err) {
+                                    if (err) {
+                                        console.error('Error al crear el usuario admin:', err.message);
+                                    } else {
+                                        console.log('Usuario admin creado con éxito');
+                                    }
+                                });
+                            } else {
+                                console.log('Usuario admin ya existe');
+                            }
+                        });
+                    });
+                });
+            }
+        });
 
         db.run(`
             CREATE TABLE IF NOT EXISTS alquiler_items (
@@ -108,6 +151,7 @@ app.use('/api/clientes',      require('./routes/clientes')(db));
 app.use('/api/alquileres',    require('./routes/alquileres')(db));
 app.use('/api/costos',        require('./routes/costos')(db));
 app.use('/api/estadisticas',  require('./routes/estadisticas')(db));
+app.use('/api/usuarios',       require('./routes/usuarios')(db));
 
 // ─── Ruta raíz ────────────────────────────────────────────────────────────────
 app.get('/', (req, res) => {
@@ -121,6 +165,7 @@ app.get('/', (req, res) => {
             '/api/alquileres',
             '/api/costos',
             '/api/estadisticas',
+            '/api/usuarios',
         ],
     });
 });
