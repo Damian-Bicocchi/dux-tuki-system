@@ -1,0 +1,3 @@
+Función: Contener la lógica de negocio de la aplicación. Valida reglas, calcula totales, aplica descuentos, etc.
+Qué va aquí: Archivos que utilizan los repositorios para obtener datos, los procesan y devuelven resultados listos para ser enviados al cliente. No manejan directamente req/res.
+Ejemplo: alquileres.service.js (calcula precio total, valida fechas), usuarios.service.js (hash de contraseñas, verificación).
