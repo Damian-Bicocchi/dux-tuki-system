@@ -1,6 +1,14 @@
+const path = require('path');                 // <-- Requerido para path.resolve
+const sqlite3 = require('sqlite3').verbose(); // <-- Requerido para new sqlite3.Database
+const bcrypt = require('bcrypt');             // <-- ¡El que faltaba!
 const { getDb } = require('./index');
 
-function initializeDatabase() {
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME;
+const SALT_ROUNDS = 10;
+
+function initializeTables() {
+    const db = getDb();
     db.serialize(() => {
 
         db.run(`
