@@ -97,12 +97,31 @@ const initialClientes: Cliente[] = [
   },
 ];
 
-export function getClientes(): Cliente[] {
+export async function getClientes(): Promise<Cliente[]> {
   try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    return saved ? JSON.parse(saved) : initialClientes;
-  } catch {
-    return initialClientes;
+    const response = await fetch('http://localhost:3001/api/clientes', {
+      method: 'GET',
+    });
+    
+    const data = await response.json();
+    console.log('Clientes obtenidos del backend:', data);
+    
+    // Mapeamos los datos al formato correcto
+    const clientes: Cliente[] = data.map((json: any) => ({
+      id: json.id,
+      nombre: json.nombre,
+      email: json.email,
+      dni: json.dni,
+      telefono: json.telefono,
+      alquileres: json.alquileres || [],
+    }));
+    
+    console.log('Clientes listos para enviar a React:', clientes);
+    return clientes; // Ahora SÍ retorna cuando el array está lleno
+
+  } catch (error) {
+    console.error('Error al obtener clientes del backend:', error);
+    return []; 
   }
 }
 

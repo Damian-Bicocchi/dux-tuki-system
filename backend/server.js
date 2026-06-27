@@ -9,13 +9,12 @@ async function start() {
   let currentStep = 'Inicializando'; 
 
   try {
-    // 1. Conectar a la base de datos
     currentStep = '1. Conectar a la base de datos';
-    connect();
+    await connect(); // Faltaba await
     
     // 2. Crear tablas si no existen
     currentStep = '2. Crear tablas si no existen (initializeTables)';
-    initializeTables();
+    await initializeTables(); // Faltaba await
     
     // 3. Sembrar usuario administrador
     currentStep = '3. Sembrar usuario administrador (createAdmin)';
