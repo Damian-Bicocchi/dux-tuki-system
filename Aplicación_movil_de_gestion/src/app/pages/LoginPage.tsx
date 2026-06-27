@@ -21,6 +21,7 @@ export default function LoginPage() {
             return;
         }
         try {
+            console.log("Hola estoy tratando");
             const response = await fetch(
                 'http://localhost:3001/api/usuarios/login',
                 {
@@ -35,6 +36,7 @@ export default function LoginPage() {
                     }),
                 },
             );
+            console.log("pase del await");
 
             if (!response.ok) {
                 throw new Error('Credenciales inválidas');
@@ -48,6 +50,7 @@ export default function LoginPage() {
 
             navigate('/app/'); // o adonde sea luego de loguearte
         } catch (error) {
+            console.error("El fetch fallo porque: ", error);
             alert(error.message);
         }
     }
