@@ -8,6 +8,8 @@ import AyudaPage from "./pages/AyudaPage";
 import HomePage from "./pages/HomePage";
 import NuevoAlquilerPage from "./pages/NuevoAlquilerPage";
 import AlquileresPage from "./pages/AlquileresPage";
+import AlquilerDetallePage from "./pages/AlquilerDetallePage";
+
 import StockPage from "./pages/StockPage";
 import ClientesPage from "./pages/ClientesPage";
 import ClienteDetallePage from "./pages/ClienteDetallePage";
@@ -36,6 +38,7 @@ export const router = createBrowserRouter([
       { index: true, Component: HomePage },
       { path: "nuevo-alquiler", Component: NuevoAlquilerPage },
       { path: "alquileres", Component: AlquileresPage },
+      { path: "alquileres/:id", Component: AlquilerDetallePage },
       { path: "calendario", Component: CalendarioPage },
       { path: "stock", Component: StockPage },
       { path: "stock/:id", Component: StockDetallePage },
