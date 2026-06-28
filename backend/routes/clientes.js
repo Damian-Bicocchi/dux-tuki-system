@@ -51,16 +51,16 @@ router.get('/:id', (req, res) => {
 // POST /api/clientes — crear
 router.post('/', (req, res) => {
     const db = getDb();
-    const { nombre, email, telefono, notas } = req.body;
+    const { nombre, email, dni, telefono, notas } = req.body;
     if (!nombre) return res.status(400).json({ error: 'El nombre es obligatorio' });
 
     db.run(
-        'INSERT INTO clientes (nombre, email, telefono, notas) VALUES (?, ?, ?, ?)',
-        [nombre, email || null, telefono || null, notas || null],
+        'INSERT INTO clientes (nombre, email, dni, telefono, notas) VALUES (?, ?, ?, ?, ?)',
+        [nombre, email || null, dni || null, telefono || null, notas || null],
         function (err) {
             if (err) {
                 if (err.message.includes('UNIQUE')) {
-                    return res.status(409).json({ error: 'Ya existe un cliente con ese email' });
+                    return res.status(409).json({ error: 'Ya existe un cliente con ese email o dni' });
                 }
                 return res.status(500).json({ error: err.message });
             }
@@ -74,16 +74,16 @@ router.post('/', (req, res) => {
 // PUT /api/clientes/:id — actualizar
 router.put('/:id', (req, res) => {
     const db = getDb();
-    const { nombre, email, telefono, notas } = req.body;
+    const { nombre, email, dni, telefono, notas } = req.body;
     if (!nombre) return res.status(400).json({ error: 'El nombre es obligatorio' });
 
     db.run(
-        'UPDATE clientes SET nombre = ?, email = ?, telefono = ?, notas = ? WHERE id = ?',
-        [nombre, email || null, telefono || null, notas || null, req.params.id],
+        'UPDATE clientes SET nombre = ?, email = ?, dni = ?, telefono = ?, notas = ? WHERE id = ?',
+        [nombre, email || null, dni || null, telefono || null, notas || null, req.params.id],
         function (err) {
             if (err) {
                 if (err.message.includes('UNIQUE')) {
-                    return res.status(409).json({ error: 'Ya existe un cliente con ese email' });
+                    return res.status(409).json({ error: 'Ya existe un cliente con ese email o dni  ' });
                 }
                 return res.status(500).json({ error: err.message });
             }

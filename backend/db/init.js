@@ -35,6 +35,7 @@ function initializeTables() {
         id         INTEGER PRIMARY KEY AUTOINCREMENT,
         nombre     TEXT NOT NULL,
         email      TEXT UNIQUE,
+        dni        TEXT UNIQUE,
         telefono   TEXT,
         notas      TEXT,
         created_at TEXT DEFAULT (datetime('now','localtime'))
