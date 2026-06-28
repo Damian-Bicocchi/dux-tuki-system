@@ -1,6 +1,7 @@
 const { connect, closeDb } = require('./db');
 const { initializeTables } = require('./db/init');
 const { createAdmin } = require('./seeders/admin.seeder');
+const { seedCategorias } = require("./seeders/categorias.seeder");
 const app = require('./app');
 const { PORT } = require('./config/env');
 
@@ -20,9 +21,12 @@ async function start() {
     // 3. Sembrar usuario administrador
     currentStep = '3. Sembrar usuario administrador (createAdmin)';
     await createAdmin();
+
+    currentStep = "4. Sembrar categorías default";
+    await seedCategorias();
     
     // 4. Arrancar el servidor HTTP
-    currentStep = '4. Arrancar el servidor HTTP (app.listen)';
+    currentStep = '5. Arrancar el servidor HTTP (app.listen)';
     app.listen(PORT, () => {
       console.log(`\n==================================================`);
       console.log(`🚀 Servidor iniciado con éxito`);

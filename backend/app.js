@@ -10,7 +10,7 @@ app.use(express.json());
 
 // Rutas (usando los nuevos routers sin inyección manual de db)
 app.use('/api/categorias', require('./routes/categorias'));
-app.use('/api/articulos', require('./routes/articulos'));
+app.use('/api/stock', require('./routes/articulos'));
 app.use('/api/clientes', require('./routes/clientes'));
 app.use('/api/alquileres', require('./routes/alquileres'));
 app.use('/api/costos', require('./routes/costos'));
@@ -24,7 +24,7 @@ app.get('/', (req, res) => {
     version: '3.0.0',
     endpoints: [
       '/api/categorias',
-      '/api/articulos',
+      '/api/stock',
       '/api/clientes',
       '/api/alquileres',
       '/api/costos',

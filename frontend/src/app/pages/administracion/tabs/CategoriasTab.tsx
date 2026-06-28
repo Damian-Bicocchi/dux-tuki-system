@@ -1,32 +1,44 @@
+import { useEffect, useState } from "react";
+import CategoriasForm from "../categoriasComponent/CategoriasForm";
+import CategoriasList, {
+  type Categoria,
+} from "../categoriasComponent/CategoriasList";
+
 export function CategoriasTab() {
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [cargandoPantalla, setCargandoPantalla] = useState(true);
+
+  // Centralizamos la carga aquí
+  async function cargarCategorias() {
+    try {
+      const res = await fetch("http://localhost:3001/api/categorias");
+      if (!res.ok) {
+        throw new Error("Error al obtener categorías");
+      }
+      const data = await res.json();
+      setCategorias(data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setCargandoPantalla(false);
+    }
+  }
+
+  useEffect(() => {
+    cargarCategorias();
+  }, []);
+
   return (
     <div className="space-y-8">
-      <header>
-        <h2 className="text-xl font-bold text-gray-900">
-          Categorías
-        </h2>
+      {/* Pasamos la función de recarga como prop */}
+      <CategoriasForm onCategoriaCreada={cargarCategorias} />
 
-        <p className="text-gray-600 mt-1">
-          Administración de las categorías disponibles en el sistema.
-        </p>
-      </header>
-
-      <section
-        className="bg-gray-50 border border-gray-200 rounded-2xl p-6"
-        aria-labelledby="categorias-title"
-      >
-        <h3
-          id="categorias-title"
-          className="text-lg font-semibold"
-        >
-          Gestión de categorías
-        </h3>
-
-        <p className="mt-2 text-gray-600">
-          Próximamente se mostrará el listado de categorías y las
-          herramientas para crearlas y editarlas.
-        </p>
-      </section>
+      {/* Pasamos el estado de las categorías y la función para mutarlo al editar */}
+      <CategoriasList 
+        listaCategorias={categorias} 
+        setListaCategorias={setCategorias} 
+        cargandoPantalla={cargandoPantalla}
+      />
     </div>
   );
 }

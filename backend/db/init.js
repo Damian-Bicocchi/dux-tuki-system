@@ -12,7 +12,12 @@ function initializeTables() {
         descripcion TEXT,
         created_at  TEXT    DEFAULT (datetime('now','localtime'))
       )
-    `);
+    `, (err) => {
+      if (err) {
+        console.error(err);
+        return;
+      }
+    });
 
     // 2. Artículos
     db.run(`

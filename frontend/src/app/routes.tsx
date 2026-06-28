@@ -9,7 +9,7 @@ import HomePage from "./pages/HomePage";
 import NuevoAlquilerPage from "./pages/NuevoAlquilerPage";
 import AlquileresPage from "./pages/AlquileresPage";
 import AlquilerDetallePage from "./pages/AlquilerDetallePage";
-
+import NuevoStockPage from "./pages/NuevoStockPage";
 import StockPage from "./pages/StockPage";
 import ClientesPage from "./pages/ClientesPage";
 import ClienteDetallePage from "./pages/ClienteDetallePage";
@@ -41,6 +41,7 @@ export const router = createBrowserRouter([
       { path: "alquileres/:id", Component: AlquilerDetallePage },
       { path: "calendario", Component: CalendarioPage },
       { path: "stock", Component: StockPage },
+      { path: "stock/nuevo", Component: NuevoStockPage },
       { path: "stock/:id", Component: StockDetallePage },
       { path: "clientes", Component: ClientesPage },
       { path: "clientes/nuevo", Component: NuevoClientePage },

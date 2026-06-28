@@ -53,6 +53,23 @@ class CategoriasRepository {
       });
     });
   }
+
+  // CORRECCIÓN: Cambiado de findOne a findByName para coincidir con el Service
+  findByName(nombre) {
+    return new Promise((resolve, reject) => {
+      console.log("¡SÍ! Llegué al repository a buscar:", nombre);
+      getDb().get(
+        "SELECT * FROM categorias WHERE nombre = ?",
+        [nombre],
+        (err, row) => {
+          if (err) {
+            return reject(err);
+          }
+          resolve(row); // Devuelve la fila o undefined si no hay coincidencias
+        }
+      );
+    });
+  }
 }
 
 module.exports = new CategoriasRepository();
