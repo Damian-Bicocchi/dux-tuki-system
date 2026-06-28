@@ -129,12 +129,13 @@ export function saveClientes(clientes: Cliente[]): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(clientes));
 }
 
-export function getClienteById(id: number): Cliente | undefined {
-  return getClientes().find((c) => c.id === id);
+export async function getClienteById(id: number): Promise<Cliente | undefined> {
+  const clientes = await getClientes();
+  return clientes.find((cliente) => cliente.id === id);
 }
 
-export function addCliente(data: Omit<Cliente, 'id' | 'alquileres'>): Cliente {
-  const clientes = getClientes();
+export async function addCliente(data: Omit<Cliente, 'id' | 'alquileres'>): Promise<Cliente> {
+  const clientes = await getClientes();
   const newCliente: Cliente = {
     ...data,
     id: clientes.length > 0 ? Math.max(...clientes.map((c) => c.id)) + 1 : 1,
