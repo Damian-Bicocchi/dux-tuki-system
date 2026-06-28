@@ -1,5 +1,7 @@
 const categoriasService = require('../services/categorias.service');
 
+
+
 exports.getAll = async (req, res, next) => {
   try {
     const categorias = await categoriasService.getAll();
@@ -18,13 +20,35 @@ exports.getById = async (req, res, next) => {
   }
 };
 
-exports.create = async (req, res, next) => {
+// src/controllers/categorias.controller.js
+
+exports.create = async (req, res) => {
   try {
-    const { nombre, descripcion } = req.body;
-    const nuevaCategoria = await categoriasService.create(nombre, descripcion);
-    res.status(201).json(nuevaCategoria);
-  } catch (err) {
-    next(err);
+    const { nombre } = req.body;
+    
+    // 1. Validamos si ya existe
+    const existe = await categoriasService.findOne(nombre); 
+    
+    if (existe) {
+      return res.status(400).json({ 
+        title: "Categoría duplicada", 
+        message: `La categoría "${nombre}" ya existe en el sistema.` 
+      });
+    }
+
+    // 2. 🔥 LA PIEZA FALTANTE: Llamar al servicio para insertar en SQLite
+    // Pasamos el nombre (y descripción vacía por defecto si no viene)
+    const nuevaCategoria = await categoriasService.create(nombre, req.body.descripcion || "");
+
+    // 3. Respondemos con la nueva categoría creada y el estado 201
+    res.status(201).json(nuevaCategoria); 
+
+  } catch (error) {
+    console.error("Error al crear categoría:", error);
+    res.status(500).json({ 
+      title: "Error del servidor", 
+      message: "No pudimos guardar la categoría." 
+    });
   }
 };
 
