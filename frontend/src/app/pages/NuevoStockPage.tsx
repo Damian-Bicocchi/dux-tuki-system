@@ -16,24 +16,10 @@ import {
 } from "../data/stockData";
 import { SuccessModal } from "../components/SuccessModal";
 
-// Simula un fetch al backend para obtener las categorías disponibles
-async function fetchCategorias(): Promise<string[]> {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve([
-        "Audio",
-        "Cámaras",
-        "Estabilizadores",
-        "Iluminación",
-        "Lentes",
-        "Monitores",
-        "Trípodes y soportes",
-        "Video",
-        "Accesorios",
-        "Otros",
-      ]);
-    }, 700);
-  });
+// 1. Interfaz para el formato real de categorías que devuelve tu API
+interface Categoria {
+  id: number;
+  nombre: string;
 }
 
 function normalizar(s: string) {
@@ -62,7 +48,8 @@ export default function NuevoStockPage() {
   const [activeIndex, setActiveIndex] = useState(-1);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const [categorias, setCategorias] = useState<string[]>([]);
+  // 2. Estados para el manejo de la API real de categorías
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [cargandoCategorias, setCargandoCategorias] = useState(true);
   const [errorCategorias, setErrorCategorias] = useState(false);
 
@@ -71,16 +58,28 @@ export default function NuevoStockPage() {
 
   const stockItems = useMemo(() => getStockItems(), []);
 
-  // Cargar categorías desde el "backend"
+  // Función para consumir el endpoint del backend
+  const cargarCategoriasAPI = async () => {
+    try {
+      setCargandoCategorias(true);
+      setErrorCategorias(false);
+
+      const response = await fetch("http://localhost:3001/api/categorias");
+      if (!response.ok) throw new Error("Error al obtener las categorías");
+
+      const data = await response.json();
+      setCategorias(data);
+    } catch (error) {
+      console.error("Error cargando categorías:", error);
+      setErrorCategorias(true);
+    } finally {
+      setCargandoCategorias(false);
+    }
+  };
+
+  // 3. Cargar categorías reales desde el backend al montar el componente
   useEffect(() => {
-    setCargandoCategorias(true);
-    setErrorCategorias(false);
-    fetchCategorias()
-      .then((cats) => {
-        setCategorias(cats);
-      })
-      .catch(() => setErrorCategorias(true))
-      .finally(() => setCargandoCategorias(false));
+    cargarCategoriasAPI();
   }, []);
 
   // Filtrar las opciones del autocompletado según lo que escribe el usuario
@@ -210,6 +209,7 @@ export default function NuevoStockPage() {
       {/* Encabezado */}
       <div className="bg-gradient-to-br from-[#1b6f5c] via-[#165a4b] to-[#0f3d33] px-5 pt-4 pb-8 text-white shadow-md">
         <button
+          type="button"
           onClick={() => navigate("/app/stock")}
           className="flex items-center gap-1.5 text-white/90 hover:text-white mb-5 focus:outline-none focus:ring-2 focus:ring-white rounded-lg px-2 py-1 transition-colors bg-white/10"
           aria-label="Volver a la lista de stock"
@@ -303,7 +303,6 @@ export default function NuevoStockPage() {
                     id={`option-${index}`}
                     role="option"
                     aria-selected={index === activeIndex}
-                    // Usamos onMouseDown para que se ejecute antes del evento blur/click-outside
                     onMouseDown={(e) => {
                       e.preventDefault();
                       setNombre(opcion);
@@ -362,7 +361,7 @@ export default function NuevoStockPage() {
             )}
           </div>
 
-          {/* CATEGORÍA */}
+          {/* CATEGORÍA TRAÍDA DESDE EXPRESS */}
           <div>
             <label
               htmlFor="categoria"
@@ -384,15 +383,8 @@ export default function NuevoStockPage() {
                 No se pudieron cargar las categorías.{" "}
                 <button
                   type="button"
-                  onClick={() => {
-                    setErrorCategorias(false);
-                    setCargandoCategorias(true);
-                    fetchCategorias()
-                      .then(setCategorias)
-                      .catch(() => setErrorCategorias(true))
-                      .finally(() => setCargandoCategorias(false));
-                  }}
-                  className="underline font-semibold hover:text-red-900 focus:outline-none focus:ring-1 focus:ring-red-400 rounded"
+                  onClick={cargarCategoriasAPI}
+                  className="underline font-semibold hover:text-red-900 focus:outline-none focus:ring-1 focus:ring-red-400 rounded cursor-pointer"
                 >
                   Reintentar
                 </button>
@@ -408,9 +400,10 @@ export default function NuevoStockPage() {
                 className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl bg-white focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors disabled:opacity-60 disabled:cursor-wait cursor-pointer"
               >
                 <option value="">Seleccioná una categoría</option>
+                {/* 🚀 Mapeamos las categorías usando las propiedades del objeto real de tu BD */}
                 {categorias.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
+                  <option key={cat.id} value={cat.nombre}>
+                    {cat.nombre}
                   </option>
                 ))}
               </select>
