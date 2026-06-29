@@ -1,478 +1,610 @@
-import { useState } from "react";
-import { useParams, useNavigate } from "react-router";
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useParams } from 'react-router';
 import {
-  ArrowLeft,
-  CalendarDays,
-  Clock,
-  AlertCircle,
-  CheckCircle2,
-  Package,
-  Banknote,
-  FileText,
-  ShieldCheck,
   AlertTriangle,
-  ClipboardCheck,
-} from "lucide-react";
-import {
-  getAlquilerById,
-  calcularDias,
-  formatFecha,
-  formatMonto,
-  type Alquiler,
-} from "../data/alquileresData";
+  ArrowLeft,
+  BadgeDollarSign,
+  CalendarDays,
+  CheckCircle2,
+  FileText,
+  LoaderCircle,
+  Mail,
+  Package,
+  PenTool,
+  Phone,
+  Save,
+  ShieldAlert,
+  User,
+} from 'lucide-react';
 
-const ESTADO_META: Record<
-  Alquiler["estado"],
-  { label: string; bg: string; text: string; border: string; icon: React.ElementType; desc: string }
-> = {
-  activo: {
-    label: "Activo / En Curso",
-    bg: "bg-emerald-50",
-    text: "text-emerald-800",
-    border: "border-emerald-200",
-    icon: Clock,
-    desc: "El cliente posee el equipo actualmente y el tiempo está corriendo.",
-  },
-  vencido: {
-    label: "Plazo Vencido",
-    bg: "bg-rose-50",
-    text: "text-rose-800",
-    border: "border-rose-200",
-    icon: AlertCircle,
-    desc: "La fecha estipulada de devolución ha expirado. Requiere acción inmediata.",
-  },
-  finalizado: {
-    label: "Finalizado / Entregado",
-    bg: "bg-slate-100",
-    text: "text-slate-700",
-    border: "border-slate-300",
-    icon: CheckCircle2,
-    desc: "El proceso de alquiler ha concluido y el inventario fue procesado.",
-  },
-};
+type EstadoAlquiler = 'pendiente' | 'activo' | 'devuelto' | 'cancelado';
+type EstadoFisico = 'ok' | 'daniado' | 'perdido';
+type EstadoEntrega = 'pendiente' | 'parcial' | 'cerrado';
 
-function InfoRow({
-  icon: Icon,
-  label,
-  value,
-  highlight,
-}: {
-  icon: React.ElementType;
-  label: string;
-  value: React.ReactNode;
-  highlight?: boolean;
-}) {
-  return (
-    <div className="flex items-start gap-4 py-3 border-b border-gray-100 last:border-0">
-      {/* Icono decorativo oculto para lectores de pantalla */}
-      <div className="w-8 h-8 rounded-lg bg-[#218a72]/10 flex items-center justify-center flex-shrink-0 mt-0.5" aria-hidden="true">
-        <Icon size={16} className="text-[#218a72]" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">{label}</p>
-        <p className={`text-sm font-semibold ${highlight ? "text-[#165a4b]" : "text-gray-900"}`}>
-          {value}
-        </p>
-      </div>
-    </div>
-  );
+interface AlquilerItemApi {
+  id: number;
+  alquiler_id: number;
+  articulo_id: number;
+  articulo_nombre: string;
+  cantidad: number;
+  precio_unitario_dia: number;
+  precio_articulo_actual: number;
+  cierre_item_id?: number | null;
+  cantidad_devuelta?: number | null;
+  cierre_estado_fisico?: EstadoFisico | null;
+  cierre_observaciones?: string | null;
+  cierre_recargo_item?: number | null;
+}
+
+interface CierreItemForm {
+  alquiler_item_id: number;
+  articulo_nombre: string;
+  cantidad_prestada: number;
+  cantidad_devuelta: number;
+  estado_fisico: EstadoFisico;
+  observaciones: string;
+  recargo_item: number;
+}
+
+interface AlquilerDetalleApi {
+  id: number;
+  cliente_id: number;
+  cliente_nombre: string;
+  cliente_email: string | null;
+  cliente_telefono: string | null;
+  fecha_inicio: string;
+  fecha_fin: string;
+  estado: EstadoAlquiler;
+  precio_total: number;
+  notas: string | null;
+  items: AlquilerItemApi[];
+  cierre: null | {
+    id: number;
+    observaciones: string | null;
+    recargo_roturas: number;
+    recargo_tarde: number;
+    recargo_otros: number;
+    total_recargos: number;
+    estado_entrega: EstadoEntrega;
+    fecha_cierre: string | null;
+    items: Array<{
+      id: number;
+      alquiler_item_id: number;
+      cantidad_prestada: number;
+      cantidad_devuelta: number;
+      estado_fisico: EstadoFisico;
+      observaciones: string | null;
+      recargo_item: number;
+    }>;
+  };
+}
+
+const API_URL = 'http://localhost:3001/api/alquileres';
+
+function formatFecha(fecha: string) {
+  return new Date(`${fecha}T00:00:00`).toLocaleDateString('es-AR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+}
+
+function formatMonto(monto: number) {
+  return new Intl.NumberFormat('es-AR', {
+    style: 'currency',
+    currency: 'ARS',
+    maximumFractionDigits: 0,
+  }).format(monto || 0);
+}
+
+function calcularDias(inicio: string, fin: string) {
+  const diff = new Date(`${fin}T00:00:00`).getTime() - new Date(`${inicio}T00:00:00`).getTime();
+  return Math.max(1, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+}
+
+function estadoBadge(estado: EstadoAlquiler) {
+  switch (estado) {
+    case 'pendiente':
+      return 'bg-amber-100 text-amber-900 border-amber-300';
+    case 'activo':
+      return 'bg-green-100 text-green-800 border-green-300';
+    case 'devuelto':
+      return 'bg-slate-100 text-slate-800 border-slate-300';
+    case 'cancelado':
+      return 'bg-red-100 text-red-800 border-red-300';
+    default:
+      return 'bg-slate-100 text-slate-800 border-slate-300';
+  }
+}
+
+function estadoEntregaBadge(estado: EstadoEntrega) {
+  switch (estado) {
+    case 'cerrado':
+      return 'bg-green-100 text-green-800 border-green-300';
+    case 'parcial':
+      return 'bg-amber-100 text-amber-900 border-amber-300';
+    default:
+      return 'bg-slate-100 text-slate-800 border-slate-300';
+  }
 }
 
 export default function AlquilerDetallePage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const alquiler = getAlquilerById(Number(id));
+  const [alquiler, setAlquiler] = useState<AlquilerDetalleApi | null>(null);
+  const [itemsForm, setItemsForm] = useState<CierreItemForm[]>([]);
+  const [observaciones, setObservaciones] = useState('');
+  const [recargoRoturas, setRecargoRoturas] = useState(0);
+  const [recargoTarde, setRecargoTarde] = useState(0);
+  const [recargoOtros, setRecargoOtros] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
-  // --- Estados del Formulario de Entrega ---
-  const [entregaParcial, setEntregaParcial] = useState(false);
-  const [detalleParcial, setDetalleParcial] = useState("");
-  const [tieneDanos, setTieneDanos] = useState(false);
-  const [cobroDanos, setCobroDanos] = useState(0);
-  const [detalleDanos, setDetalleDanos] = useState("");
-  const [fueraTermino, setFueraTermino] = useState(false);
-  const [cobroPenalizacion, setCobroPenalizacion] = useState(0);
-  const [notasEntrega, setNotasEntrega] = useState("");
+  useEffect(() => {
+    let active = true;
 
-  if (!alquiler) {
+    async function loadDetalle() {
+      if (!id) {
+        navigate('/app/alquileres', { replace: true });
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+      setSuccess(null);
+
+      try {
+        const response = await fetch(`${API_URL}/${id}`);
+        if (response.status === 404) {
+          navigate('/app/alquileres', { replace: true });
+          return;
+        }
+
+        if (!response.ok) {
+          throw new Error('No se pudo cargar el alquiler');
+        }
+
+        const data = (await response.json()) as AlquilerDetalleApi;
+        if (!active) return;
+
+        setAlquiler(data);
+        setObservaciones(data.cierre?.observaciones ?? '');
+        setRecargoRoturas(data.cierre?.recargo_roturas ?? 0);
+        setRecargoTarde(data.cierre?.recargo_tarde ?? 0);
+        setRecargoOtros(data.cierre?.recargo_otros ?? 0);
+        setItemsForm(
+          data.items.map((item) => {
+            const cierreItem = data.cierre?.items.find((ci) => ci.alquiler_item_id === item.id);
+            return {
+              alquiler_item_id: item.id,
+              articulo_nombre: item.articulo_nombre,
+              cantidad_prestada: item.cantidad,
+              cantidad_devuelta: cierreItem?.cantidad_devuelta ?? item.cantidad_devuelta ?? 0,
+              estado_fisico: cierreItem?.estado_fisico ?? item.cierre_estado_fisico ?? 'ok',
+              observaciones: cierreItem?.observaciones ?? item.cierre_observaciones ?? '',
+              recargo_item: cierreItem?.recargo_item ?? item.cierre_recargo_item ?? 0,
+            };
+          })
+        );
+      } catch (loadError) {
+        if (active) {
+          setError(loadError instanceof Error ? loadError.message : 'Error inesperado');
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadDetalle();
+
+    return () => {
+      active = false;
+    };
+  }, [id, navigate]);
+
+  const dias = alquiler ? calcularDias(alquiler.fecha_inicio, alquiler.fecha_fin) : 1;
+
+  const subtotalDevolucion = useMemo(
+    () =>
+      itemsForm.reduce(
+        (acc, item) => acc + item.cantidad_devuelta * dias * 0,
+        0,
+      ),
+    [itemsForm, dias],
+  );
+
+  const totalRecargos = useMemo(
+    () =>
+      recargoRoturas +
+      recargoTarde +
+      recargoOtros +
+      itemsForm.reduce((acc, item) => acc + (Number(item.recargo_item) || 0), 0),
+    [itemsForm, recargoRoturas, recargoTarde, recargoOtros],
+  );
+
+  const itemsCompletos = itemsForm.every((item) => item.cantidad_devuelta >= item.cantidad_prestada);
+  const cantidadPendiente = itemsForm.filter((item) => item.cantidad_devuelta < item.cantidad_prestada).length;
+  const estadoEntregaActual: EstadoEntrega = alquiler?.cierre?.estado_entrega ?? (itemsForm.length === 0 ? 'pendiente' : itemsCompletos ? 'cerrado' : 'parcial');
+
+  function updateItem(index: number, patch: Partial<CierreItemForm>) {
+    setItemsForm((current) => current.map((item, currentIndex) => (currentIndex === index ? { ...item, ...patch } : item)));
+  }
+
+  function marcarTodosComoDevueltos() {
+    setItemsForm((current) =>
+      current.map((item) => ({
+        ...item,
+        cantidad_devuelta: item.cantidad_prestada,
+        estado_fisico: 'ok',
+        recargo_item: item.recargo_item || 0,
+      })),
+    );
+  }
+
+  async function handleSave() {
+    if (!alquiler) return;
+
+    setSaving(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const response = await fetch(`${API_URL}/${alquiler.id}/cierre`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          observaciones,
+          recargo_roturas: recargoRoturas,
+          recargo_tarde: recargoTarde,
+          recargo_otros: recargoOtros,
+          items: itemsForm.map((item) => ({
+            alquiler_item_id: item.alquiler_item_id,
+            cantidad_devuelta: item.cantidad_devuelta,
+            estado_fisico: item.estado_fisico,
+            observaciones: item.observaciones,
+            recargo_item: item.recargo_item,
+          })),
+        }),
+      });
+
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload?.error || 'No se pudo guardar el cierre');
+      }
+
+      setAlquiler(payload as AlquilerDetalleApi);
+      setObservaciones(payload.cierre?.observaciones ?? '');
+      setRecargoRoturas(payload.cierre?.recargo_roturas ?? 0);
+      setRecargoTarde(payload.cierre?.recargo_tarde ?? 0);
+      setRecargoOtros(payload.cierre?.recargo_otros ?? 0);
+      setItemsForm(
+        (payload as AlquilerDetalleApi).items.map((item) => ({
+          alquiler_item_id: item.id,
+          articulo_nombre: item.articulo_nombre,
+          cantidad_prestada: item.cantidad,
+          cantidad_devuelta: item.cierre_item_id ? item.cantidad_devuelta ?? item.cantidad : item.cantidad_devuelta ?? 0,
+          estado_fisico: item.cierre_estado_fisico ?? 'ok',
+          observaciones: item.cierre_observaciones ?? '',
+          recargo_item: item.cierre_recargo_item ?? 0,
+        })),
+      );
+      setSuccess('El cierre del alquiler fue guardado correctamente.');
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : 'Error inesperado');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (loading) {
     return (
-      <div role="alert" className="flex flex-col items-center justify-center min-h-[60vh] px-6 text-center">
-        <p className="text-gray-500 text-lg font-medium mb-4">Alquiler no encontrado.</p>
-        <button
-          onClick={() => navigate("/app/alquileres")}
-          className="px-5 py-3 bg-[#218a72] text-white rounded-xl font-bold transition-transform active:scale-95"
-        >
-          Volver a alquileres
-        </button>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3 text-gray-500 px-5">
+        <LoaderCircle className="animate-spin text-[#218a72]" size={34} />
+        <p className="font-medium text-center">Cargando detalle del alquiler...</p>
       </div>
     );
   }
 
-  // Soporte Multi-ítem Dinámico
-  const itemsAlquilados = (alquiler as any).items || [
-    { id: 1, nombre: alquiler.equipo, cantidad: alquiler.cantidad, precio: alquiler.precio }
-  ];
-
-  const meta = ESTADO_META[alquiler.estado];
-  const EstadoIcon = meta.icon;
-  const dias = calcularDias(alquiler.fechaInicio, alquiler.fechaFin);
-  
-  // Cálculos económicos
-  const subtotal = itemsAlquilados.reduce((acc: number, item: any) => acc + (item.precio * item.cantidad * dias), 0);
-  const totalOriginal = subtotal + alquiler.deposito;
-  const cargosAdicionales = (tieneDanos ? cobroDanos : 0) + (fueraTermino ? cobroPenalizacion : 0);
-  const balanceFinal = totalOriginal + cargosAdicionales;
-
-  const handleProcesarEntrega = (e: React.FormEvent) => {
-    e.preventDefault();
-    alert("Devolución registrada con éxito. Estado actualizado a Finalizado.");
-    navigate("/app/alquileres");
-  };
+  if (!alquiler) {
+    return null;
+  }
 
   return (
-    <div className="pb-16 bg-gray-50 min-h-screen font-sans">
-      {/* Región de Encabezado de Página */}
-      <header className="bg-gradient-to-br from-[#1b6f5c] via-[#165a4b] to-[#0f3d33] px-5 pt-5 pb-10 text-white shadow-md">
+    <div className="pb-10 min-h-screen bg-gradient-to-b from-white via-[#f7fbfa] to-white">
+      <div className="bg-gradient-to-br from-[#1b6f5c] via-[#218a72] to-[#0f3d33] px-5 pt-4 pb-6 text-white shadow-lg">
         <button
-          onClick={() => navigate("/app/alquileres")}
-          className="flex items-center gap-1.5 text-white/90 hover:text-white mb-6 focus:outline-none focus:ring-2 focus:ring-white rounded-lg px-2 py-1.5 transition-colors bg-white/10 text-xs font-semibold"
-          aria-label="Volver a la lista general de alquileres"
+          onClick={() => navigate('/app/alquileres')}
+          className="inline-flex items-center gap-2 text-white/90 hover:text-white mb-4 focus:outline-none focus:ring-2 focus:ring-white rounded-lg px-2 py-1 transition-colors bg-white/10"
+          aria-label="Volver al listado de alquileres"
         >
-          <ArrowLeft size={14} aria-hidden="true" />
-          <span>Volver a Alquileres</span>
+          <ArrowLeft size={18} aria-hidden="true" />
+          <span className="text-sm font-semibold">Alquileres</span>
         </button>
 
-        <div className="max-w-4xl mx-auto">
-          <p className="text-white/60 text-[11px] font-bold uppercase tracking-widest mb-1">
-            Registro Operativo #{alquiler.id}
-          </p>
-          <h1 className="text-2xl font-black tracking-tight">
-            Alquiler de {alquiler.cliente}
-          </h1>
-        </div>
-      </header>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.22em] text-white/70 mb-2">Detalle del alquiler</p>
+            <h1 className="text-2xl font-black leading-tight">{alquiler.cliente_nombre}</h1>
+            <p className="text-white/75 text-sm mt-2">
+              #{alquiler.id.toString().padStart(4, '0')} · {alquiler.items.length} ítem{alquiler.items.length !== 1 ? 's' : ''} · {formatMonto(alquiler.precio_total)}
+            </p>
+          </div>
 
-      {/* Región del Contenido Principal */}
-      <main className="px-4 -mt-6 max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
-        
-        {/* Bloque de Estado Grande y Protagónico */}
-        <section 
-          aria-labelledby="estado-contrato-titulo"
-          className={`md:col-span-3 bg-white rounded-2xl border ${meta.border} p-5 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4`}
-        >
-          <div className="flex items-start gap-4">
-            <div 
-              className={`w-12 h-12 rounded-xl ${meta.bg} ${meta.text} flex items-center justify-center flex-shrink-0 border border-current/10`}
-              aria-hidden="true"
-            >
-              <EstadoIcon size={24} />
-            </div>
+          <div className="flex flex-col items-end gap-2">
+            <span className={`px-3 py-1.5 rounded-full text-xs font-bold border-2 border-white/20 ${estadoBadge(alquiler.estado)}`}>
+              {alquiler.estado.charAt(0).toUpperCase() + alquiler.estado.slice(1)}
+            </span>
+            <span className={`px-3 py-1.5 rounded-full text-xs font-bold border-2 border-white/20 ${estadoEntregaBadge(estadoEntregaActual)}`}>
+              Cierre {estadoEntregaActual}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="px-5 py-6 max-w-5xl mx-auto space-y-6">
+        {error && (
+          <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-4 text-red-800">
+            <p className="font-bold mb-1">No se pudo completar la operación</p>
+            <p className="text-sm">{error}</p>
+          </div>
+        )}
+
+        {success && (
+          <div className="bg-green-50 border-2 border-green-200 rounded-2xl p-4 text-green-800">
+            <p className="font-bold mb-1">Cierre guardado</p>
+            <p className="text-sm">{success}</p>
+          </div>
+        )}
+
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <InfoCard icon={User} label="Cliente" value={alquiler.cliente_nombre} />
+          <InfoCard icon={CalendarDays} label="Período" value={`${formatFecha(alquiler.fecha_inicio)} → ${formatFecha(alquiler.fecha_fin)}`} />
+          <InfoCard icon={BadgeDollarSign} label="Total alquiler" value={formatMonto(alquiler.precio_total)} />
+        </section>
+
+        <section className="bg-white rounded-3xl border-2 border-gray-100 shadow-sm p-5 space-y-4">
+          <div className="flex items-center justify-between gap-3">
             <div>
-              <span className={`text-xs font-black uppercase tracking-wider ${meta.text}`} id="estado-contrato-titulo">
-                Estado del Contrato
-              </span>
-              <h2 className="text-xl font-extrabold text-gray-900 leading-tight">{meta.label}</h2>
-              <p className="text-xs text-gray-500 mt-0.5">{meta.desc}</p>
+              <h2 className="text-lg font-black text-gray-900">Datos del cliente</h2>
+              <p className="text-sm text-gray-500">Resumen rápido para confirmar la entrega y el cierre.</p>
             </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+            <InfoCard icon={Mail} label="Correo" value={alquiler.cliente_email || 'Sin correo'} />
+            <InfoCard icon={Phone} label="Teléfono" value={alquiler.cliente_telefono || 'Sin teléfono'} />
+            <InfoCard icon={FileText} label="Notas" value={alquiler.notas || 'Sin notas'} />
           </div>
         </section>
 
-        {/* Columna Izquierda: Información de Equipos e Interacciones */}
-        <div className="md:col-span-2 space-y-6">
-          
-          {/* Bloque de Equipos adaptado a Multi-ítem */}
-          <section aria-labelledby="inventario-titulo" className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-            <div className="px-5 pt-4 pb-3 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-              <h2 id="inventario-titulo" className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
-                <Package size={14} className="text-[#218a72]" aria-hidden="true" /> Detalle del Inventario Alquilado
-              </h2>
-              <span className="bg-gray-200 text-gray-700 text-[10px] font-bold px-2 py-0.5 rounded-full" aria-label={`${itemsAlquilados.length} elementos en total`}>
-                {itemsAlquilados.length} {itemsAlquilados.length === 1 ? 'Ítem' : 'Ítems'}
-              </span>
+        <section className="bg-white rounded-3xl border-2 border-gray-100 shadow-sm p-5 space-y-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-black text-gray-900">Elementos alquilados</h2>
+              <p className="text-sm text-gray-500">Cada línea muestra lo prestado y el seguimiento de devolución.</p>
             </div>
-            
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse" aria-label="Lista detallada de equipos alquilados y costos individuales">
-                <thead>
-                  <tr className="border-b border-gray-100 bg-gray-50/30 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
-                    <th scope="col" className="py-3 px-5">Equipo / Componente</th>
-                    <th scope="col" className="py-3 px-4 text-center">Cant.</th>
-                    <th scope="col" className="py-3 px-4 text-right">Precio/Día</th>
-                    <th scope="col" className="py-3 px-5 text-right">Subtotal ({dias}d)</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50 text-sm">
-                  {itemsAlquilados.map((item: any, idx: number) => (
-                    <tr key={item.id || idx} className="hover:bg-gray-50/60 transition-colors">
-                      <td className="py-3.5 px-5 font-semibold text-gray-900">{item.nombre}</td>
-                      <td className="py-3.5 px-4 text-center font-bold text-gray-600 bg-gray-50/40">{item.cantidad}</td>
-                      <td className="py-3.5 px-4 text-right font-medium text-gray-600">{formatMonto(item.precio)}</td>
-                      <td className="py-3.5 px-5 text-right font-bold text-gray-900">{formatMonto(item.precio * item.cantidad * dias)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
+            <button
+              onClick={marcarTodosComoDevueltos}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#218a72] text-white text-sm font-bold hover:bg-[#1b6f5c] transition-colors"
+            >
+              <CheckCircle2 size={16} />
+              Marcar todo como devuelto
+            </button>
+          </div>
 
-          {/* Formulario de Recepción y Entrega */}
-          {alquiler.estado !== "finalizado" && (
-            <section aria-labelledby="form-devolucion-titulo" className="bg-white rounded-2xl border-2 border-[#218a72]/30 shadow-md overflow-hidden">
-              <div className="bg-gradient-to-r from-[#218a72] to-[#165a4b] px-5 py-3 text-white flex items-center gap-2">
-                <ClipboardCheck size={18} aria-hidden="true" />
-                <h2 id="form-devolucion-titulo" className="text-sm font-bold uppercase tracking-wider">Registrar Devolución de Equipos</h2>
-              </div>
-              
-              <form onSubmit={handleProcesarEntrega} className="p-5 space-y-5">
-                
-                {/* Caso A y B: Control de Entrega Completa vs Parcial */}
-                <fieldset className="space-y-2">
-                  <legend className="text-xs font-bold text-gray-700 uppercase tracking-wider block">
-                    ¿Cómo es la entrega del inventario?
-                  </legend>
-                  <div className="grid grid-cols-2 gap-3">
-                    <label 
-                      className={`p-3 rounded-xl border text-left flex flex-col transition-all cursor-pointer ${
-                        !entregaParcial
-                          ? "border-[#218a72] bg-[#218a72]/5 ring-2 ring-[#218a72]/20"
-                          : "border-gray-200 hover:border-gray-300"
-                      }`}
-                    >
+          <div className="space-y-3">
+            {itemsForm.map((item, index) => {
+              const subtotal = item.cantidad_prestada * dias * 0;
+              return (
+                <div key={item.alquiler_item_id} className="rounded-2xl border border-gray-200 bg-gray-50 p-4 space-y-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold uppercase tracking-wide text-[#1b6f5c] mb-1">Ítem #{index + 1}</p>
+                      <h3 className="font-black text-gray-900 text-base">{item.articulo_nombre}</h3>
+                      <p className="text-sm text-gray-500 mt-1">
+                        Prestado: {item.cantidad_prestada} unidad{item.cantidad_prestada !== 1 ? 'es' : ''}
+                      </p>
+                    </div>
+
+                    <label className="inline-flex items-center gap-2 text-sm font-bold text-gray-700 bg-white border border-gray-200 rounded-xl px-3 py-2">
                       <input
-                        type="radio"
-                        name="tipoEntrega"
-                        checked={!entregaParcial}
-                        onChange={() => setEntregaParcial(false)}
-                        className="sr-only"
+                        type="checkbox"
+                        checked={item.cantidad_devuelta >= item.cantidad_prestada}
+                        onChange={(e) =>
+                          updateItem(index, {
+                            cantidad_devuelta: e.target.checked ? item.cantidad_prestada : 0,
+                            estado_fisico: 'ok',
+                          })
+                        }
+                        className="rounded border-gray-300 text-[#218a72] focus:ring-[#218a72]"
                       />
-                      <span className="text-xs font-bold text-gray-900">Completa (Tiempo y Forma)</span>
-                      <span className="text-[11px] text-gray-500 mt-0.5">Se devuelve todo lo solicitado.</span>
-                    </label>
-                    
-                    <label 
-                      className={`p-3 rounded-xl border text-left flex flex-col transition-all cursor-pointer ${
-                        entregaParcial
-                          ? "border-amber-500 bg-amber-50/50 ring-2 ring-amber-500/20"
-                          : "border-gray-200 hover:border-gray-300"
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="tipoEntrega"
-                        checked={entregaParcial}
-                        aria-expanded={entregaParcial}
-                        aria-controls="seccion-detalle-parcial"
-                        onChange={() => setEntregaParcial(true)}
-                        className="sr-only"
-                      />
-                      <span className="text-xs font-bold text-amber-900">Parcial (Incompleto)</span>
-                      <span className="text-[11px] text-amber-600/80 mt-0.5">Faltan unidades o accesorios.</span>
+                      Devuelto completo
                     </label>
                   </div>
 
-                  {entregaParcial && (
-                    <div id="seccion-detalle-parcial" className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-xl space-y-2">
-                      <div className="flex gap-2 text-amber-800">
-                        <AlertTriangle size={16} className="flex-shrink-0 mt-0.5" aria-hidden="true" />
-                        <label htmlFor="textarea-parcial" className="text-xs font-medium">Especifica detalladamente qué elementos quedan pendientes de devolución.</label>
-                      </div>
-                      <textarea
-                        id="textarea-parcial"
-                        rows={2}
-                        value={detalleParcial}
-                        onChange={(e) => setDetalleParcial(e.target.value)}
-                        placeholder="Ej: Falta entregar 1 cable HDMI y el trípode secundario."
-                        className="w-full text-xs p-2.5 border border-amber-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white font-medium"
-                        required={entregaParcial}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <Field label="Cantidad devuelta">
+                      <input
+                        type="number"
+                        min={0}
+                        max={item.cantidad_prestada}
+                        value={item.cantidad_devuelta}
+                        onChange={(e) => updateItem(index, { cantidad_devuelta: Math.max(0, Number(e.target.value) || 0) })}
+                        className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-white focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72]"
                       />
-                    </div>
-                  )}
-                </fieldset>
+                    </Field>
 
-                <hr className="border-gray-100" aria-hidden="true" />
+                    <Field label="Estado físico">
+                      <select
+                        value={item.estado_fisico}
+                        onChange={(e) => updateItem(index, { estado_fisico: e.target.value as EstadoFisico })}
+                        className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-white focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72]"
+                      >
+                        <option value="ok">OK</option>
+                        <option value="daniado">Dañado</option>
+                        <option value="perdido">Perdido</option>
+                      </select>
+                    </Field>
+                  </div>
 
-                {/* Caso C: Control de Daños / Roturas */}
-                <div className="space-y-3">
-                  <label htmlFor="input-danos" className="flex items-center gap-2.5 cursor-pointer select-none">
-                    <input
-                      id="input-danos"
-                      type="checkbox"
-                      checked={tieneDanos}
-                      aria-expanded={tieneDanos}
-                      aria-controls="seccion-detalle-danos"
-                      onChange={(e) => setTieneDanos(e.target.checked)}
-                      className="w-4 h-4 rounded text-[#218a72] focus:ring-[#218a72] border-gray-300"
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <Field label="Recargo por ítem">
+                      <input
+                        type="number"
+                        min={0}
+                        value={item.recargo_item}
+                        onChange={(e) => updateItem(index, { recargo_item: Math.max(0, Number(e.target.value) || 0) })}
+                        className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-white focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72]"
+                      />
+                    </Field>
+
+                    <Field label="Subtotal de referencia">
+                      <div className="w-full px-4 py-3 rounded-xl border-2 border-dashed border-gray-200 bg-white text-gray-500 font-semibold">
+                        {formatMonto(subtotal)}
+                      </div>
+                    </Field>
+                  </div>
+
+                  <Field label="Observaciones del ítem">
+                    <textarea
+                      value={item.observaciones}
+                      onChange={(e) => updateItem(index, { observaciones: e.target.value })}
+                      rows={3}
+                      className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-white focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] resize-y"
+                      placeholder="Cómo se devolvió, faltantes, detalles visibles..."
                     />
-                    <div className="text-xs">
-                      <span className="font-bold text-gray-800 block">El equipo presenta roturas / anomalías</span>
-                      <span className="text-gray-400 text-[11px]">Afecta el depósito de garantía o genera cobro extra</span>
-                    </div>
-                  </label>
-
-                  {tieneDanos && (
-                    <div id="seccion-detalle-danos" className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 bg-rose-50 border border-rose-100 rounded-xl">
-                      <div className="sm:col-span-1">
-                        <label htmlFor="monto-danos" className="text-[10px] font-bold text-rose-900 uppercase block mb-1">Monto de Recargo ($)</label>
-                        <input
-                          id="monto-danos"
-                          type="number"
-                          min="0"
-                          value={cobroDanos || ""}
-                          onChange={(e) => setCobroDanos(Number(e.target.value))}
-                          placeholder="0.00"
-                          className="w-full text-xs p-2 border border-rose-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500 font-bold"
-                          required={tieneDanos}
-                        />
-                      </div>
-                      <div className="sm:col-span-2">
-                        <label htmlFor="descripcion-danos" className="text-[10px] font-bold text-rose-900 uppercase block mb-1">Descripción del daño</label>
-                        <input
-                          id="descripcion-danos"
-                          type="text"
-                          value={detalleDanos}
-                          onChange={(e) => setDetalleDanos(e.target.value)}
-                          placeholder="Ej: Lente rayado / Carcasa golpeada"
-                          className="w-full text-xs p-2 border border-rose-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500"
-                          required={tieneDanos}
-                        />
-                      </div>
-                    </div>
-                  )}
+                  </Field>
                 </div>
+              );
+            })}
+          </div>
+        </section>
 
-                <hr className="border-gray-100" aria-hidden="true" />
+        <section className="bg-white rounded-3xl border-2 border-gray-100 shadow-sm p-5 space-y-4">
+          <div>
+            <h2 className="text-lg font-black text-gray-900">Cierre general</h2>
+            <p className="text-sm text-gray-500">Observaciones finales y cargos adicionales del alquiler completo.</p>
+          </div>
 
-                {/* Caso D: Control de Fuera de Término */}
-                <div className="space-y-3">
-                  <label htmlFor="input-retraso" className="flex items-center gap-2.5 cursor-pointer select-none">
-                    <input
-                      id="input-retraso"
-                      type="checkbox"
-                      checked={fueraTermino}
-                      aria-expanded={fueraTermino}
-                      aria-controls="seccion-detalle-retraso"
-                      onChange={(e) => setFueraTermino(e.target.checked)}
-                      className="w-4 h-4 rounded text-[#218a72] focus:ring-[#218a72] border-gray-300"
-                    />
-                    <div className="text-xs">
-                      <span className="font-bold text-gray-800 block">Entrega fuera de término (Retraso)</span>
-                      <span className="text-gray-400 text-[11px]">Aplicar recargos punitorios por entrega tardía</span>
-                    </div>
-                  </label>
+          <Field label="Observaciones de devolución">
+            <textarea
+              value={observaciones}
+              onChange={(e) => setObservaciones(e.target.value)}
+              rows={4}
+              className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-white focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] resize-y"
+              placeholder="Cómo se devolvió todo, si hubo faltantes o diferencias..."
+            />
+          </Field>
 
-                  {fueraTermino && (
-                    <div id="seccion-detalle-retraso" className="p-3 bg-orange-50 border border-orange-100 rounded-xl flex flex-col sm:flex-row gap-3 items-end">
-                      <div className="flex-1 w-full">
-                        <label htmlFor="monto-penalizacion" className="text-[10px] font-bold text-orange-900 uppercase block mb-1">Penalización Económica Total ($)</label>
-                        <input
-                          id="monto-penalizacion"
-                          type="number"
-                          min="0"
-                          value={cobroPenalizacion || ""}
-                          onChange={(e) => setCobroPenalizacion(Number(e.target.value))}
-                          placeholder="Monto de multa"
-                          className="w-full text-xs p-2 border border-orange-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 font-bold"
-                          required={fueraTermino}
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Notas generales de la recepción */}
-                <div className="space-y-1">
-                  <label htmlFor="notas-recepcion" className="text-[11px] font-bold text-gray-500 uppercase tracking-wider block">Observaciones de Recepción</label>
-                  <textarea
-                    id="notas-recepcion"
-                    rows={2}
-                    value={notasEntrega}
-                    onChange={(e) => setNotasEntrega(e.target.value)}
-                    placeholder="Comentarios opcionales sobre el estado general de cierre..."
-                    className="w-full text-xs p-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#218a72]"
-                  />
-                </div>
-
-                {/* Botón enviar */}
-                <button
-                  type="submit"
-                  className="w-full py-3 bg-[#218a72] hover:bg-[#165a4b] text-white font-bold rounded-xl text-xs uppercase tracking-wider shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-[#165a4b] active:scale-[0.99]"
-                >
-                  Procesar Cierre y Confirmar Recepción
-                </button>
-              </form>
-            </section>
-          )}
-        </div>
-
-        {/* Columna Derecha: Liquidación y Fechas */}
-        <div className="space-y-6">
-          {/* Bloque Período */}
-          <section aria-labelledby="cronograma-titulo" className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-            <h2 id="cronograma-titulo" className="text-xs font-bold text-gray-500 uppercase tracking-wider px-5 pt-4 pb-1">
-              Cronograma contractual
-            </h2>
-            <div className="px-5 pb-3">
-              <InfoRow icon={CalendarDays} label="Fecha de emisión" value={formatFecha(alquiler.fechaInicio)} />
-              <InfoRow icon={CalendarDays} label="Pactado para devolver" value={formatFecha(alquiler.fechaFin)} />
-              <InfoRow icon={Clock} label="Tiempo total" value={`${dias} ${dias === 1 ? "día" : "días"}`} highlight />
-            </div>
-          </section>
-
-          {/* Resumen Económico Completo */}
-          <section aria-labelledby="liquidacion-titulo" className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-            <h2 id="liquidacion-titulo" className="text-xs font-bold text-gray-500 uppercase tracking-wider px-5 pt-4 pb-1">
-              Liquidación Comercial
-            </h2>
-            <div className="px-5 pb-2">
-              <InfoRow icon={Banknote} label="Subtotal Neto Ítems" value={formatMonto(subtotal)} />
-              <InfoRow
-                icon={ShieldCheck}
-                label="Garantía de Resguardo"
-                value={alquiler.deposito > 0 ? formatMonto(alquiler.deposito) : "Sin depósito"}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <Field label="Recargo por roturas">
+              <input
+                type="number"
+                min={0}
+                value={recargoRoturas}
+                onChange={(e) => setRecargoRoturas(Math.max(0, Number(e.target.value) || 0))}
+                className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-white focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72]"
               />
-              
-              {/* Desglose dinámico si hay penalizaciones en el formulario */}
-              {cargosAdicionales > 0 && (
-                <div className="bg-rose-50/70 p-2.5 rounded-lg border border-rose-100 my-2 space-y-1 text-xs">
-                  <span className="font-bold text-rose-900 block text-[10px] uppercase">Recargos aplicados en la entrega:</span>
-                  {tieneDanos && <div className="flex justify-between text-rose-800"><span>• Por Daños:</span> <span className="font-semibold">{formatMonto(cobroDanos)}</span></div>}
-                  {fueraTermino && <div className="flex justify-between text-rose-800"><span>• Por Retraso:</span> <span className="font-semibold">{formatMonto(cobroPenalizacion)}</span></div>}
-                </div>
-              )}
-            </div>
+            </Field>
+            <Field label="Recargo por demora">
+              <input
+                type="number"
+                min={0}
+                value={recargoTarde}
+                onChange={(e) => setRecargoTarde(Math.max(0, Number(e.target.value) || 0))}
+                className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-white focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72]"
+              />
+            </Field>
+            <Field label="Otros recargos">
+              <input
+                type="number"
+                min={0}
+                value={recargoOtros}
+                onChange={(e) => setRecargoOtros(Math.max(0, Number(e.target.value) || 0))}
+                className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-white focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72]"
+              />
+            </Field>
+          </div>
 
-            {/* Total Destacado Dinámico (Anuncia los cambios al lector automáticamente) */}
-            <div 
-              className="mx-4 mb-4 mt-1 rounded-xl bg-slate-900 text-white px-4 py-3.5 flex items-center justify-between shadow-inner"
-              aria-live="polite"
-              aria-atomic="true"
+          <div className="rounded-2xl bg-[#f7fbfa] border border-[#d7ebe5] p-4 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+            <div>
+              <p className="text-gray-500 font-semibold">Estado de entrega</p>
+              <p className={`mt-1 inline-flex px-3 py-1 rounded-full text-xs font-bold border ${estadoEntregaBadge(estadoEntregaActual)}`}>
+                {estadoEntregaActual.charAt(0).toUpperCase() + estadoEntregaActual.slice(1)}
+              </p>
+            </div>
+            <div>
+              <p className="text-gray-500 font-semibold">Ítems pendientes</p>
+              <p className="mt-1 text-lg font-black text-gray-900">{cantidadPendiente}</p>
+            </div>
+            <div>
+              <p className="text-gray-500 font-semibold">Recargos totales</p>
+              <p className="mt-1 text-lg font-black text-[#1b6f5c]">{formatMonto(totalRecargos)}</p>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+            <p className="text-sm text-gray-500">
+              El alquiler quedará marcado como <span className="font-bold text-gray-700">devuelto</span> al guardar el cierre.
+            </p>
+
+            <button
+              onClick={handleSave}
+              disabled={saving || alquiler.estado === 'cancelado'}
+              className="inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-2xl bg-[#218a72] text-white font-bold hover:bg-[#1b6f5c] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              <div className="flex flex-col">
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Monto Total Estimado</span>
-                <span className="text-xs text-[#218a72] font-semibold" id="iva-informacion">Precios con IVA inc.</span>
-              </div>
-              <span className="text-xl font-black text-emerald-400" aria-describedby="iva-informacion">
-                <span className="sr-only">Total: </span>{formatMonto(balanceFinal)}
-              </span>
+              {saving ? <LoaderCircle size={18} className="animate-spin" /> : <Save size={18} />}
+              Guardar cierre
+            </button>
+          </div>
+
+          {alquiler.estado === 'cancelado' && (
+            <div className="rounded-2xl bg-red-50 border border-red-200 p-4 text-red-800 flex items-start gap-3">
+              <ShieldAlert size={18} className="mt-0.5 flex-shrink-0" />
+              <p className="text-sm font-medium">Este alquiler está cancelado y no se puede cerrar ni modificar desde esta pantalla.</p>
             </div>
-          </section>
-
-          {/* Bloque de Notas Originales */}
-          {alquiler.notas && (
-            <section aria-labelledby="notas-iniciales-titulo" className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-              <h2 id="notas-iniciales-titulo" className="text-xs font-bold text-gray-500 uppercase tracking-wider px-5 pt-4 pb-1">
-                Observaciones iniciales
-              </h2>
-              <div className="px-5 pb-4">
-                <div className="flex items-start gap-2.5 pt-1.5">
-                  <FileText size={15} className="text-gray-400 flex-shrink-0 mt-0.5" aria-hidden="true" />
-                  <p className="text-gray-600 text-xs leading-relaxed">{alquiler.notas}</p>
-                </div>
-              </div>
-            </section>
           )}
-        </div>
-
-      </main>
+        </section>
+      </div>
     </div>
+  );
+}
+
+function InfoCard({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-2xl border-2 border-gray-100 bg-white p-4 shadow-sm">
+      <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-gray-500">
+        <Icon size={14} className="text-[#1b6f5c]" aria-hidden="true" />
+        {label}
+      </div>
+      <div className="mt-2 text-sm font-semibold text-gray-800 break-words">{value}</div>
+    </div>
+  );
+}
+
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="block space-y-2">
+      <span className="block text-sm font-bold text-gray-700">{label}</span>
+      {children}
+    </label>
   );
 }

@@ -41,14 +41,31 @@ export default function NuevoClientePage() {
       setErrors(errs);
       return;
     }
-    addCliente({
-      nombre: formData.nombre.trim(),
-      email: formData.email.trim().toLowerCase(),
-      dni: formData.dni.trim(),
-      ...(formData.telefono.trim() ? { telefono: formData.telefono.trim() } : {}),
+    const payload = {
+        nombre: formData.nombre.trim(),
+        email: formData.email.trim().toLowerCase(),
+        dni: formData.dni.trim(), // OJO: Tu backend actual ignora este campo
+        ...(formData.telefono.trim() ? { telefono: formData.telefono.trim() } : {}),
+    };
+     fetch('http://127.0.0.1:3001/api/clientes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload), // ESTA ES LA MAGIA QUE FALTABA
+    })
+    .then(async (response) => {
+      if (response.ok) {
+        setClienteNombre(formData.nombre.trim());
+        setShowSuccess(true);
+      } else {
+        // Extraemos el error del backend para mostrarlo
+        const errorData = await response.json();
+        console.error("Error del servidor:", errorData.error);
+        // Aquí podrías hacer un setErrors({ general: errorData.error }) para mostrarlo en la UI
+      }
+    })
+    .catch((error) => {
+        console.error("Error de red:", error);
     });
-    setClienteNombre(formData.nombre.trim());
-    setShowSuccess(true);
   }
 
   function handleChange(field: keyof typeof formData, value: string) {

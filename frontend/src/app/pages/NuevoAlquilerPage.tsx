@@ -2,6 +2,7 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { Save, X, Plus, Search } from 'lucide-react';
 import { SuccessModal } from '../components/SuccessModal';
+import { getClientes } from '../data/clientesData';
 
 const CLIENTES_MOCK = [
   { id: '1', nombre: 'Juan Pérez', numero: 'CLI-001', documento: '35444888' },
@@ -35,7 +36,8 @@ export default function NuevoAlquilerPage() {
 
   // Estados de cliente
   const [buscarCliente, setBuscarCliente] = useState('');
-  const [clienteSeleccionado, setClienteSeleccionado] = useState<typeof CLIENTES_MOCK[0] | null>(null);
+  const [clientesLista, setClientesLista] = useState<Cliente[]>([]); 
+  const [clienteSeleccionado, setClienteSeleccionado] = useState<Cliente | null>(null);
   const [mostrarDropdown, setMostrarDropdown] = useState(false);
   
   // ÍNDICE ACTIVO PARA NAVEGACIÓN POR TECLADO
@@ -52,17 +54,28 @@ export default function NuevoAlquilerPage() {
 
   const [formErrors, setFormErrors] = useState<string[]>([]);
   const [showSuccess, setShowSuccess] = useState(false);
+  useEffect(() => {
+    async function fetchClientes() {
+      try {
+        const data = await getClientes();
+        setClientesLista(data);
+      } catch (error) {
+        console.error("Error al cargar los clientes:", error);
+      }
+    }
+    fetchClientes();
+  }, []);
 
   const clientesFiltrados = useMemo(() => {
     if (!buscarCliente.trim()) return [];
     const query = buscarCliente.toLowerCase();
-    return CLIENTES_MOCK.filter(
+    return clientesLista.filter( 
       (c) =>
         c.nombre.toLowerCase().includes(query) ||
-        c.numero.toLowerCase().includes(query) ||
-        c.documento.includes(query)
+        c.dni.toLowerCase().includes(query) || 
+        (c.dni && c.dni.includes(query)) // Verificamos que dni exista por precaución
     );
-  }, [buscarCliente]);
+  }, [buscarCliente, clientesLista]);
 
   // Resetear el índice del teclado cuando cambian los resultados de búsqueda
   useEffect(() => {
@@ -115,9 +128,10 @@ export default function NuevoAlquilerPage() {
     }
   };
 
-  const seleccionarCliente = (c: typeof CLIENTES_MOCK[0]) => {
+  const seleccionarCliente = (c: typeof clientesLista[0]) => {
+    console.log("Cliente seleccionado:", c);
     setClienteSeleccionado(c);
-    setBuscarCliente(`${c.nombre} (${c.documento})`);
+    setBuscarCliente(`${c.nombre} (${c.dni})`);
     setMostrarDropdown(false);
     setFocusedIndex(-1);
   };
@@ -248,7 +262,7 @@ export default function NuevoAlquilerPage() {
                     >
                       <div>
                         <span className="font-semibold block text-gray-800">{c.nombre}</span>
-                        <span className="text-xs text-gray-500">Doc: {c.documento}</span>
+                        <span className="text-xs text-gray-500">Doc: {c.dni}</span>
                       </div>
                       <span className="text-xs bg-gray-100 px-2 py-1 rounded text-gray-600 font-mono">{c.numero}</span>
                     </button>
