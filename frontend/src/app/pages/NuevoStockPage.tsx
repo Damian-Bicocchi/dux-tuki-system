@@ -9,17 +9,20 @@ import {
   Info,
   Loader2,
 } from "lucide-react";
-import {
-  getStockItems,
-  saveStockItems,
-  addStockItem,
-} from "../data/stockData";
 import { SuccessModal } from "../components/SuccessModal";
+import { FailureModal } from "../components/FailureModal"; // Importamos tu nuevo componente
 
-// 1. Interfaz para el formato real de categorías que devuelve tu API
 interface Categoria {
   id: number;
   nombre: string;
+}
+
+interface StockItem {
+  id: number;
+  nombre: string;
+  categoria: string;
+  total: number;
+  disponibles: number;
 }
 
 function normalizar(s: string) {
@@ -31,7 +34,7 @@ function normalizar(s: string) {
 }
 
 type DuplicadoStatus =
-  | { tipo: "exacto"; item: { nombre: string; disponibles: number; total: number } }
+  | { tipo: "exacto"; item: StockItem }
   | { tipo: "similares"; nombres: string[] }
   | null;
 
@@ -48,25 +51,28 @@ export default function NuevoStockPage() {
   const [activeIndex, setActiveIndex] = useState(-1);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // 2. Estados para el manejo de la API real de categorías
+  // Estados para el manejo de la API de categorías y artículos
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [cargandoCategorias, setCargandoCategorias] = useState(true);
   const [errorCategorias, setErrorCategorias] = useState(false);
+  
+  const [stockItems, setStockItems] = useState<StockItem[]>([]);
+  const [enviandoFormulario, setEnviandoFormulario] = useState(false);
 
+  // Estados para el control de Modales de Éxito y Error
   const [showSuccess, setShowSuccess] = useState(false);
   const [successMsg, setSuccessMsg] = useState({ title: "", message: "" });
 
-  const stockItems = useMemo(() => getStockItems(), []);
+  const [showFailure, setShowFailure] = useState(false);
+  const [failureMsg, setFailureMsg] = useState({ title: "", message: "" });
 
-  // Función para consumir el endpoint del backend
+  // Función para consumir las categorías del backend
   const cargarCategoriasAPI = async () => {
     try {
       setCargandoCategorias(true);
       setErrorCategorias(false);
-
       const response = await fetch("http://localhost:3001/api/categorias");
       if (!response.ok) throw new Error("Error al obtener las categorías");
-
       const data = await response.json();
       setCategorias(data);
     } catch (error) {
@@ -77,9 +83,23 @@ export default function NuevoStockPage() {
     }
   };
 
-  // 3. Cargar categorías reales desde el backend al montar el componente
+  // Función para cargar los artículos actuales y calcular duplicados en tiempo real
+  const cargarArticulosAPI = async () => {
+    try {
+      const response = await fetch("http://localhost:3001/api/stock");
+      if (response.ok) {
+        const data = await response.json();
+        setStockItems(data);
+      }
+    } catch (error) {
+      console.error("Error cargando artículos de stock:", error);
+    }
+  };
+
+  // Cargar datos reales desde el backend al montar el componente
   useEffect(() => {
     cargarCategoriasAPI();
+    cargarArticulosAPI();
   }, []);
 
   // Filtrar las opciones del autocompletado según lo que escribe el usuario
@@ -102,7 +122,7 @@ export default function NuevoStockPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Detectar duplicados exactos o similares
+  // Detectar duplicados exactos o similares en vivo
   const duplicado: DuplicadoStatus = useMemo(() => {
     if (!nombre.trim()) return null;
     const query = normalizar(nombre);
@@ -143,7 +163,7 @@ export default function NuevoStockPage() {
       setActiveIndex((prev) => (prev - 1 + opcionesFiltradas.length) % opcionesFiltradas.length);
     } else if (e.key === "Enter") {
       if (isDropdownOpen && activeIndex >= 0 && opcionesFiltradas[activeIndex]) {
-        e.preventDefault(); // Evita que se envíe el formulario al seleccionar
+        e.preventDefault();
         setNombre(opcionesFiltradas[activeIndex]);
         setIsDropdownOpen(false);
         setActiveIndex(-1);
@@ -161,40 +181,74 @@ export default function NuevoStockPage() {
     return errs;
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.SubmitEvent) {
     e.preventDefault();
+    if (enviandoFormulario) return;
+
     const errs = validate();
     if (Object.keys(errs).length > 0) {
       setErrors(errs);
       return;
     }
 
-    if (duplicado?.tipo === "exacto") {
-      const items = getStockItems();
-      const updated = items.map((i) =>
-        normalizar(i.nombre) === normalizar(nombre)
-          ? { ...i, total: i.total + cantidad, disponibles: i.disponibles + cantidad }
-          : i
-      );
-      saveStockItems(updated);
-      setSuccessMsg({
-        title: "Stock actualizado",
-        message: `Se sumaron ${cantidad} unidad${cantidad !== 1 ? "es" : ""} a "${duplicado.item.nombre}".`,
-      });
-    } else {
-      addStockItem({
-        nombre: nombre.trim(),
-        categoria: categoria || "Otros",
-        total: cantidad,
-        disponibles: cantidad,
-      });
-      setSuccessMsg({
-        title: "¡Equipo agregado!",
-        message: `"${nombre.trim()}" fue registrado con ${cantidad} unidad${cantidad !== 1 ? "es" : ""} en stock.`,
-      });
-    }
+    try {
+      setEnviandoFormulario(true);
 
-    setShowSuccess(true);
+      const response = await fetch("http://localhost:3001/api/stock", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          nombre: nombre.trim(),
+          categoria: categoria || "Otros",
+          cantidad: cantidad,
+        }),
+      });
+
+      // 🚨 CONTROL DE PARSEO SEGURO:
+      // Verificamos si el backend respondió con un Content-Type de tipo JSON
+      const contentType = response.headers.get("content-type");
+      let resultado: any = {};
+      
+      if (contentType && contentType.includes("application/json")) {
+        resultado = await response.json();
+      } else {
+        // Si no es JSON (ej: un error HTML de Express 404/500 plano), lo leemos como texto alternativo
+        const textoError = await response.text();
+        console.error("El backend no devolvió JSON. Respuesta cruda del servidor:", textoError);
+        throw new Error(`Servidor devolvió formato inesperado (Código ${response.status})`);
+      }
+
+      if (!response.ok) {
+        if (resultado.errors) {
+          setErrors(resultado.errors);
+        } else {
+          setFailureMsg({
+            title: "No se pudo guardar",
+            message: resultado.message || "Ocurrió un error inesperado al procesar el stock.",
+          });
+          setShowFailure(true);
+        }
+        return;
+      }
+
+      setSuccessMsg({
+        title: response.status === 200 ? "Stock actualizado" : "¡Equipo agregado!",
+        message: resultado.message,
+      });
+
+      setShowSuccess(true);
+    } catch (error: any) {
+      console.error("Error al enviar el formulario:", error);
+      setFailureMsg({
+        title: "Error en la solicitud",
+        message: error.message || "No se pudo establecer comunicación con el servidor backend. Verificá que el backend esté encendido.",
+      });
+      setShowFailure(true);
+    } finally {
+      setEnviandoFormulario(false);
+    }
   }
 
   const inputClass = (hasError: boolean) =>
@@ -235,11 +289,21 @@ export default function NuevoStockPage() {
       </div>
 
       <div className="px-5 pt-6 max-w-lg mx-auto">
+        {/* Modal de Éxito */}
         <SuccessModal
           isOpen={showSuccess}
           title={successMsg.title}
           message={successMsg.message}
           onClose={() => navigate("/app/stock")}
+        />
+
+        {/* 🚀 Modal de Fallo integrado */}
+        <FailureModal
+          isOpen={showFailure}
+          title={failureMsg.title}
+          message={failureMsg.message}
+          actionLabel="Entendido"
+          onClose={() => setShowFailure(false)}
         />
 
         <form
@@ -248,7 +312,7 @@ export default function NuevoStockPage() {
           aria-label="Formulario para agregar equipo al stock"
           className="space-y-5"
         >
-          {/* NOMBRE (COMBOBOX / AUTOCOMPLETE ACCESIBLE) */}
+          {/* NOMBRE (COMBOBOX / AUTOCOMPLETE) */}
           <div ref={dropdownRef} className="relative">
             <label
               htmlFor="nombre"
@@ -268,6 +332,7 @@ export default function NuevoStockPage() {
               aria-controls="nombre-listbox"
               aria-activedescendant={activeIndex >= 0 ? `option-${activeIndex}` : undefined}
               value={nombre}
+              disabled={enviandoFormulario}
               onChange={(e) => {
                 setNombre(e.target.value);
                 setIsDropdownOpen(true);
@@ -289,7 +354,6 @@ export default function NuevoStockPage() {
               className={inputClass(!!errors.nombre)}
             />
 
-            {/* Lista Desplegable Autocompletable */}
             {isDropdownOpen && opcionesFiltradas.length > 0 && (
               <ul
                 id="nombre-listbox"
@@ -361,7 +425,7 @@ export default function NuevoStockPage() {
             )}
           </div>
 
-          {/* CATEGORÍA TRAÍDA DESDE EXPRESS */}
+          {/* CATEGORÍA */}
           <div>
             <label
               htmlFor="categoria"
@@ -394,13 +458,12 @@ export default function NuevoStockPage() {
                 id="categoria"
                 value={categoria}
                 onChange={(e) => setCategoria(e.target.value)}
-                disabled={cargandoCategorias}
+                disabled={cargandoCategorias || enviandoFormulario}
                 aria-busy={cargandoCategorias}
                 aria-label="Categoría del equipo"
                 className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl bg-white focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors disabled:opacity-60 disabled:cursor-wait cursor-pointer"
               >
                 <option value="">Seleccioná una categoría</option>
-                {/* 🚀 Mapeamos las categorías usando las propiedades del objeto real de tu BD */}
                 {categorias.map((cat) => (
                   <option key={cat.id} value={cat.nombre}>
                     {cat.nombre}
@@ -425,6 +488,7 @@ export default function NuevoStockPage() {
               type="number"
               min="1"
               value={cantidad}
+              disabled={enviandoFormulario}
               onChange={(e) => {
                 setCantidad(parseInt(e.target.value) || 0);
                 if (errors.cantidad) setErrors((p) => ({ ...p, cantidad: undefined }));
@@ -445,14 +509,17 @@ export default function NuevoStockPage() {
           <div className="flex flex-col gap-3 pt-2">
             <button
               type="submit"
-              className="w-full py-4 bg-[#218a72] hover:bg-[#1b6f5c] active:scale-[0.98] text-white rounded-xl font-bold transition-all focus:outline-none focus:ring-4 focus:ring-[#218a72]/30"
+              disabled={enviandoFormulario}
+              className="w-full py-4 bg-[#218a72] hover:bg-[#1b6f5c] active:scale-[0.98] text-white rounded-xl font-bold transition-all focus:outline-none focus:ring-4 focus:ring-[#218a72]/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
+              {enviandoFormulario && <Loader2 size={18} className="animate-spin" />}
               {duplicado?.tipo === "exacto" ? "Sumar unidades" : "Registrar equipo"}
             </button>
             <button
               type="button"
+              disabled={enviandoFormulario}
               onClick={() => navigate("/app/stock")}
-              className="w-full py-4 border-2 border-gray-200 bg-white text-gray-700 rounded-xl font-bold hover:bg-gray-50 active:scale-[0.98] transition-all focus:outline-none focus:ring-4 focus:ring-gray-200"
+              className="w-full py-4 border-2 border-gray-200 bg-white text-gray-700 rounded-xl font-bold hover:bg-gray-50 active:scale-[0.98] transition-all focus:outline-none focus:ring-4 focus:ring-gray-200 disabled:opacity-50"
             >
               Cancelar
             </button>

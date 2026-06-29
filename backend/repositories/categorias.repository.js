@@ -70,6 +70,11 @@ class CategoriasRepository {
       );
     });
   }
+  buscarTodasLasCategorias() {
+    const db = getDb();
+    const query = "SELECT * FROM categorias ORDER BY nombre ASC";
+    return db.all(query);
+  }
 }
 
 module.exports = new CategoriasRepository();

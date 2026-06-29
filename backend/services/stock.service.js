@@ -1,90 +1,76 @@
-const { StockRepository } = require("../repositories/stock.repository.js");
+const stockRepository = require("../repositories/stock.repository");
+const categoriasRepository = require("../repositories/categorias.repository");
+
+function normalizarTexto(s) {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .trim();
+}
+
+function mapearAFrontend(art) {
+  return {
+    id: art.id,
+    nombre: art.nombre,
+    categoria: art.categoria_nombre || "Otros",
+    total: art.stock_total,
+    disponibles: art.stock_total // Al no mapear reservas por el momento, disponibles = total
+  };
+}
 
 class StockService {
-  constructor(stockRepository) {
-    this.stockRepository = stockRepository;
+  async listarArticulos() {
+    const articulos = await stockRepository.findAll();
+    return articulos.map(mapearAFrontend);
   }
 
-  normalizar(s) {
-    return s
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .trim();
+  async listarCategorias() {
+    // Usamos el método findAll() que ya tenías programado en tu clase CategoriasRepository
+    return await categoriasRepository.findAll();
   }
 
-  async verificarDuplicado(nombre) {
-    if (!nombre.trim()) return null;
+  async procesarArticulo(nombre, cantidad, nombreCategoria) {
+    const articulosBD = await stockRepository.findAll();
+    const nombreQuery = normalizarTexto(nombre);
 
-    const query = this.normalizar(nombre);
-    const items = await this.stockRepository.getAll();
-
-    // Verificar coincidencia exacta
-    const exacto = items.find(
-      (i) => this.normalizar(i.nombre) === query
+    // 1. Validar coincidencia exacta en el stock actual
+    const articuloExistente = articulosBD.find(
+      (item) => normalizarTexto(item.nombre) === nombreQuery
     );
 
-    if (exacto) {
+    if (articuloExistente) {
+      const nuevoTotal = articuloExistente.stock_total + cantidad;
+      await stockRepository.updateStock(articuloExistente.id, nuevoTotal);
+
+      const actualizado = { ...articuloExistente, stock_total: nuevoTotal };
       return {
-        tipo: "exacto",
-        item: exacto,
+        esDuplicado: true,
+        message: `Se sumaron ${cantidad} unidades a "${articuloExistente.nombre}".`,
+        item: mapearAFrontend(actualizado)
       };
     }
 
-    // Verificar coincidencias similares
-    const similares = items
-      .filter((i) => {
-        const n = this.normalizar(i.nombre);
+    // 2. Si es un registro nuevo, buscamos la categoría por nombre en el repositorio
+    const categoriaEncontrada = await categoriasRepository.findByName(nombreCategoria);
+    const categoriaId = categoriaEncontrada ? categoriaEncontrada.id : null;
 
-        return (
-          n.includes(query) ||
-          query.includes(n) ||
-          n.split(" ").some(
-            (w) => w.length > 3 && query.includes(w)
-          )
-        );
-      })
-      .map((i) => i.nombre);
-
-    if (similares.length > 0) {
-      return {
-        tipo: "similares",
-        nombres: similares,
-      };
-    }
-
-    return null;
-  }
-
-  async procesarIngresoStock(nombre, categoria, cantidad) {
-    const duplicado = await this.verificarDuplicado(nombre);
-
-    if (duplicado && duplicado.tipo === "exacto") {
-      const actualizado = await this.stockRepository.updateStock(
-        duplicado.item.nombre,
-        cantidad
-      );
-
-      return {
-        operacion: "actualizado",
-        item: actualizado,
-      };
-    }
-
-    const nuevoItem = await this.stockRepository.create({
-      nombre: nombre.trim(),
-      categoria: categoria || "Otros",
-      total: cantidad,
-      disponibles: cantidad,
+    // 3. Crear el artículo en SQLite
+    const nuevoArticulo = await stockRepository.create({
+      nombre,
+      stock_total: cantidad,
+      categoria_id: categoriaId
     });
 
+    // Añadir el texto de la categoría para el mapeo final del frontend
+    nuevoArticulo.categoria_nombre = categoriaEncontrada ? categoriaEncontrada.nombre : "Otros";
+
     return {
-      operacion: "creado",
-      item: nuevoItem,
+      esDuplicado: false,
+      message: `"${nombre}" fue registrado con ${cantidad} unidades en stock.`,
+      item: mapearAFrontend(nuevoArticulo)
     };
   }
 }
 
-module.exports = {
-  StockService,
-};
+module.exports = new StockService();
