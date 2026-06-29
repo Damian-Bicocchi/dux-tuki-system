@@ -58,16 +58,31 @@ export default function ClienteDetallePage() {
   const [sortDir, setSortDir] = useState<SortDir>('desc');
 
   useEffect(() => {
-    const found = getClienteById(Number(id));
-    if (!found) {
-      navigate('/app/clientes', { replace: true });
-      return;
-    }
-    setCliente(found);
+    const fetchCliente = async () => {
+      try {
+        const found = await getClienteById(Number(id));
+        
+        if (!found) {
+          navigate('/app/clientes', { replace: true });
+          return;
+        }
+        
+        setCliente(found);
+      } catch (error) {
+        console.error("Error obteniendo el cliente:", error);
+        navigate('/app/clientes', { replace: true });
+      }
+    };
+    
+    fetchCliente();
   }, [id, navigate]);
-
-  if (!cliente) return null;
-
+  if (!cliente) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-gray-500 font-medium">Cargando cliente...</p>
+      </div>
+    );
+  }
   const alquileresFiltrados = cliente.alquileres
     .filter((a) => filtroEstado === 'todos' || a.estado === filtroEstado)
     .sort((a, b) => {
