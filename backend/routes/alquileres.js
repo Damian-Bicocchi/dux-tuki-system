@@ -1,7 +1,17 @@
 const express = require('express');
+const { getDb } = require('../db');
 
-module.exports = (db) => {
-    const router = express.Router();
+const router = express.Router();
+const db = new Proxy(
+    {},
+    {
+        get(_target, prop) {
+            const conn = getDb();
+            const value = conn[prop];
+            return typeof value === 'function' ? value.bind(conn) : value;
+        },
+    },
+);
 
     function runAsync(sql, params = []) {
         return new Promise((resolve, reject) => {
@@ -252,8 +262,15 @@ module.exports = (db) => {
     //   items: [{ articulo_id, cantidad, precio_unitario_dia? }]
     // }
     router.post('/', async (req, res) => {
-        const { cliente_id, fecha_inicio, fecha_fin, estado, notas, items } =
-            req.body;
+        const {
+            cliente_id,
+            fecha_inicio,
+            fecha_fin,
+            estado,
+            deposito_garantia,
+            notas,
+            items,
+        } = req.body;
 
         // Validaciones básicas
         if (!cliente_id)
@@ -270,11 +287,9 @@ module.exports = (db) => {
                 .json({ error: 'Se requiere al menos un artículo en items' });
         }
         if (new Date(fecha_fin) < new Date(fecha_inicio)) {
-            return res
-                .status(400)
-                .json({
-                    error: 'fecha_fin no puede ser anterior a fecha_inicio',
-                });
+            return res.status(400).json({
+                error: 'fecha_fin no puede ser anterior a fecha_inicio',
+            });
         }
 
         const dias = calcularDias(fecha_inicio, fecha_fin);
@@ -283,11 +298,9 @@ module.exports = (db) => {
             // Verificar stock de todos los artículos antes de insertar
             for (const item of items) {
                 if (!item.articulo_id || !item.cantidad || item.cantidad < 1) {
-                    return res
-                        .status(400)
-                        .json({
-                            error: 'Cada item debe tener articulo_id y cantidad >= 1',
-                        });
+                    return res.status(400).json({
+                        error: 'Cada item debe tener articulo_id y cantidad >= 1',
+                    });
                 }
                 await verificarDisponibilidad(
                     item.articulo_id,
@@ -326,14 +339,15 @@ module.exports = (db) => {
 
             // Insertar alquiler
             db.run(
-                `INSERT INTO alquileres (cliente_id, fecha_inicio, fecha_fin, estado, precio_total, notas)
-                 VALUES (?, ?, ?, ?, ?, ?)`,
+                `INSERT INTO alquileres (cliente_id, fecha_inicio, fecha_fin, estado, precio_total, deposito_garantia, notas)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)`,
                 [
                     cliente_id,
                     fecha_inicio,
                     fecha_fin,
                     estado || 'pendiente',
                     precio_total,
+                    Number(deposito_garantia) || 0,
                     notas || null,
                 ],
                 function (err) {
@@ -373,16 +387,21 @@ module.exports = (db) => {
 
     // ── PUT /api/alquileres/:id — actualizar alquiler completo ─────────────────
     router.put('/:id', async (req, res) => {
-        const { cliente_id, fecha_inicio, fecha_fin, estado, notas, items } =
-            req.body;
+        const {
+            cliente_id,
+            fecha_inicio,
+            fecha_fin,
+            estado,
+            deposito_garantia,
+            notas,
+            items,
+        } = req.body;
         const alquiler_id = req.params.id;
 
         if (!cliente_id || !fecha_inicio || !fecha_fin) {
-            return res
-                .status(400)
-                .json({
-                    error: 'cliente_id, fecha_inicio y fecha_fin son obligatorios',
-                });
+            return res.status(400).json({
+                error: 'cliente_id, fecha_inicio y fecha_fin son obligatorios',
+            });
         }
         if (!items || !Array.isArray(items) || items.length === 0) {
             return res
@@ -390,11 +409,9 @@ module.exports = (db) => {
                 .json({ error: 'Se requiere al menos un artículo en items' });
         }
         if (new Date(fecha_fin) < new Date(fecha_inicio)) {
-            return res
-                .status(400)
-                .json({
-                    error: 'fecha_fin no puede ser anterior a fecha_inicio',
-                });
+            return res.status(400).json({
+                error: 'fecha_fin no puede ser anterior a fecha_inicio',
+            });
         }
 
         const dias = calcularDias(fecha_inicio, fecha_fin);
@@ -402,11 +419,9 @@ module.exports = (db) => {
         try {
             for (const item of items) {
                 if (!item.articulo_id || !item.cantidad || item.cantidad < 1) {
-                    return res
-                        .status(400)
-                        .json({
-                            error: 'Cada item debe tener articulo_id y cantidad >= 1',
-                        });
+                    return res.status(400).json({
+                        error: 'Cada item debe tener articulo_id y cantidad >= 1',
+                    });
                 }
                 await verificarDisponibilidad(
                     item.articulo_id,
@@ -449,7 +464,7 @@ module.exports = (db) => {
             db.run(
                 `UPDATE alquileres
                  SET cliente_id = ?, fecha_inicio = ?, fecha_fin = ?,
-                     estado = ?, precio_total = ?, notas = ?
+                     estado = ?, precio_total = ?, deposito_garantia = ?, notas = ?
                  WHERE id = ?`,
                 [
                     cliente_id,
@@ -457,6 +472,7 @@ module.exports = (db) => {
                     fecha_fin,
                     estado || 'pendiente',
                     precio_total,
+                    Number(deposito_garantia) || 0,
                     notas || null,
                     alquiler_id,
                 ],
@@ -526,11 +542,9 @@ module.exports = (db) => {
         } = req.body;
 
         if (!Array.isArray(items) || items.length === 0) {
-            return res
-                .status(400)
-                .json({
-                    error: 'Se requiere el detalle de entrega por cada ítem',
-                });
+            return res.status(400).json({
+                error: 'Se requiere el detalle de entrega por cada ítem',
+            });
         }
 
         try {
@@ -543,11 +557,9 @@ module.exports = (db) => {
                     .status(404)
                     .json({ error: 'Alquiler no encontrado' });
             if (alquiler.estado === 'cancelado') {
-                return res
-                    .status(409)
-                    .json({
-                        error: 'No se puede cerrar un alquiler cancelado',
-                    });
+                return res.status(409).json({
+                    error: 'No se puede cerrar un alquiler cancelado',
+                });
             }
 
             const alquilerItems = await allAsync(
@@ -571,11 +583,9 @@ module.exports = (db) => {
                 const alquiler_item_id = String(rawItem.alquiler_item_id ?? '');
                 const itemBase = itemsPorId.get(alquiler_item_id);
                 if (!itemBase) {
-                    return res
-                        .status(400)
-                        .json({
-                            error: `El item ${alquiler_item_id} no pertenece al alquiler`,
-                        });
+                    return res.status(400).json({
+                        error: `El item ${alquiler_item_id} no pertenece al alquiler`,
+                    });
                 }
 
                 const cantidadDevuelta = Number(
@@ -622,11 +632,9 @@ module.exports = (db) => {
             }
 
             if (itemsRecibidos.size !== alquilerItems.length) {
-                return res
-                    .status(400)
-                    .json({
-                        error: 'Debes completar el cierre de todos los ítems del alquiler',
-                    });
+                return res.status(400).json({
+                    error: 'Debes completar el cierre de todos los ítems del alquiler',
+                });
             }
 
             const totalRecargos =
@@ -732,11 +740,9 @@ module.exports = (db) => {
         const { estado } = req.body;
         const estadosValidos = ['pendiente', 'activo', 'devuelto', 'cancelado'];
         if (!estadosValidos.includes(estado)) {
-            return res
-                .status(400)
-                .json({
-                    error: `Estado inválido. Opciones: ${estadosValidos.join(', ')}`,
-                });
+            return res.status(400).json({
+                error: `Estado inválido. Opciones: ${estadosValidos.join(', ')}`,
+            });
         }
 
         db.run(
@@ -789,5 +795,4 @@ module.exports = (db) => {
         );
     });
 
-    return router;
-};
+module.exports = router;

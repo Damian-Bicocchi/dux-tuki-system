@@ -57,11 +57,40 @@ function initializeTables() {
         estado         TEXT    NOT NULL DEFAULT 'pendiente'
                         CHECK(estado IN ('pendiente','activo','devuelto','cancelado')),
         precio_total   REAL    NOT NULL DEFAULT 0,
+        deposito_garantia REAL  NOT NULL DEFAULT 0,
         notas          TEXT,
         created_at     TEXT    DEFAULT (datetime('now','localtime')),
         FOREIGN KEY (cliente_id) REFERENCES clientes(id)
       )
     `);
+
+        // Migracion idempotente para bases existentes: agrega deposito_garantia si no existe.
+        db.all(`PRAGMA table_info(alquileres)`, (err, columns = []) => {
+          if (err) {
+            console.error('Error al leer columnas de alquileres:', err.message);
+            return;
+          }
+          const hasDepositoGarantia = columns.some(
+            (col) => col.name === 'deposito_garantia',
+          );
+          if (!hasDepositoGarantia) {
+            db.run(
+              `ALTER TABLE alquileres ADD COLUMN deposito_garantia REAL NOT NULL DEFAULT 0`,
+              (alterErr) => {
+                if (alterErr) {
+                  console.error(
+                    'Error al agregar columna deposito_garantia:',
+                    alterErr.message,
+                  );
+                  return;
+                }
+                console.log(
+                  '✅ Columna deposito_garantia agregada en alquileres.',
+                );
+              },
+            );
+          }
+        });
 
         // 5. Usuarios (¡La tabla se queda, las consultas SELECT/INSERT de abajo se van!)
         db.run(`
