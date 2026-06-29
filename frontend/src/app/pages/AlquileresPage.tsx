@@ -68,270 +68,182 @@ function getEstadoStyles(estado: EstadoAlquiler) {
 }
 
 export default function AlquileresPage() {
-    const navigate = useNavigate();
-    const [alquileres, setAlquileres] = useState<AlquilerResumenApi[]>([]);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [filterEstado, setFilterEstado] = useState<'todos' | EstadoAlquiler>(
-        'todos',
-    );
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterEstado, setFilterEstado] = useState<string>('todos');
+  const [alquilerSeleccionado, setAlquilerSeleccionado] = useState<Alquiler | null>(null);
+  const triggerRef = useRef<HTMLElement | null>(null);
 
-    useEffect(() => {
-        let isMounted = true;
+  const alquileres: Alquiler[] = [
+    { id: 1, cliente: 'Juan Pérez', equipo: 'Cámara Sony A7 III', fechaInicio: '2026-05-01', fechaFin: '2026-05-05', estado: 'activo', precio: 15000 },
+    { id: 2, cliente: 'María González', equipo: 'Micrófono Rode NTG3', fechaInicio: '2026-04-25', fechaFin: '2026-05-01', estado: 'vencido', precio: 8000 },
+    { id: 3, cliente: 'Carlos López', equipo: 'Kit de luces LED', fechaInicio: '2026-05-02', fechaFin: '2026-05-08', estado: 'activo', precio: 12000 },
+    { id: 4, cliente: 'Ana Martínez', equipo: 'Trípode Manfrotto', fechaInicio: '2026-04-28', fechaFin: '2026-04-30', estado: 'finalizado', precio: 5000 },
+  ];
 
-        async function loadAlquileres() {
-            setLoading(true);
-            setError(null);
+  useEffect(() => {
+    const filterParam = searchParams.get('filter');
+    if (filterParam && ['activo', 'vencido', 'finalizado'].includes(filterParam)) {
+      setFilterEstado(filterParam);
+    }
+  }, [searchParams]);
 
-            try {
-                const response = await fetch(API_URL);
-                if (!response.ok) {
-                    throw new Error('No se pudieron cargar los alquileres');
-                }
+  const handleFilterChange = (nuevoFiltro: string) => {
+    setFilterEstado(nuevoFiltro);
+    if (nuevoFiltro === 'todos') {
+      setSearchParams({});
+    } else {
+      setSearchParams({ filter: nuevoFiltro });
+    }
+  };
 
-                const data = (await response.json()) as AlquilerResumenApi[];
-                if (isMounted) {
-                    setAlquileres(data);
-                }
-            } catch (loadError) {
-                if (isMounted) {
-                    setError(
-                        loadError instanceof Error
-                            ? loadError.message
-                            : 'Error inesperado',
-                    );
-                }
-            } finally {
-                if (isMounted) {
-                    setLoading(false);
-                }
-            }
-        }
+  const handleOpenModal = (alq: Alquiler, trigger: HTMLElement) => {
+    triggerRef.current = trigger;
+    setAlquilerSeleccionado(alq);
+  };
 
-        loadAlquileres();
+  const handleCloseModal = () => {
+    setAlquilerSeleccionado(null);
+  };
 
-        return () => {
-            isMounted = false;
-        };
-    }, []);
+  const filteredAlquileres = alquileres.filter(alq => {
+    const matchSearch =
+      alq.cliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      alq.equipo.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchFilter = filterEstado === 'todos' || alq.estado === filterEstado;
+    return matchSearch && matchFilter;
+  });
 
-    const filteredAlquileres = useMemo(() => {
-        const term = searchTerm.trim().toLowerCase();
+  const getEstadoColor = (estado: string) => {
+    switch (estado) {
+      case 'activo': return 'bg-green-100 text-green-800 border-green-300';
+      case 'vencido': return 'bg-red-100 text-red-800 border-red-300';
+      case 'finalizado': return 'bg-gray-100 text-gray-800 border-gray-300';
+      default: return 'bg-gray-100 text-gray-800 border-gray-300';
+    }
+  };
 
-        return alquileres.filter((alquiler) => {
-            const matchEstado =
-                filterEstado === 'todos' || alquiler.estado === filterEstado;
-            const matchSearch =
-                !term ||
-                alquiler.cliente_nombre.toLowerCase().includes(term) ||
-                alquiler.id.toString().includes(term);
-
-            return matchEstado && matchSearch;
-        });
-    }, [alquileres, searchTerm, filterEstado]);
-
-    const stats = useMemo(() => {
-        const activos = alquileres.filter(
-            (alq) => alq.estado === 'activo',
-        ).length;
-        const pendientes = alquileres.filter(
-            (alq) => alq.estado === 'pendiente',
-        ).length;
-        const devueltos = alquileres.filter(
-            (alq) => alq.estado === 'devuelto',
-        ).length;
-        const conRecargos = alquileres.filter(
-            (alq) => (alq.cierre_total_recargos || 0) > 0,
-        ).length;
-
-        return { activos, pendientes, devueltos, conRecargos };
-    }, [alquileres]);
-
-    return (
-        <div className="px-5 py-6 pb-10 min-h-screen bg-gradient-to-b from-white via-[#f7fbfa] to-white">
-            <div className="mb-6">
-                <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#1b6f5c] mb-2">
-                    Gestión de alquileres
-                </p>
-                <h1 className="text-3xl font-black text-gray-900 leading-tight">
-                    Cada alquiler abre su propia ventana
-                </h1>
-                <p className="mt-2 text-sm text-gray-600 max-w-2xl">
-                    Desde aquí abrís el detalle del alquiler, marcás qué se
-                    devolvió, cargás observaciones y registrás recargos o
-                    roturas.
-                </p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 mb-6">
-                <MetricCard
-                    label="Activos"
-                    value={stats.activos}
-                    tone="bg-green-50 text-green-800 border-green-200"
-                />
-                <MetricCard
-                    label="Pendientes"
-                    value={stats.pendientes}
-                    tone="bg-amber-50 text-amber-900 border-amber-200"
-                />
-                <MetricCard
-                    label="Devueltos"
-                    value={stats.devueltos}
-                    tone="bg-slate-50 text-slate-800 border-slate-200"
-                />
-                <MetricCard
-                    label="Con recargos"
-                    value={stats.conRecargos}
-                    tone="bg-red-50 text-red-800 border-red-200"
-                />
-            </div>
-
-            <div className="space-y-3 mb-5">
-                <div className="relative">
-                    <Search
-                        className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
-                        size={20}
-                        aria-hidden="true"
-                    />
-                    <input
-                        type="search"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        placeholder="Buscar por cliente o número de alquiler..."
-                        className="w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-2xl bg-white focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors"
-                        aria-label="Buscar alquileres"
-                    />
-                </div>
-
-                <div className="flex items-center gap-2">
-                    <Filter
-                        size={18}
-                        className="text-gray-500"
-                        aria-hidden="true"
-                    />
-                    <select
-                        value={filterEstado}
-                        onChange={(e) =>
-                            setFilterEstado(
-                                e.target.value as 'todos' | EstadoAlquiler,
-                            )
-                        }
-                        className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-2xl bg-white focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors"
-                        aria-label="Filtrar por estado"
-                    >
-                        {ESTADOS.map((estado) => (
-                            <option key={estado.value} value={estado.value}>
-                                {estado.label}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-            </div>
-
-            {loading ? (
-                <div className="flex flex-col items-center justify-center py-20 text-gray-500 gap-3">
-                    <LoaderCircle
-                        className="animate-spin text-[#218a72]"
-                        size={30}
-                    />
-                    <p className="font-medium">
-                        Cargando alquileres desde la base de datos...
-                    </p>
-                </div>
-            ) : error ? (
-                <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-5 text-red-800">
-                    <p className="font-bold mb-2">No se pudo cargar la lista</p>
-                    <p className="text-sm mb-4">{error}</p>
-                    <button
-                        onClick={() => window.location.reload()}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 transition-colors"
-                    >
-                        <RefreshCw size={16} />
-                        Reintentar
-                    </button>
-                </div>
-            ) : filteredAlquileres.length === 0 ? (
-                <div className="text-center py-16 bg-white border-2 border-dashed border-gray-200 rounded-3xl text-gray-500">
-                    No hay alquileres para los filtros actuales.
-                </div>
-            ) : (
-                <div className="space-y-3">
-                    {filteredAlquileres.map((alquiler) => (
-                        <button
-                            key={alquiler.id}
-                            onClick={() =>
-                                navigate(`/app/alquileres/${alquiler.id}`)
-                            }
-                            className="w-full text-left bg-white border-2 border-gray-100 rounded-3xl p-5 shadow-sm hover:border-[#218a72] hover:shadow-md transition-all focus:outline-none focus:ring-4 focus:ring-[#218a72]/20"
-                        >
-                            <div className="flex items-start justify-between gap-3 mb-4">
-                                <div className="min-w-0">
-                                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-[#1b6f5c] mb-2">
-                                        <Package size={14} aria-hidden="true" />
-                                        #
-                                        {alquiler.id
-                                            .toString()
-                                            .padStart(4, '0')}
-                                    </div>
-                                    <h2 className="text-lg font-black text-gray-900 truncate">
-                                        {alquiler.cliente_nombre}
-                                    </h2>
-                                    <p className="text-sm text-gray-600 mt-1">
-                                        {alquiler.cantidad_items} ítem
-                                        {alquiler.cantidad_items !== 1
-                                            ? 's'
-                                            : ''}{' '}
-                                        · {formatMonto(alquiler.precio_total)}
-                                    </p>
-                                </div>
-
-                                <span
-                                    className={`px-3 py-1.5 rounded-full text-xs font-bold border-2 whitespace-nowrap ${getEstadoStyles(alquiler.estado)}`}
-                                >
-                                    {alquiler.estado.charAt(0).toUpperCase() +
-                                        alquiler.estado.slice(1)}
-                                </span>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-3 text-sm mb-4">
-                                <InfoPill
-                                    icon={User}
-                                    label="Cliente"
-                                    value={alquiler.cliente_nombre}
-                                />
-                                <InfoPill
-                                    icon={Calendar}
-                                    label="Fechas"
-                                    value={`${formatFecha(alquiler.fecha_inicio)} → ${formatFecha(alquiler.fecha_fin)}`}
-                                />
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-3 text-sm">
-                                <InfoPill
-                                    icon={BadgeDollarSign}
-                                    label="Recargos"
-                                    value={formatMonto(
-                                        alquiler.cierre_total_recargos || 0,
-                                    )}
-                                />
-                                <InfoPill
-                                    icon={ChevronRight}
-                                    label="Abrir"
-                                    value={
-                                        alquiler.cierre_estado_entrega
-                                            ? `Cierre ${alquiler.cierre_estado_entrega}`
-                                            : 'Cargar cierre'
-                                    }
-                                    alignRight
-                                />
-                            </div>
-                        </button>
-                    ))}
-                </div>
-            )}
+  return (
+    <div className="px-5 py-6">
+      {/* Buscador y filtros */}
+      <div className="mb-6 space-y-3">
+        <div className="relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} aria-hidden="true" />
+          <input
+            type="search"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Buscar por cliente o equipo..."
+            className="w-full pl-12 pr-4 py-3.5 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors"
+            aria-label="Buscar alquileres"
+          />
         </div>
-    );
+
+        <div className="flex items-center gap-2">
+          <Filter size={18} className="text-gray-500" aria-hidden="true" />
+          <select
+            value={filterEstado}
+            onChange={(e) => handleFilterChange(e.target.value)}
+            className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors"
+            aria-label="Filtrar por estado"
+          >
+            <option value="todos">Todos los estados</option>
+            <option value="activo">Activos</option>
+            <option value="vencido">Vencidos</option>
+            <option value="finalizado">Finalizados</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Conteo para lectores de pantalla */}
+      <p className="sr-only" aria-live="polite" aria-atomic="true">
+        {filteredAlquileres.length === 0
+          ? 'No se encontraron alquileres'
+          : `${filteredAlquileres.length} alquiler${filteredAlquileres.length !== 1 ? 'es' : ''} encontrado${filteredAlquileres.length !== 1 ? 's' : ''}`}
+      </p>
+
+      {/* Lista de alquileres */}
+      <div className="space-y-3 mb-24" role="list" aria-label="Lista de alquileres">
+        {filteredAlquileres.length === 0 ? (
+          <div className="text-center py-12 text-gray-500" aria-live="polite">
+            No se encontraron alquileres
+          </div>
+        ) : (
+          filteredAlquileres.map((alq) => (
+            <article
+              key={alq.id}
+              role="listitem"
+              tabIndex={0}
+              aria-label={`Alquiler de ${alq.equipo} para ${alq.cliente}, estado ${alq.estado}. Presionar Enter para ver el resumen completo.`}
+              onClick={(e) => handleOpenModal(alq, e.currentTarget)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleOpenModal(alq, e.currentTarget);
+                }
+              }}
+              className="bg-white border-2 border-gray-100 rounded-2xl p-5 hover:border-[#218a72] transition-colors cursor-pointer active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-[#218a72] focus:ring-offset-2"
+            >
+              <div className="flex items-start justify-between gap-3 mb-3">
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-bold text-gray-900 text-base mb-1">{alq.cliente}</h3>
+                  <p className="text-sm text-gray-600">{alq.equipo}</p>
+                </div>
+                <span
+                  className={`px-3 py-1 rounded-lg text-xs font-bold border-2 whitespace-nowrap ${getEstadoColor(alq.estado)}`}
+                  aria-label={`Estado: ${alq.estado}`}
+                >
+                  {alq.estado.charAt(0).toUpperCase() + alq.estado.slice(1)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <div className="text-gray-600">
+                  <span className="font-semibold">Desde:</span>{' '}
+                  <time dateTime={alq.fechaInicio}>{new Date(alq.fechaInicio).toLocaleDateString('es-AR')}</time>
+                  {' - '}
+                  <span className="font-semibold">Hasta:</span>{' '}
+                  <time dateTime={alq.fechaFin}>{new Date(alq.fechaFin).toLocaleDateString('es-AR')}</time>
+                </div>
+                <div className="font-bold text-gray-900">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); changeStateToFinalizado(alq.id); }}
+                    onKeyDown={(e) => e.stopPropagation()}
+                    className="text-[#218a72] hover:underline focus:underline focus:outline-none focus:ring-2 focus:ring-[#218a72] focus:ring-offset-1 rounded px-1"
+                    aria-label={`Marcar alquiler de ${alq.equipo} como entregado`}
+                  >
+                    Entregado
+                  </button>
+                </div>
+                <div className="font-bold text-gray-900" aria-label={`Precio: $${alq.precio.toLocaleString('es-AR')}`}>
+                  ${alq.precio.toLocaleString('es-AR')}
+                </div>
+              </div>
+            </article>
+          ))
+        )}
+      </div>
+
+      {/* Botón flotante */}
+      <button
+        onClick={() => navigate('/app/nuevo-alquiler')}
+        className="fixed bottom-8 right-6 bg-[#f5e663] text-[#1b6f5c] rounded-full shadow-xl flex items-center justify-center gap-2 px-6 py-4 hover:scale-105 focus:scale-105 active:scale-95 transition-transform z-30 border-2 border-white focus:outline-none focus:ring-4 focus:ring-[#f5e663]/50"
+        aria-label="Crear nuevo alquiler"
+      >
+        <Plus size={24} strokeWidth={2.5} aria-hidden="true" />
+        <span className="font-bold text-base">Nuevo alquiler</span>
+      </button>
+
+      {/* Modal de resumen */}
+      {alquilerSeleccionado && (
+        <ResumenAlquilerModal
+          alquiler={alquilerSeleccionado}
+          onClose={handleCloseModal}
+          returnFocusTo={triggerRef.current}
+        />
+      )}
+    </div>
+  );
 }
 
 function MetricCard({
