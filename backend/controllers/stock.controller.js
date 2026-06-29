@@ -40,6 +40,35 @@ class StockController {
       });
     }
   }
+
+  // 👇 CORREGIDO: Ahora es un método de clase, usa el Service y mantiene el formato JSON
+  async obtenerArticuloPorId(req, res, next) {
+    const { id } = req.params;
+
+    try {
+      // Llamamos al servicio en lugar de ir directo al repositorio
+      const articulo = await stockService.buscarArticuloPorId(id);
+
+      if (!articulo) {
+        return res.status(404).json({ 
+          status: "error",
+          message: `El artículo con ID #${id} no existe en la base de datos.` 
+        });
+      }
+
+      // Lógica de formateo intermedia requerida por el frontend
+      articulo.cantidad_alquilados = articulo.cantidad_alquilados || 0;
+
+      return res.json(articulo);
+
+    } catch (error) {
+      console.error(`Error en obtenerArticuloPorId:`, error);
+      return res.status(500).json({ 
+        status: "error",
+        message: "Ocurrió un error interno en el servidor al procesar la solicitud de stock." 
+      });
+    }
+  }
 }
 
 module.exports = new StockController();

@@ -71,6 +71,11 @@ class StockService {
       item: mapearAFrontend(nuevoArticulo)
     };
   }
+
+  async buscarArticuloPorId(id) {
+    // El servicio simplemente le pide los datos limpios al repositorio
+    return await stockRepository.findArticuloById(id);
+  }
 }
 
 module.exports = new StockService();

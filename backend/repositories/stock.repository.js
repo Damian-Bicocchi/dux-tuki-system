@@ -53,6 +53,24 @@ class StockRepository {
       });
     });
   }
+
+  findArticuloById = (id) => {
+  return new Promise((resolve, reject) => {
+    const query = `
+      SELECT a.*, c.nombre AS categoria_nombre
+      FROM articulos a
+      LEFT JOIN categorias c ON a.categoria_id = c.id
+      WHERE a.id = ?
+    `;
+
+    getDb().get(query, [id], (err, row) => {
+      if (err) {
+        return reject(err); // El error de base de datos se propaga hacia arriba
+      }
+      resolve(row); // Retorna la fila (o undefined si no existe)
+    });
+  });
+};
 }
 
 module.exports = new StockRepository();

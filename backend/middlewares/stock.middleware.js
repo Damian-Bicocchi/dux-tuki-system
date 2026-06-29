@@ -26,4 +26,21 @@ function validarNuevoArticulo(req, res, next) {
   next();
 }
 
-module.exports = { validarNuevoArticulo };
+const validarIdArticulo = (req, res, next) => {
+  const { id } = req.params;
+  const idNumerico = Number(id);
+
+  // Validar que el ID sea un número entero positivo válido
+  if (!id || isNaN(idNumerico) || idNumerico <= 0 || !Number.isInteger(idNumerico)) {
+    return res.status(400).json({ 
+      error: "El parámetro ID provisto no es válido. Debe ser un número entero positivo." 
+    });
+  }
+
+  // Sanitización: Convertimos el parámetro de String a Number para que el resto de capas lo reciba limpio
+  req.params.id = idNumerico;
+  
+  next(); // Criterio de validación aprobado, continúa al controlador
+};
+
+module.exports = { validarNuevoArticulo, validarIdArticulo };
