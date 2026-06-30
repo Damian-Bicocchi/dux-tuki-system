@@ -15,10 +15,20 @@ interface Cliente {
     telefono?: string;
 }
 
+// Interfaz para los artículos que vienen del catálogo/API de stock
+interface ArticuloStock {
+    id: number;
+    nombre: string;
+    precio_por_dia: number;
+    deposito_garantia: number;
+}
+
+// Interfaz acoplada estrictamente para las filas del formulario
 interface ItemAlquiler {
     articulo_id: number | '';
     cantidad: number;
     precio_unitario_dia: number;
+    deposito_garantia: number;
 }
 
 const formatearFechaVista = (fechaStr: string): string => {
@@ -34,16 +44,17 @@ export default function NuevoAlquilerPage() {
     const [clientesLista, setClientesLista] = useState<Cliente[]>([]);
     const [clienteSeleccionado, setClienteSeleccionado] = useState<Cliente | null>(null);
     const [mostrarDropdown, setMostrarDropdown] = useState(false);
-    const [listaStock, setListaStock] = useState<StockItem[]>([]);
+    
+    // Usamos la interfaz local limpia para el catálogo de stock
+    const [listaStock, setListaStock] = useState<ArticuloStock[]>([]);
     const [focusedIndex, setFocusedIndex] = useState(-1);
     const containerRef = useRef<HTMLDivElement>(null);
 
     const [fechaInicio, setFechaInicio] = useState('');
     const [fechaFin, setFechaFin] = useState('');
-    const [deposito, setDeposito] = useState('');
 
     const [items, setItems] = useState<ItemAlquiler[]>([
-        { articulo_id: '', cantidad: 1, precio_unitario_dia: 0 },
+        { articulo_id: '', cantidad: 1, precio_unitario_dia: 0, deposito_garantia: 0 },
     ]);
 
     const [formErrors, setFormErrors] = useState<string[]>([]);
@@ -63,7 +74,8 @@ export default function NuevoAlquilerPage() {
         async function fetchStock() {
             try {
                 const data = await getStocks();
-                setListaStock(data);
+                // Forzamos el tipado a nuestra interfaz local limpia
+                setListaStock(data as unknown as ArticuloStock[]);
             } catch (error) {
                 console.error('Error al cargar el stock:', error);
             }
@@ -138,7 +150,7 @@ export default function NuevoAlquilerPage() {
     }, [fechaInicio, fechaFin]);
 
     const handleAddItem = () => {
-        setItems([...items, { articulo_id: '', cantidad: 1, precio_unitario_dia: 0 }]);
+        setItems([...items, { articulo_id: '', cantidad: 1, precio_unitario_dia: 0, deposito_garantia: 0 }]);
     };
 
     const handleRemoveItem = (index: number) => {
@@ -148,32 +160,49 @@ export default function NuevoAlquilerPage() {
     const handleItemChange = (index: number, field: keyof ItemAlquiler, value: string | number) => {
         const newItems = [...items];
         if (field === 'articulo_id') {
-            const art = listaStock.find((e) => e.id === Number(value));
+            const articuloId = value === '' ? '' : Number(value);
+            const art =
+                articuloId === ''
+                    ? undefined
+                    : listaStock.find((e) => e.id === articuloId);
+
             newItems[index] = {
                 ...newItems[index],
-                articulo_id: Number(value),
+                articulo_id: articuloId,
                 precio_unitario_dia: art?.precio_por_dia ?? 0,
+                deposito_garantia: art?.deposito_garantia ?? 0,
             };
+        
         } else {
             newItems[index] = { ...newItems[index], [field]: value };
         }
         setItems(newItems);
     };
 
+    // Resumen dinámico que calcula los globales reactivamente al mutar los items
     const resumen = useMemo(() => {
         const itemsValidos = items.filter((item) => item.articulo_id !== '');
+        
         const subtotal = itemsValidos.reduce(
             (acc, curr) =>
                 acc + (Number(curr.cantidad) || 0) * (Number(curr.precio_unitario_dia) || 0) * diasAlquiler,
             0,
         );
+
+        // Suma reactiva de los depósitos multiplicados por su cantidad individual
+        const depositoGlobalCalculado = itemsValidos.reduce(
+            (acc, curr) => acc + (Number(curr.deposito_garantia) || 0) * (Number(curr.cantidad) || 0),
+            0,
+        );
+
         return {
             itemsUnicos: itemsValidos.length,
             unidadesTotales: itemsValidos.reduce((acc, curr) => acc + (Number(curr.cantidad) || 0), 0),
             subtotal,
-            totalConDeposito: subtotal + (Number(deposito) || 0),
+            depositoGlobal: depositoGlobalCalculado,
+            totalConDeposito: subtotal + depositoGlobalCalculado,
         };
-    }, [items, deposito, diasAlquiler]);
+    }, [items, diasAlquiler]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -199,11 +228,12 @@ export default function NuevoAlquilerPage() {
                     cliente_id: clienteSeleccionado!.id,
                     fecha_inicio: fechaInicio,
                     fecha_fin: fechaFin,
-                    deposito_garantia: Number(deposito) || 0,
+                    deposito_garantia: resumen.depositoGlobal, // Mandamos el depósito calculado
                     items: items.map((i) => ({
                         articulo_id: i.articulo_id,
                         cantidad: i.cantidad,
                         precio_unitario_dia: i.precio_unitario_dia,
+                        deposito_garantia: i.deposito_garantia,
                     })),
                 }),
             });
@@ -392,16 +422,21 @@ export default function NuevoAlquilerPage() {
 
                     <hr className="border-gray-100" />
 
-                    {/* Depósito de garantía */}
+                    {/* Depósito de garantía global automático */}
                     <div>
                         <label htmlFor="deposito" className="block text-sm font-bold text-gray-700 mb-2">
-                            Depósito de garantía (Global, Opcional)
+                            Depósito de garantía (Global - Calculado)
                         </label>
                         <div className="relative max-w-xs">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-800 font-semibold" aria-hidden="true">$</span>
-                            <input type="number" id="deposito" value={deposito} onChange={(e) => setDeposito(e.target.value)} min="0"
-                                className="w-full pl-8 pr-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors"
-                                placeholder="0" />
+                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-semibold" aria-hidden="true">$</span>
+                            <input 
+                                type="number" 
+                                id="deposito" 
+                                value={resumen.depositoGlobal} 
+                                readOnly
+                                disabled
+                                className="w-full pl-8 pr-4 py-3 border-2 border-gray-200 bg-gray-50 text-gray-500 rounded-xl cursor-not-allowed focus:outline-none shadow-inner font-semibold" 
+                            />
                         </div>
                     </div>
 
@@ -494,7 +529,7 @@ export default function NuevoAlquilerPage() {
                             </div>
                             <div className="flex justify-between text-sm text-gray-800">
                                 <dt>Depósito garantía:</dt>
-                                <dd className="font-semibold text-gray-800">${(Number(deposito) || 0).toLocaleString('es-AR')}</dd>
+                                <dd className="font-semibold text-gray-800">${resumen.depositoGlobal.toLocaleString('es-AR')}</dd>
                             </div>
                             <div className="flex justify-between text-base font-bold pt-2 border-t border-dashed border-gray-200 text-gray-800"
                                 role="status" aria-live="polite" aria-atomic="true">

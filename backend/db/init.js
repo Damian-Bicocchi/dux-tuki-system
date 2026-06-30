@@ -29,6 +29,7 @@ function initializeTables() {
         stock_total    INTEGER NOT NULL DEFAULT 0,
         categoria_id   INTEGER,
         activo         INTEGER NOT NULL DEFAULT 1,
+        deposito_garantia INTEGER NOT NULL DEFAULT 0,
         created_at     TEXT    DEFAULT (datetime('now','localtime')),
         FOREIGN KEY (categoria_id) REFERENCES categorias(id)
       )

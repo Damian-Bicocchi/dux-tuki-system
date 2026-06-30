@@ -1,6 +1,8 @@
 // routes/alquileres.js
 const express = require('express');
 const { getDb } = require('../db');
+const alquilerController = require("../controllers/alquiler.controller");
+
 
 const router = express.Router();
 const db = new Proxy(

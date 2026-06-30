@@ -17,26 +17,51 @@ class StockRepository {
     });
   }
 
-  create({ nombre, stock_total, categoria_id }) {
+  create({
+    nombre,
+    stock_total,
+    categoria_id,
+    precio_por_dia,
+    deposito_garantia,
+  }) {
     return new Promise((resolve, reject) => {
       const query = `
-        INSERT INTO articulos (nombre, stock_total, categoria_id, precio_por_dia, activo) 
-        VALUES (?, ?, ?, 0, 1)
+        INSERT INTO articulos (
+          nombre,
+          stock_total,
+          categoria_id,
+          precio_por_dia,
+          deposito_garantia,
+          activo
+        )
+        VALUES (?, ?, ?, ?, ?, 1)
       `;
-      getDb().run(query, [nombre, stock_total, categoria_id], function (err) {
-        if (err) {
-          reject(err);
-        } else {
-          resolve({
-            id: this.lastID,
-            nombre,
-            stock_total,
-            categoria_id,
-            precio_por_dia: 0,
-            activo: 1
-          });
+
+      getDb().run(
+        query,
+        [
+          nombre,
+          stock_total,
+          categoria_id,
+          precio_por_dia,
+          deposito_garantia,
+        ],
+        function (err) {
+          if (err) {
+            reject(err);
+          } else {
+            resolve({
+              id: this.lastID,
+              nombre,
+              stock_total,
+              categoria_id,
+              precio_por_dia,
+              deposito_garantia,
+              activo: 1,
+            });
+          }
         }
-      });
+      );
     });
   }
 

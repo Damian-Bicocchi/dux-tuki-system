@@ -23,9 +23,21 @@ class StockController {
 
   async crearOSumarArticulo(req, res, next) {
     try {
-      const { nombre, cantidad, categoria } = req.body;
-      
-      const resultado = await stockService.procesarArticulo(nombre, cantidad, categoria);
+      const {
+        nombre,
+        cantidad,
+        categoria,
+        precio_por_dia,
+        deposito_garantia,
+      } = req.body;
+
+      const resultado = await stockService.procesarArticulo(
+        nombre,
+        cantidad,
+        categoria,
+        precio_por_dia,
+        deposito_garantia
+      );
       
       return res.status(resultado.esDuplicado ? 200 : 201).json({
         status: "success",

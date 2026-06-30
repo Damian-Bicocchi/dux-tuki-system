@@ -15,7 +15,9 @@ function mapearAFrontend(art) {
     nombre: art.nombre,
     categoria: art.categoria_nombre || "Otros",
     total: art.stock_total,
-    disponibles: art.stock_total // Al no mapear reservas por el momento, disponibles = total
+    disponibles: art.stock_total, // Al no mapear reservas por el momento, disponibles = total
+    precio_por_dia: art.precio_por_dia,
+    deposito_garantia: art.deposito_garantia
   };
 }
 
@@ -26,11 +28,16 @@ class StockService {
   }
 
   async listarCategorias() {
-    // Usamos el método findAll() que ya tenías programado en tu clase CategoriasRepository
     return await categoriasRepository.findAll();
   }
 
-  async procesarArticulo(nombre, cantidad, nombreCategoria) {
+  async procesarArticulo(
+      nombre,
+      cantidad,
+      nombreCategoria,
+      precioPorDia,
+      depositoGarantia
+  ) {
     const articulosBD = await stockRepository.findAll();
     const nombreQuery = normalizarTexto(nombre);
 
@@ -57,10 +64,17 @@ class StockService {
 
     // 3. Crear el artículo en SQLite
     const nuevoArticulo = await stockRepository.create({
-      nombre,
-      stock_total: cantidad,
-      categoria_id: categoriaId
-    });
+    nombre,
+    stock_total: cantidad,
+    categoria_id: categoriaId,
+    precio_por_dia: precioPorDia,
+    deposito_garantia:
+      depositoGarantia === undefined ||
+      depositoGarantia === null ||
+      depositoGarantia === ""
+        ? null
+        : depositoGarantia,
+  });
 
     // Añadir el texto de la categoría para el mapeo final del frontend
     nuevoArticulo.categoria_nombre = categoriaEncontrada ? categoriaEncontrada.nombre : "Otros";
