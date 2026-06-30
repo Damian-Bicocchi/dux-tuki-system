@@ -3,20 +3,21 @@ import { useNavigate } from 'react-router';
 import { Save, X, Plus, Search } from 'lucide-react';
 import { SuccessModal } from '../components/SuccessModal';
 
-const CLIENTES_MOCK = [
-  { id: '1', nombre: 'Juan Pérez', numero: 'CLI-001', documento: '35444888' },
-  { id: '2', nombre: 'María Rodríguez', numero: 'CLI-002', documento: '40123456' },
-  { id: '3', nombre: 'Lucas Gómez', numero: 'CLI-003', documento: '22333444' },
-  { id: '4', nombre: 'Ana Martínez', numero: 'CLI-004', documento: '28999111' },
-];
+// Ajusta esta URL según tu entorno de desarrollo/producción
+const API_BASE_URL = 'http://localhost:3001/api';
 
-const EQUIPOS_DISPONIBLES = [
-  { id: 'camara-sony-a7', nombre: 'Cámara Sony A7 III', precioSugerido: 15000 },
-  { id: 'camara-canon-5d', nombre: 'Cámara Canon 5D Mark IV', precioSugerido: 18000 },
-  { id: 'microfono-rode', nombre: 'Micrófono Rode NTG3', precioSugerido: 5000 },
-  { id: 'tripode-manfrotto', nombre: 'Trípode Manfrotto', precioSugerido: 3000 },
-  { id: 'luces-led', nombre: 'Kit de luces LED', precioSugerido: 7000 },
-];
+interface Cliente {
+  id: string;
+  nombre: string;
+  numero: string;
+  documento: string;
+}
+
+interface Equipo {
+  id: string;
+  nombre: string;
+  precioSugerido: number;
+}
 
 interface ItemAlquiler {
   equipoId: string;
@@ -33,12 +34,17 @@ const formatearFechaVista = (fechaStr: string): string => {
 export default function NuevoAlquilerPage() {
   const navigate = useNavigate();
 
+  // Estados para datos del Backend
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [equiposDisponibles, setEquiposDisponibles] = useState<Equipo[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
   // Estados de cliente
   const [buscarCliente, setBuscarCliente] = useState('');
-  const [clienteSeleccionado, setClienteSeleccionado] = useState<typeof CLIENTES_MOCK[0] | null>(null);
+  const [clienteSeleccionado, setClienteSeleccionado] = useState<Cliente | null>(null);
   const [mostrarDropdown, setMostrarDropdown] = useState(false);
   
-  // ÍNDICE ACTIVO PARA NAVEGACIÓN POR TECLADO
+  // Índice activo para navegación por teclado
   const [focusedIndex, setFocusedIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -52,17 +58,62 @@ export default function NuevoAlquilerPage() {
 
   const [formErrors, setFormErrors] = useState<string[]>([]);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // 1. CARGA DE DATOS INICIALES (Clientes y Stock) con Timeout preventivo
+  useEffect(() => {
+    const cargarDatosIniciales = async () => {
+      // Creamos un controlador para abortar la petición si tarda demasiado
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 segundos max
+
+      try {
+        setIsLoading(true);
+        setFormErrors([]);
+
+        const [resClientes, resStock] = await Promise.all([
+          fetch(`${API_BASE_URL}/clientes`, { signal: controller.signal }),
+          fetch(`${API_BASE_URL}/stock`, { signal: controller.signal }) // <-- Cambiado a /stock
+        ]);
+
+        clearTimeout(timeoutId); // Si respondieron rápido, limpiamos el timer
+
+        if (!resClientes.ok) throw new Error(`Error Clientes: ${resClientes.status}`);
+        if (!resStock.ok) throw new Error(`Error Stock: ${resStock.status}`);
+
+        const dataClientes = await resClientes.json();
+        const dataStock = await resStock.json();
+
+        // Validamos que lo recibido sea un Array para que no rompa el .map()
+        setClientes(Array.isArray(dataClientes) ? dataClientes : []);
+        setEquiposDisponibles(Array.isArray(dataStock) ? dataStock : []);
+
+      } catch (error) {
+        console.error("Error detallado en carga:", error);
+        if (error instanceof Error && error.name === 'AbortError') {
+          setFormErrors(['El servidor tardó demasiado en responder (Timeout de 5s). ¿Está corriendo el backend?']);
+        } else {
+          setFormErrors([error instanceof Error ? error.message : 'Error al conectar con el backend']);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    cargarDatosIniciales();
+  }, []);
+
+  // Filtrado de clientes dinámico basado en la respuesta del backend
   const clientesFiltrados = useMemo(() => {
     if (!buscarCliente.trim()) return [];
     const query = buscarCliente.toLowerCase();
-    return CLIENTES_MOCK.filter(
+    return clientes.filter(
       (c) =>
         c.nombre.toLowerCase().includes(query) ||
         c.numero.toLowerCase().includes(query) ||
         c.documento.includes(query)
     );
-  }, [buscarCliente]);
+  }, [buscarCliente, clientes]);
 
   // Resetear el índice del teclado cuando cambian los resultados de búsqueda
   useEffect(() => {
@@ -80,13 +131,13 @@ export default function NuevoAlquilerPage() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // MANEJADOR DE EVENTOS DE TECLADO (Keydown)
+  // Manejador de eventos de teclado (Keydown)
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (!mostrarDropdown || clientesFiltrados.length === 0) return;
 
     switch (e.key) {
       case 'ArrowDown':
-        e.preventDefault(); // Evita que el cursor se mueva en el input
+        e.preventDefault();
         setFocusedIndex((prevIndex) => 
           prevIndex < clientesFiltrados.length - 1 ? prevIndex + 1 : 0
         );
@@ -98,7 +149,7 @@ export default function NuevoAlquilerPage() {
         );
         break;
       case 'Enter':
-        e.preventDefault(); // Evita el submit accidental del formulario
+        e.preventDefault();
         if (focusedIndex >= 0 && focusedIndex < clientesFiltrados.length) {
           seleccionarCliente(clientesFiltrados[focusedIndex]);
         }
@@ -109,13 +160,12 @@ export default function NuevoAlquilerPage() {
         setFocusedIndex(-1);
         break;
       case 'Tab':
-        // Si el usuario presiona Tab, simplemente cerramos la lista y dejamos que continúe el flujo nativo
         setMostrarDropdown(false);
         break;
     }
   };
 
-  const seleccionarCliente = (c: typeof CLIENTES_MOCK[0]) => {
+  const seleccionarCliente = (c: Cliente) => {
     setClienteSeleccionado(c);
     setBuscarCliente(`${c.nombre} (${c.documento})`);
     setMostrarDropdown(false);
@@ -144,7 +194,7 @@ export default function NuevoAlquilerPage() {
   const handleItemChange = (index: number, field: keyof ItemAlquiler, value: string | number) => {
     const newItems = [...items];
     if (field === 'equipoId') {
-      const equipoSelected = EQUIPOS_DISPONIBLES.find((e) => e.id === value);
+      const equipoSelected = equiposDisponibles.find((e) => e.id === value);
       newItems[index] = {
         ...newItems[index],
         equipoId: value as string,
@@ -166,18 +216,66 @@ export default function NuevoAlquilerPage() {
     return { itemsUnicos, unidadesTotales, subtotal, totalConDeposito: subtotal + (Number(deposito) || 0) };
   }, [items, deposito, diasAlquiler]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // 2. ENVÍO REAL DEL ALQUILER AL BACKEND
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const errs: string[] = [];
     if (!clienteSeleccionado) errs.push('Seleccioná un cliente válido antes de continuar.');
     if (items.some(i => !i.equipoId)) errs.push('Completá el equipo en todas las filas de dispositivos.');
+    
     if (errs.length > 0) {
       setFormErrors(errs);
       return;
     }
+    
     setFormErrors([]);
-    setShowSuccess(true);
+    setIsSubmitting(true);
+
+    // Mapeo del body esperado por alquilerMiddleware.validarEstructuraCrearOEditar
+    const payload = {
+      clienteId: clienteSeleccionado?.id,
+      fechaInicio,
+      fechaFin,
+      deposito: Number(deposito) || 0,
+      items: items.map(item => ({
+        equipoId: item.equipoId,
+        cantidad: Number(item.cantidad),
+        precioUnitario: Number(item.precioUnitario)
+      })),
+      total: resumen.totalConDeposito
+    };
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/alquileres`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        // Captura errores enviados desde tu backend o middleware de Express
+        throw new Error(data.message || 'Ocurrió un error al intentar crear el alquiler.');
+      }
+
+      setShowSuccess(true);
+    } catch (error) {
+      setFormErrors([error instanceof Error ? error.message : 'Error de red inesperado.']);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64 text-[#218a72] font-semibold">
+        Cargando datos del sistema...
+      </div>
+    );
+  }
 
   return (
     <div className="px-4 py-6 max-w-6xl mx-auto">
@@ -193,7 +291,7 @@ export default function NuevoAlquilerPage() {
         {/* COLUMNA FORMULARIO */}
         <form onSubmit={handleSubmit} className="lg:col-span-2 space-y-6 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
           
-          {/* Cliente Autocomplete Operable por Teclado */}
+          {/* Cliente Autocomplete */}
           <div className="relative" ref={containerRef}>
             <label htmlFor="cliente-search" className="block text-sm font-bold text-gray-700 mb-2">
               Cliente *
@@ -211,11 +309,9 @@ export default function NuevoAlquilerPage() {
                   if (clienteSeleccionado) setClienteSeleccionado(null);
                 }}
                 onFocus={() => setMostrarDropdown(true)}
-                onKeyDown={handleKeyDown} // Escucha las flechas y Enter
+                onKeyDown={handleKeyDown}
                 className="w-full pl-11 pr-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors"
                 required={!clienteSeleccionado}
-                
-                // Atributos ARIA Dinámicos para indicar el estado del teclado al lector de pantalla
                 role="combobox"
                 aria-expanded={mostrarDropdown && clientesFiltrados.length > 0}
                 aria-autocomplete="list"
@@ -241,7 +337,6 @@ export default function NuevoAlquilerPage() {
                       role="option"
                       aria-selected={focusedIndex === idx}
                       onClick={() => seleccionarCliente(c)}
-                      // Cambiamos el estilo si el elemento está enfocado por el teclado
                       className={`w-full text-left px-4 py-3 flex justify-between items-center transition-colors focus:outline-none ${
                         focusedIndex === idx ? 'bg-[#218a72]/10 text-gray-900 font-medium' : 'hover:bg-gray-50'
                       }`}
@@ -304,7 +399,6 @@ export default function NuevoAlquilerPage() {
               <h2 id="titulo-dispositivos" className="text-sm font-bold text-gray-700 uppercase tracking-wider">
                 Dispositivos a Alquilar
               </h2>
-              
             </div>
 
             <div className="space-y-3" role="group" aria-labelledby="titulo-dispositivos">
@@ -330,50 +424,46 @@ export default function NuevoAlquilerPage() {
                         className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg bg-white text-sm focus:outline-none focus:border-[#218a72]"
                       >
                         <option value="">Seleccionar equipo</option>
-                        {EQUIPOS_DISPONIBLES.map((eq) => (
+                        {equiposDisponibles.map((eq) => (
                           <option key={eq.id} value={eq.id}>{eq.nombre}</option>
                         ))}
                       </select>
                     </div>
 
                     {/* Cantidad */}
-                      <div className="sm:col-span-3">
-                        <label htmlFor={cantidadInputId} className="block text-xs font-bold text-gray-800 mb-1">
-                          Cantidad *
-                        </label>
+                    <div className="sm:col-span-3">
+                      <label htmlFor={cantidadInputId} className="block text-xs font-bold text-gray-800 mb-1">
+                        Cantidad *
+                      </label>
+                      <input
+                        type="number"
+                        id={cantidadInputId}
+                        min="1"
+                        value={item.cantidad}
+                        onChange={(e) => handleItemChange(index, 'cantidad', parseInt(e.target.value) || 0)}
+                        required
+                        className="w-full px-3 py-2 border-2 border-gray-300 rounded-xl bg-white text-sm focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+                    </div>
+
+                    {/* Precio Unitario */}
+                    <div className="sm:col-span-3">
+                      <label htmlFor={precioInputId} className="block text-xs font-bold text-gray-800 mb-1">
+                        Precio Unit. *
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm" aria-hidden="true">$</span>
                         <input
                           type="number"
-                          id={cantidadInputId}
-                          min="1"
-                          value={item.cantidad}
-                          onChange={(e) => handleItemChange(index, 'cantidad', parseInt(e.target.value) || 0)}
+                          id={precioInputId}
+                          min="0"
+                          value={item.precioUnitario}
+                          onChange={(e) => handleItemChange(index, 'precioUnitario', parseFloat(e.target.value) || 0)}
                           required
-                          // bg-white: Fondo blanco explícito
-                          // focus:ring-4 focus:ring-[#218a72]/20: Anillo de enfoque igual a los demás inputs
-                          // [appearance:textfield]...: Oculta las flechas internas nativas de los inputs numéricos
-                          className="w-full px-3 py-2 border-2 border-gray-300 rounded-xl bg-white text-sm focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          className="w-full pl-7 pr-3 py-2 border-2 border-gray-300 rounded-xl bg-white text-sm focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </div>
-
-                      {/* Precio Unitario */}
-                      <div className="sm:col-span-3">
-                        <label htmlFor={precioInputId} className="block text-xs font-bold text-gray-800 mb-1">
-                          Precio Unit. *
-                        </label>
-                        <div className="relative">
-                          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm" aria-hidden="true">$</span>
-                          <input
-                            type="number"
-                            id={precioInputId}
-                            min="0"
-                            value={item.precioUnitario}
-                            onChange={(e) => handleItemChange(index, 'precioUnitario', parseFloat(e.target.value) || 0)}
-                            required
-                            // Ajustamos pl-7 para que el texto empiece un poco después del símbolo $
-                            className="w-full pl-7 pr-3 py-2 border-2 border-gray-300 rounded-xl bg-white text-sm focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                          />
-                        </div>
-                      </div>
+                    </div>
 
                     <div className="sm:col-span-1 flex justify-center sm:justify-end pb-1">
                       <button
@@ -390,15 +480,14 @@ export default function NuevoAlquilerPage() {
                 );
               })}
             </div>
-            
           </div>
           <button
-                type="button"
-                onClick={handleAddItem}
-                className="text-xs bg-[#218a72]/10 text-[#218a72] hover:bg-[#218a72]/20 px-3 py-2 rounded-lg font-bold flex items-center gap-1 transition-colors focus:outline-none focus:ring-2 focus:ring-[#218a72]"
-              >
-                <Plus size={14} aria-hidden="true" /> Añadir equipo
-              </button>
+            type="button"
+            onClick={handleAddItem}
+            className="text-xs bg-[#218a72]/10 text-[#218a72] hover:bg-[#218a72]/20 px-3 py-2 rounded-lg font-bold flex items-center gap-1 transition-colors focus:outline-none focus:ring-2 focus:ring-[#218a72]"
+          >
+            <Plus size={14} aria-hidden="true" /> Añadir equipo
+          </button>
 
           <hr className="border-gray-100" />
 
@@ -438,10 +527,11 @@ export default function NuevoAlquilerPage() {
           <div className="flex gap-3 pt-4">
             <button
               type="submit"
-              className="flex-1 bg-[#166b58] text-white py-4 px-6 rounded-xl font-bold hover:bg-[#125546] focus:bg-[#125546] transition-colors focus:outline-none focus:ring-4 focus:ring-[#166b58]/30 flex items-center justify-center gap-2"
+              disabled={isSubmitting}
+              className="flex-1 bg-[#166b58] text-white py-4 px-6 rounded-xl font-bold hover:bg-[#125546] focus:bg-[#125546] transition-colors focus:outline-none focus:ring-4 focus:ring-[#166b58]/30 flex items-center justify-center gap-2 disabled:opacity-50"
             >
               <Save size={20} aria-hidden="true" />
-              Guardar alquiler
+              {isSubmitting ? 'Guardando...' : 'Guardar alquiler'}
             </button>
             <button
               type="button"
