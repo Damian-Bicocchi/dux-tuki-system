@@ -97,12 +97,31 @@ const initialClientes: Cliente[] = [
   },
 ];
 
-export function getClientes(): Cliente[] {
+export async function getClientes(): Promise<Cliente[]> {
   try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    return saved ? JSON.parse(saved) : initialClientes;
-  } catch {
-    return initialClientes;
+    const response = await fetch('http://localhost:3001/api/clientes', {
+      method: 'GET',
+    });
+    
+    const data = await response.json();
+    console.log('Clientes obtenidos del backend:', data);
+    
+    // Mapeamos los datos al formato correcto
+    const clientes: Cliente[] = data.map((json: any) => ({
+      id: json.id,
+      nombre: json.nombre,
+      email: json.email,
+      dni: json.dni,
+      telefono: json.telefono,
+      alquileres: json.alquileres || [],
+    }));
+    
+    console.log('Clientes listos para enviar a React:', clientes);
+    return clientes; // Ahora SÍ retorna cuando el array está lleno
+
+  } catch (error) {
+    console.error('Error al obtener clientes del backend:', error);
+    return []; 
   }
 }
 
@@ -110,12 +129,13 @@ export function saveClientes(clientes: Cliente[]): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(clientes));
 }
 
-export function getClienteById(id: number): Cliente | undefined {
-  return getClientes().find((c) => c.id === id);
+export async function getClienteById(id: number): Promise<Cliente | undefined> {
+  const clientes = await getClientes();
+  return clientes.find((cliente) => cliente.id === id);
 }
 
-export function addCliente(data: Omit<Cliente, 'id' | 'alquileres'>): Cliente {
-  const clientes = getClientes();
+export async function addCliente(data: Omit<Cliente, 'id' | 'alquileres'>): Promise<Cliente> {
+  const clientes = await getClientes();
   const newCliente: Cliente = {
     ...data,
     id: clientes.length > 0 ? Math.max(...clientes.map((c) => c.id)) + 1 : 1,

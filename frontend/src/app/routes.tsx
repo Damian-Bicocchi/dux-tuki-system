@@ -1,7 +1,7 @@
-import { createBrowserRouter } from "react-router";
+import { createBrowserRouter } from 'react-router';
 
-import RootLayout from "./layouts/RootLayout";
-import ErrorPage from "./pages/ErrorPage";
+import RootLayout from './layouts/RootLayout';
+import ErrorPage from './pages/ErrorPage';
 
 import LoginPage from "./pages/LoginPage";
 import AyudaPage from "./pages/AyudaPage";

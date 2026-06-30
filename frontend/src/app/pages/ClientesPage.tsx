@@ -7,10 +7,33 @@ export default function ClientesPage() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [cargando, setCargando] = useState(true); // ✅ 1. Agregamos estado de carga
 
   useEffect(() => {
-    setClientes(getClientes());
+    // ✅ 2. Creamos una función asíncrona interna para esperar los datos
+    const fetchDatos = async () => {
+      try {
+        const datos = await getClientes();
+        setClientes(datos);
+      } catch (error) {
+        console.error("Error al cargar clientes", error);
+      } finally {
+        setCargando(false);
+      }
+    };
+
+    fetchDatos(); // Ejecutamos la función
   }, []);
+
+  // Si está cargando, mostramos un mensaje antes de intentar procesar los datos
+  if (cargando) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="text-[#218a72] font-bold">Cargando clientes...</div>
+      </div>
+    );
+  }
+
 
   const filteredClientes = clientes.filter((cliente) => {
     const term = searchTerm.toLowerCase().trim();

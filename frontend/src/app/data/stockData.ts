@@ -89,7 +89,14 @@ export function getStockItems(): StockItem[] {
     return initialItems;
   }
 }
-
+const API_URL = 'http://localhost:3001/api';
+export async function getStocks(): Promise<StockItem[]> {
+    const response = await fetch(`${API_URL}/stock`);
+    if (!response.ok) {
+        throw new Error('No se pudo cargar el stock');
+    }
+    return response.json();
+}
 export function saveStockItems(items: StockItem[]): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
 }
