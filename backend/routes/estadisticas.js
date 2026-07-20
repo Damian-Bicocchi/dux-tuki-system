@@ -1,7 +1,17 @@
 const express = require('express');
+const { getDb } = require('../db');
 
-module.exports = (db) => {
-    const router = express.Router();
+const router = express.Router();
+const db = new Proxy(
+    {},
+    {
+        get(_target, prop) {
+            const conn = getDb();
+            const value = conn[prop];
+            return typeof value === 'function' ? value.bind(conn) : value;
+        },
+    },
+);
 
     // ── GET /api/estadisticas/resumen?mes=2025-06 ──────────────────────────────
     // Devuelve: ingresos brutos, costos, ganancia neta, ROI, total alquileres
@@ -191,21 +201,37 @@ module.exports = (db) => {
         db.all(
             `SELECT a.id, a.nombre, a.stock_total, cat.nombre AS categoria,
                     COALESCE(SUM(CASE
-                        WHEN al.estado NOT IN ('cancelado','devuelto')
+                        WHEN al.estado NOT IN ('cancelado')
                          AND al.fecha_inicio <= ?
                          AND al.fecha_fin   >= ?
-                        THEN ai.cantidad ELSE 0
+                        THEN CASE
+                            WHEN ai.cantidad - COALESCE(ciu.cantidad_devuelta, 0) > 0
+                                THEN ai.cantidad - COALESCE(ciu.cantidad_devuelta, 0)
+                            ELSE 0
+                        END
+                        ELSE 0
                     END), 0) AS ocupadas,
                     a.stock_total - COALESCE(SUM(CASE
-                        WHEN al.estado NOT IN ('cancelado','devuelto')
+                        WHEN al.estado NOT IN ('cancelado')
                          AND al.fecha_inicio <= ?
                          AND al.fecha_fin   >= ?
-                        THEN ai.cantidad ELSE 0
+                        THEN CASE
+                            WHEN ai.cantidad - COALESCE(ciu.cantidad_devuelta, 0) > 0
+                                THEN ai.cantidad - COALESCE(ciu.cantidad_devuelta, 0)
+                            ELSE 0
+                        END
+                        ELSE 0
                     END), 0) AS disponibles
              FROM articulos a
              LEFT JOIN categorias cat ON a.categoria_id = cat.id
              LEFT JOIN alquiler_items ai ON a.id = ai.articulo_id
              LEFT JOIN alquileres al ON ai.alquiler_id = al.id
+             LEFT JOIN (
+                 SELECT ac.alquiler_id, ci.alquiler_item_id, SUM(ci.cantidad_devuelta) AS cantidad_devuelta
+                 FROM alquiler_cierres ac
+                 JOIN alquiler_cierre_items ci ON ci.cierre_id = ac.id
+                 GROUP BY ac.alquiler_id, ci.alquiler_item_id
+             ) ciu ON ciu.alquiler_id = al.id AND ciu.alquiler_item_id = ai.id
              WHERE a.activo = 1
              GROUP BY a.id
              ORDER BY a.nombre`,
@@ -217,5 +243,4 @@ module.exports = (db) => {
         );
     });
 
-    return router;
-};
+module.exports = router;

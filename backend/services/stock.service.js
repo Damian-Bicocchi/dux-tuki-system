@@ -10,12 +10,16 @@ function normalizarTexto(s) {
 }
 
 function mapearAFrontend(art) {
+  const cantidadAlquilados = Number(art.cantidad_alquilados || 0);
+  const disponibles = Math.max(0, Number(art.stock_total || 0) - cantidadAlquilados);
+
   return {
     id: art.id,
     nombre: art.nombre,
     categoria: art.categoria_nombre || "Otros",
     total: art.stock_total,
-    disponibles: art.stock_total, // Al no mapear reservas por el momento, disponibles = total
+    disponibles,
+    cantidad_alquilados: cantidadAlquilados,
     precio_por_dia: art.precio_por_dia,
     deposito_garantia: art.deposito_garantia
   };

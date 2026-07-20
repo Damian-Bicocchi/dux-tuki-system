@@ -651,6 +651,7 @@ router.get('/articulo/:id', alquilerController.obtenerAlquileresPorArticulo);
             )
                 ? 'cerrado'
                 : 'parcial';
+            const estadoAlquiler = estadoEntrega === 'cerrado' ? 'devuelto' : 'activo';
 
             await runAsync('BEGIN TRANSACTION');
 
@@ -722,7 +723,7 @@ router.get('/articulo/:id', alquilerController.obtenerAlquileresPorArticulo);
 
                 await runAsync(
                     'UPDATE alquileres SET estado = ? WHERE id = ?',
-                    ['devuelto', alquilerId],
+                    [estadoAlquiler, alquilerId],
                 );
                 await runAsync('COMMIT');
             } catch (err) {

@@ -14,11 +14,23 @@ class AlquilerRepository {
   getCantidadOcupada(articulo_id, fecha_inicio, fecha_fin, excluir_alquiler_id = null) {
     return new Promise((resolve, reject) => {
       let query = `
-        SELECT COALESCE(SUM(ai.cantidad), 0) AS ocupadas 
+        SELECT COALESCE(SUM(
+          CASE
+            WHEN ai.cantidad - COALESCE(ciu.cantidad_devuelta, 0) > 0
+              THEN ai.cantidad - COALESCE(ciu.cantidad_devuelta, 0)
+            ELSE 0
+          END
+        ), 0) AS ocupadas
         FROM alquiler_items ai
         JOIN alquileres al ON ai.alquiler_id = al.id
+        LEFT JOIN (
+          SELECT ac.alquiler_id, ci.alquiler_item_id, SUM(ci.cantidad_devuelta) AS cantidad_devuelta
+          FROM alquiler_cierres ac
+          JOIN alquiler_cierre_items ci ON ci.cierre_id = ac.id
+          GROUP BY ac.alquiler_id, ci.alquiler_item_id
+        ) ciu ON ciu.alquiler_id = al.id AND ciu.alquiler_item_id = ai.id
         WHERE ai.articulo_id = ?
-          AND al.estado NOT IN ('cancelado','devuelto')
+          AND al.estado NOT IN ('cancelado')
           AND al.fecha_inicio <= ?
           AND al.fecha_fin   >= ?
       `;

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router";
 import {
   ArrowLeft,
@@ -13,16 +13,57 @@ import {
   AlertTriangle,
   ClipboardCheck,
 } from "lucide-react";
-import {
-  getAlquilerById,
-  calcularDias,
-  formatFecha,
-  formatMonto,
-  type Alquiler,
-} from "../data/alquileresData";
+type EstadoDetalle = "activo" | "vencido" | "finalizado";
+
+interface AlquilerItemApi {
+  id: number;
+  articulo_nombre: string;
+  cantidad: number;
+  precio_unitario_dia: number;
+}
+
+interface AlquilerApi {
+  id: number;
+  cliente_nombre: string;
+  fecha_inicio: string;
+  fecha_fin: string;
+  estado: "pendiente" | "activo" | "devuelto" | "cancelado";
+  deposito_garantia: number;
+  notas?: string;
+  items: AlquilerItemApi[];
+}
+
+const API_BASE_URL = "http://localhost:3001/api";
+
+function calcularDias(fechaInicio: string, fechaFin: string): number {
+  const inicio = new Date(`${fechaInicio}T00:00:00`);
+  const fin = new Date(`${fechaFin}T00:00:00`);
+  const diff = Math.floor((fin.getTime() - inicio.getTime()) / (1000 * 60 * 60 * 24));
+  return diff > 0 ? diff : 1;
+}
+
+function formatFecha(fecha: string): string {
+  const [y, m, d] = fecha.split("-");
+  return `${d}/${m}/${y}`;
+}
+
+function formatMonto(monto: number): string {
+  return new Intl.NumberFormat("es-AR", {
+    style: "currency",
+    currency: "ARS",
+    maximumFractionDigits: 0,
+  }).format(monto);
+}
+
+function mapEstadoDetalle(estado: AlquilerApi["estado"], fechaFin: string): EstadoDetalle {
+  if (estado === "devuelto" || estado === "cancelado") return "finalizado";
+  const hoy = new Date().toISOString().slice(0, 10);
+  if (estado === "activo" && fechaFin < hoy) return "vencido";
+  return "activo";
+}
 
 const ESTADO_META: Record<
-  Alquiler["estado"],
+  EstadoDetalle,
   { label: string; bg: string; text: string; border: string; icon: React.ElementType; desc: string }
 > = {
   activo: {
@@ -81,7 +122,9 @@ function InfoRow({
 export default function AlquilerDetallePage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const alquiler = getAlquilerById(Number(id));
+  const [alquiler, setAlquiler] = useState<AlquilerApi | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // --- Estados del Formulario de Entrega ---
   const [entregaParcial, setEntregaParcial] = useState(false);
@@ -92,11 +135,56 @@ export default function AlquilerDetallePage() {
   const [fueraTermino, setFueraTermino] = useState(false);
   const [cobroPenalizacion, setCobroPenalizacion] = useState(0);
   const [notasEntrega, setNotasEntrega] = useState("");
+  const [processingCierre, setProcessingCierre] = useState(false);
+  const [cantidadesDevueltas, setCantidadesDevueltas] = useState<Record<number, number>>({});
 
-  if (!alquiler) {
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadAlquiler() {
+      if (!id) return;
+      setLoading(true);
+      setError(null);
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/alquileres/${id}`);
+        if (!response.ok) {
+          throw new Error("No se pudo cargar el detalle del alquiler");
+        }
+        const data = (await response.json()) as AlquilerApi;
+        if (isMounted) {
+          setAlquiler(data);
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError(err instanceof Error ? err.message : "Error inesperado");
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadAlquiler();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] px-6 text-center">
+        <p className="text-gray-500 text-lg font-medium mb-4">Cargando alquiler...</p>
+      </div>
+    );
+  }
+
+  if (!alquiler || error) {
     return (
       <div role="alert" className="flex flex-col items-center justify-center min-h-[60vh] px-6 text-center">
-        <p className="text-gray-500 text-lg font-medium mb-4">Alquiler no encontrado.</p>
+        <p className="text-gray-500 text-lg font-medium mb-4">{error || "Alquiler no encontrado."}</p>
         <button
           onClick={() => navigate("/app/alquileres")}
           className="px-5 py-3 bg-[#218a72] text-white rounded-xl font-bold transition-transform active:scale-95"
@@ -107,25 +195,91 @@ export default function AlquilerDetallePage() {
     );
   }
 
-  // Soporte Multi-ítem Dinámico
-  const itemsAlquilados = (alquiler as any).items || [
-    { id: 1, nombre: alquiler.equipo, cantidad: alquiler.cantidad, precio: alquiler.precio }
-  ];
+  const estadoVista = mapEstadoDetalle(alquiler.estado, alquiler.fecha_fin);
+  const itemsAlquilados = useMemo(
+    () =>
+      (alquiler.items || []).map((item) => ({
+        id: item.id,
+        nombre: item.articulo_nombre,
+        cantidad: item.cantidad,
+        precio: item.precio_unitario_dia,
+      })),
+    [alquiler.items],
+  );
 
-  const meta = ESTADO_META[alquiler.estado];
+  useEffect(() => {
+    if (!itemsAlquilados.length) return;
+    const initialCantidades = itemsAlquilados.reduce<Record<number, number>>((acc, item) => {
+      acc[item.id] = item.cantidad;
+      return acc;
+    }, {});
+    setCantidadesDevueltas(initialCantidades);
+  }, [itemsAlquilados]);
+
+  const meta = ESTADO_META[estadoVista];
   const EstadoIcon = meta.icon;
-  const dias = calcularDias(alquiler.fechaInicio, alquiler.fechaFin);
+  const dias = calcularDias(alquiler.fecha_inicio, alquiler.fecha_fin);
   
   // Cálculos económicos
   const subtotal = itemsAlquilados.reduce((acc: number, item: any) => acc + (item.precio * item.cantidad * dias), 0);
-  const totalOriginal = subtotal + alquiler.deposito;
+  const totalOriginal = subtotal + Number(alquiler.deposito_garantia || 0);
   const cargosAdicionales = (tieneDanos ? cobroDanos : 0) + (fueraTermino ? cobroPenalizacion : 0);
   const balanceFinal = totalOriginal + cargosAdicionales;
+  const totalPendiente = itemsAlquilados.reduce((acc, item) => {
+    const devuelta = entregaParcial ? Number(cantidadesDevueltas[item.id] ?? item.cantidad) : item.cantidad;
+    const pendiente = Math.max(0, item.cantidad - devuelta);
+    return acc + pendiente;
+  }, 0);
 
-  const handleProcesarEntrega = (e: React.FormEvent) => {
+  const handleProcesarEntrega = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert("Devolución registrada con éxito. Estado actualizado a Finalizado.");
-    navigate("/app/alquileres");
+
+    if (!id) return;
+
+    if (entregaParcial && totalPendiente === 0) {
+      alert("Si la entrega es parcial, al menos un ítem debe quedar con cantidad pendiente.");
+      return;
+    }
+
+    try {
+      setProcessingCierre(true);
+      const payload = {
+        observaciones: [notasEntrega, entregaParcial ? detalleParcial : "", tieneDanos ? `Daños: ${detalleDanos}` : ""]
+          .filter(Boolean)
+          .join(" | "),
+        recargo_roturas: tieneDanos ? Number(cobroDanos || 0) : 0,
+        recargo_tarde: fueraTermino ? Number(cobroPenalizacion || 0) : 0,
+        recargo_otros: 0,
+        items: itemsAlquilados.map((item) => ({
+          alquiler_item_id: item.id,
+          cantidad_devuelta: entregaParcial
+            ? Number(cantidadesDevueltas[item.id] ?? 0)
+            : item.cantidad,
+          estado_fisico: tieneDanos ? "daniado" : "ok",
+          observaciones: entregaParcial
+            ? `Devuelto ${Number(cantidadesDevueltas[item.id] ?? 0)} de ${item.cantidad}${detalleParcial ? ` - ${detalleParcial}` : ""}`
+            : null,
+          recargo_item: 0,
+        })),
+      };
+
+      const response = await fetch(`${API_BASE_URL}/alquileres/${id}/cierre`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.error || "No se pudo registrar la devolución");
+      }
+
+      navigate("/app/alquileres");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Error inesperado al cerrar el alquiler");
+    } finally {
+      setProcessingCierre(false);
+    }
   };
 
   return (
@@ -146,7 +300,7 @@ export default function AlquilerDetallePage() {
             Registro Operativo #{alquiler.id}
           </p>
           <h1 className="text-2xl font-black tracking-tight">
-            Alquiler de {alquiler.cliente}
+            Alquiler de {alquiler.cliente_nombre}
           </h1>
         </div>
       </header>
@@ -215,7 +369,7 @@ export default function AlquilerDetallePage() {
           </section>
 
           {/* Formulario de Recepción y Entrega */}
-          {alquiler.estado !== "finalizado" && (
+          {estadoVista !== "finalizado" && (
             <section aria-labelledby="form-devolucion-titulo" className="bg-white rounded-2xl border-2 border-[#218a72]/30 shadow-md overflow-hidden">
               <div className="bg-gradient-to-r from-[#218a72] to-[#165a4b] px-5 py-3 text-white flex items-center gap-2">
                 <ClipboardCheck size={18} aria-hidden="true" />
@@ -287,6 +441,48 @@ export default function AlquilerDetallePage() {
                     </div>
                   )}
                 </fieldset>
+
+                {entregaParcial && (
+                  <section className="space-y-2" aria-label="Cantidades devueltas por ítem">
+                    <p className="text-xs font-bold text-gray-700 uppercase tracking-wider">
+                      Cantidad devuelta por ítem
+                    </p>
+                    <div className="rounded-xl border border-amber-200 bg-amber-50/40 p-3 space-y-3">
+                      {itemsAlquilados.map((item) => (
+                        <div key={item.id} className="grid grid-cols-12 items-center gap-2">
+                          <div className="col-span-7 min-w-0">
+                            <p className="text-xs font-semibold text-gray-900 truncate">{item.nombre}</p>
+                            <p className="text-[11px] text-gray-500">Prestadas: {item.cantidad}</p>
+                          </div>
+                          <div className="col-span-5">
+                            <input
+                              type="number"
+                              min={0}
+                              max={item.cantidad}
+                              step={1}
+                              value={cantidadesDevueltas[item.id] ?? 0}
+                              onChange={(e) => {
+                                const value = Number(e.target.value);
+                                const safeValue = Number.isFinite(value)
+                                  ? Math.min(item.cantidad, Math.max(0, value))
+                                  : 0;
+                                setCantidadesDevueltas((prev) => ({
+                                  ...prev,
+                                  [item.id]: safeValue,
+                                }));
+                              }}
+                              className="w-full text-xs p-2 border border-amber-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white font-semibold text-right"
+                              aria-label={`Cantidad devuelta de ${item.nombre}`}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                      <div className="text-[11px] font-semibold text-amber-900 border-t border-amber-200 pt-2">
+                        Pendiente total por devolver: {totalPendiente}
+                      </div>
+                    </div>
+                  </section>
+                )}
 
                 <hr className="border-gray-100" aria-hidden="true" />
 
@@ -394,9 +590,10 @@ export default function AlquilerDetallePage() {
                 {/* Botón enviar */}
                 <button
                   type="submit"
+                  disabled={processingCierre}
                   className="w-full py-3 bg-[#218a72] hover:bg-[#165a4b] text-white font-bold rounded-xl text-xs uppercase tracking-wider shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-[#165a4b] active:scale-[0.99]"
                 >
-                  Procesar Cierre y Confirmar Recepción
+                  {processingCierre ? "Procesando devolución..." : "Procesar Cierre y Confirmar Recepción"}
                 </button>
               </form>
             </section>
@@ -411,8 +608,8 @@ export default function AlquilerDetallePage() {
               Cronograma contractual
             </h2>
             <div className="px-5 pb-3">
-              <InfoRow icon={CalendarDays} label="Fecha de emisión" value={formatFecha(alquiler.fechaInicio)} />
-              <InfoRow icon={CalendarDays} label="Pactado para devolver" value={formatFecha(alquiler.fechaFin)} />
+              <InfoRow icon={CalendarDays} label="Fecha de emisión" value={formatFecha(alquiler.fecha_inicio)} />
+              <InfoRow icon={CalendarDays} label="Pactado para devolver" value={formatFecha(alquiler.fecha_fin)} />
               <InfoRow icon={Clock} label="Tiempo total" value={`${dias} ${dias === 1 ? "día" : "días"}`} highlight />
             </div>
           </section>
@@ -427,7 +624,7 @@ export default function AlquilerDetallePage() {
               <InfoRow
                 icon={ShieldCheck}
                 label="Garantía de Resguardo"
-                value={alquiler.deposito > 0 ? formatMonto(alquiler.deposito) : "Sin depósito"}
+                value={Number(alquiler.deposito_garantia || 0) > 0 ? formatMonto(Number(alquiler.deposito_garantia || 0)) : "Sin depósito"}
               />
               
               {/* Desglose dinámico si hay penalizaciones en el formulario */}
