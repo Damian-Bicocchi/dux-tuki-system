@@ -30,6 +30,11 @@ export default function NuevoClientePage() {
         } else if (formData.dni.length < 7) {
             errs.dni = 'El DNI debe tener al menos 7 dígitos';
         }
+        if (!formData.telefono.trim()) {
+            errs.telefono = 'El teléfono es obligatorio';
+        }else if (!/^\d+$/.test(formData.telefono)) {
+            errs.telefono = 'El teléfono debe contener solo números';
+        }
         return errs;
     }
 
@@ -45,9 +50,7 @@ export default function NuevoClientePage() {
             nombre: formData.nombre.trim(),
             email: formData.email.trim().toLowerCase(),
             dni: formData.dni.trim(), // OJO: Tu backend actual ignora este campo
-            ...(formData.telefono.trim()
-                ? { telefono: formData.telefono.trim() }
-                : {}),
+            telefono: formData.telefono.trim(),
         };
         fetch('http://127.0.0.1:3001/api/clientes', {
             method: 'POST',
@@ -221,19 +224,38 @@ export default function NuevoClientePage() {
                     )}
                 </FormField>
 
-                {/* Teléfono (opcional) */}
-                <FormField id="telefono" label="Teléfono" icon={Phone} optional>
+                {/* Teléfono */}
+                <FormField
+                    id="telefono"
+                    label="Teléfono"
+                    icon={Phone}
+                    required
+                    error={errors.telefono}
+                >
                     <input
                         id="telefono"
                         type="tel"
                         inputMode="tel"
+                        aria-required="true"
+                        aria-invalid={!!errors.telefono}
+                        aria-describedby={errors.telefono ? 'error-telefono' : undefined}
+                        maxLength={15}
                         value={formData.telefono}
                         onChange={(e) =>
                             handleChange('telefono', e.target.value)
                         }
-                        placeholder="Ej: 1145237890 (Sin guiones ni espacios)"
-                        className={inputClass(false)}
+                        placeholder="Ej: 1145237890 (sin guiones ni espacios)"
+                        className={inputClass(!!errors.telefono)}
                     />
+                    {errors.telefono && (
+                        <p
+                            id="error-telefono"
+                            className="text-xs text-red-600 mt-1.5 font-semibold"
+                            role="alert"
+                        >
+                            {errors.telefono}
+                        </p>
+                    )}
                 </FormField>
 
                 {/* Acciones */}
