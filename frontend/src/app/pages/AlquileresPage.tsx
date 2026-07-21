@@ -91,6 +91,8 @@ export default function AlquileresPage() {
                 }
 
                 const data = (await response.json()) as AlquilerResumenApi[];
+
+                
                 if (isMounted) {
                     setAlquileres(data);
                 }

@@ -5,6 +5,7 @@ const alquilerController = require("../controllers/alquiler.controller");
 
 
 const router = express.Router();
+
 const db = new Proxy(
     {},
     {
@@ -15,6 +16,7 @@ const db = new Proxy(
         },
     },
 );
+
 
     function runAsync(sql, params = []) {
         return new Promise((resolve, reject) => {
@@ -208,16 +210,16 @@ router.get('/articulo/:id', alquilerController.obtenerAlquileresPorArticulo);
         const { estado, cliente_id, fecha_inicio, fecha_fin } = req.query;
         const params = [];
 
+
         let query = `
             SELECT al.*, c.nombre AS cliente_nombre,
-                   COUNT(ai.id) AS cantidad_items,
-                   COALESCE(ac.estado_entrega, 'pendiente') AS cierre_estado_entrega,
-                   COALESCE(ac.total_recargos, 0) AS cierre_total_recargos
+                (SELECT COUNT(*) FROM alquiler_items WHERE alquiler_id = al.id) AS cantidad_items,
+                COALESCE(ac.estado_entrega, 'pendiente') AS cierre_estado_entrega,
+                COALESCE(ac.total_recargos, 0) AS cierre_total_recargos
             FROM alquileres al
             JOIN clientes c ON al.cliente_id = c.id
-            LEFT JOIN alquiler_items ai ON al.id = ai.alquiler_id
             LEFT JOIN alquiler_cierres ac ON al.id = ac.alquiler_id
-            WHERE 1=1
+            WHERE 1=1            
         `;
 
         // el where 1=1 da siempre true, por lo que permite que construyamos condiciones adicionales con AND sin preocuparnos de si es la primera o no.
