@@ -17,21 +17,25 @@ class AlquilerService {
     );
   }
 
-  async _verificarDisponibilidad(articulo_id, cantidad, fecha_inicio, fecha_fin, excluir_alquiler_id = null) {
-    const articulo = await alquilerRepository.getStockTotalArticulo(articulo_id);
-    if (!articulo) {
-      throw new Error(`Artículo ${articulo_id} no encontrado`);
-    }
-    const ocupadas = await alquilerRepository.getCantidadOcupada(articulo_id, fecha_inicio, fecha_fin, excluir_alquiler_id);
-    const disponibles = articulo.stock_total - ocupadas;
-
-    if (disponibles < cantidad) {
-      throw new Error(
-        `Stock insuficiente para artículo ${articulo_id}: disponibles ${disponibles}, solicitados ${cantidad}`
-      );
-    }
-    return true;
+async _verificarDisponibilidad(articulo_id, cantidad, fecha_inicio, fecha_fin, excluir_alquiler_id = null) {
+  const articulo = await alquilerRepository.getStockTotalArticulo(articulo_id);
+  if (!articulo) {
+    throw new Error(`El equipo seleccionado ya no existe en el catálogo`);
   }
+  
+  const ocupadas = await alquilerRepository.getCantidadOcupada(articulo_id, fecha_inicio, fecha_fin, excluir_alquiler_id);
+  const disponibles = articulo.stock_total - ocupadas;
+
+  if (disponibles < cantidad) {
+    if (disponibles <= 0) {
+      throw new Error(`No hay stock disponible del equipo "${articulo.nombre}" para las fechas seleccionadas.`);
+    }
+    throw new Error(
+      `Solo hay stock de ${disponibles} unidad(es) disponible(s) para "${articulo.nombre}" en las fechas seleccionadas (solicitadas: ${cantidad}).`
+    );
+  }
+  return { disponibles, nombre: articulo.nombre };
+}
 
   // Métodos de Servicio expuestos
   async listarAlquileres(filtros) {
