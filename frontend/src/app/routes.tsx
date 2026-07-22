@@ -33,7 +33,7 @@ export const router = createBrowserRouter([
   {
     path: "/app",
     Component: RootLayout,
-    errorElement: <ErrorPage />,
+    errorElement: <ErrorPage/>,
     children: [
       { index: true, Component: HomePage },
       { path: "nuevo-alquiler", Component: NuevoAlquilerPage },

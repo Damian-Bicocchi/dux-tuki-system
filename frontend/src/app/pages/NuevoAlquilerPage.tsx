@@ -4,6 +4,7 @@ import { Save, X, Plus, Search, LoaderCircle } from 'lucide-react';
 import { SuccessModal } from '../components/SuccessModal';
 import { getClientes } from '../data/clientesData';
 import { getStocks } from '../data/stockData';
+import { ItemRow } from '../components/ItemRow';
 
 const API_URL = 'http://localhost:3001/api';
 
@@ -26,9 +27,10 @@ interface ArticuloStock {
 // Interfaz acoplada estrictamente para las filas del formulario
 interface ItemAlquiler {
     articulo_id: number | '';
-    cantidad: number;
-    precio_unitario_dia: number;
+    cantidad: number | '';
+    precio_unitario_dia: number | '';
     deposito_garantia: number;
+    error?: string;
 }
 
 const formatearFechaVista = (fechaStr: string): string => {
@@ -54,7 +56,7 @@ export default function NuevoAlquilerPage() {
     const [fechaFin, setFechaFin] = useState('');
 
     const [items, setItems] = useState<ItemAlquiler[]>([
-        { articulo_id: '', cantidad: 1, precio_unitario_dia: 0, deposito_garantia: 0 },
+        { articulo_id: '', cantidad: 1, precio_unitario_dia: '', deposito_garantia: 0 },
     ]);
 
     const [formErrors, setFormErrors] = useState<string[]>([]);
@@ -108,6 +110,54 @@ export default function NuevoAlquilerPage() {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
+    useEffect(() => {
+        async function verificarStockItems() {
+            if (!fechaInicio || !fechaFin) return;
+
+            const itemsActualizados = await Promise.all(
+                items.map(async (item) => {
+                    if (!item.articulo_id || !item.cantidad || Number(item.cantidad) < 1) {
+                        return { ...item, error: undefined };
+                    }
+
+                    try {
+                        const res = await fetch(
+                            `${API_URL}/alquileres/disponibilidad?articulo_id=${item.articulo_id}&fecha_inicio=${fechaInicio}&fecha_fin=${fechaFin}`
+                        );
+                        console.error("Linea 127 de NuevoAlquilerPage.tsx");
+                        if (!res.ok) return { ...item, error: undefined };
+
+                        const data = await res.json();
+                        const cantidadSolicitada = Number(item.cantidad);
+
+                        if (data.disponibles < cantidadSolicitada) {
+                            const errorMsg = data.disponibles <= 0
+                                ? `No hay stock disponible para las fechas seleccionadas.`
+                                : `Solo hay stock de ${data.disponibles} unidad(es) disponible(s) para la fecha.`;
+                            
+                            return { ...item, error: errorMsg };
+                        }
+
+                        return { ...item, error: undefined };
+                    } catch {
+                        return { ...item, error: undefined };
+                    }
+                })
+            );
+
+            // Evitamos bucles comparando cambios reales
+            const cambioDetectado = itemsActualizados.some(
+                (it, idx) => it.error !== items[idx]?.error
+            );
+
+            if (cambioDetectado) {
+                setItems(itemsActualizados);
+            }
+        }
+
+        verificarStockItems();
+    }, [fechaInicio, fechaFin, items]);
+
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (!mostrarDropdown || clientesFiltrados.length === 0) return;
         switch (e.key) {
@@ -157,22 +207,24 @@ export default function NuevoAlquilerPage() {
         if (items.length > 1) setItems(items.filter((_, i) => i !== index));
     };
 
-    const handleItemChange = (index: number, field: keyof ItemAlquiler, value: string | number) => {
+   const handleItemChange = (index: number, field: keyof ItemAlquiler, value: string | number) => {
         const newItems = [...items];
         if (field === 'articulo_id') {
             const articuloId = value === '' ? '' : Number(value);
-            const art =
-                articuloId === ''
-                    ? undefined
-                    : listaStock.find((e) => e.id === articuloId);
-
+            const art = articuloId === '' ? undefined : listaStock.find((e) => e.id === articuloId);
             newItems[index] = {
                 ...newItems[index],
                 articulo_id: articuloId,
-                precio_unitario_dia: art?.precio_por_dia ?? 0,
+                precio_unitario_dia: art?.precio_por_dia ?? '',
                 deposito_garantia: art?.deposito_garantia ?? 0,
+                error: undefined, // Limpia el error al cambiar de equipo
             };
-        
+        } else if (field === 'cantidad' || field === 'precio_unitario_dia') {
+            newItems[index] = { 
+                ...newItems[index], 
+                [field]: value === '' ? '' : Number(value),
+                error: undefined, // Limpia el error al cambiar cantidad
+            };
         } else {
             newItems[index] = { ...newItems[index], [field]: value };
         }
@@ -204,13 +256,16 @@ export default function NuevoAlquilerPage() {
         };
     }, [items, diasAlquiler]);
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.SubmitEvent) => {
         e.preventDefault();
         const errs: string[] = [];
         if (!clienteSeleccionado) errs.push('Seleccioná un cliente válido antes de continuar.');
         if (items.some((i) => !i.articulo_id)) errs.push('Completá el artículo en todas las filas de dispositivos.');
         if (!fechaInicio) errs.push('Ingresá la fecha de inicio.');
         if (!fechaFin) errs.push('Ingresá la fecha de fin.');
+        if (items.some((i) => i.error)) {
+            errs.push('Revisá los problemas de stock señalados en color rojo.');
+        }
         if (errs.length > 0) {
             setFormErrors(errs);
             return;
@@ -251,8 +306,17 @@ export default function NuevoAlquilerPage() {
         }
     };
 
+    const handleDateClick = (e: React.MouseEvent<HTMLInputElement>) => {
+        const input = e.currentTarget;
+        if (input.showPicker) {
+            input.showPicker(); // abre el calendario nativo
+        } else {
+            input.focus(); // fallback para navegadores antiguos
+        }
+    };
+
     return (
-        <div className="px-4 py-6 max-w-6xl mx-auto">
+        <div className="px-4 py-4 max-w-6xl mx-auto">
             <SuccessModal
                 isOpen={showSuccess}
                 title="¡Alquiler creado con éxito!"
@@ -263,12 +327,12 @@ export default function NuevoAlquilerPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
 
                 {/* COLUMNA FORMULARIO */}
-                <form onSubmit={handleSubmit} className="lg:col-span-2 space-y-6 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                <form onSubmit={handleSubmit} className="lg:col-span-2 space-y-3 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
 
                     {/* Cliente Autocomplete */}
                     <div className="relative" ref={containerRef}>
                         <label htmlFor="cliente-search" className="block text-sm font-bold text-gray-700 mb-2">
-                            Cliente *
+                            Cliente <span className="text-xs text-red-600 font-semibold ml-0.5">(obligatorio)</span>
                         </label>
                         <div className="relative">
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-800" size={18} aria-hidden="true" />
@@ -334,15 +398,23 @@ export default function NuevoAlquilerPage() {
                     {/* Fechas */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                            <label htmlFor="fechaInicio" className="block text-sm font-bold text-gray-700 mb-2">Fecha inicio *</label>
+                            <label htmlFor="fechaInicio" className="block text-sm font-bold text-gray-700 mb-2">
+                                Fecha inicio <span className="text-xs text-red-600 font-semibold ml-0.5">(obligatorio)</span>
+                            </label>
                             <input type="date" id="fechaInicio" value={fechaInicio}
-                                onChange={(e) => setFechaInicio(e.target.value)} required max={fechaFin}
+                                onChange={(e) => setFechaInicio(e.target.value)} 
+                                onClick={handleDateClick} 
+                                required max={fechaFin}
                                 className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors" />
                         </div>
                         <div>
-                            <label htmlFor="fechaFin" className="block text-sm font-bold text-gray-700 mb-2">Fecha fin *</label>
+                            <label htmlFor="fechaFin" className="block text-sm font-bold text-gray-700 mb-2">
+                                Fecha fin <span className="text-xs text-red-600 font-semibold ml-0.5">(obligatorio)</span>
+                            </label>
                             <input type="date" id="fechaFin" value={fechaFin}
-                                onChange={(e) => setFechaFin(e.target.value)} required min={fechaInicio}
+                                onChange={(e) => setFechaFin(e.target.value)} 
+                                onClick={handleDateClick} 
+                                required min={fechaInicio}
                                 className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors" />
                         </div>
                     </div>
@@ -358,60 +430,17 @@ export default function NuevoAlquilerPage() {
                         </div>
 
                         <div className="space-y-3" role="group" aria-labelledby="titulo-dispositivos">
-                            {items.map((item, index) => {
-                                const equipoInputId = `equipo-select-${index}`;
-                                const cantidadInputId = `equipo-cantidad-${index}`;
-                                const precioInputId = `equipo-precio-${index}`;
-
-                                return (
-                                    <div key={index} className="grid grid-cols-1 sm:grid-cols-12 gap-3 p-4 bg-gray-50 rounded-xl border border-gray-200 items-end relative">
-                                        <div className="sm:col-span-5">
-                                            <label htmlFor={equipoInputId} className="block text-xs font-bold text-gray-800 mb-1">
-                                                Equipo * (Fila {index + 1})
-                                            </label>
-                                            <select
-                                                id={equipoInputId}
-                                                value={item.articulo_id}
-                                                onChange={(e) => handleItemChange(index, 'articulo_id', e.target.value)}
-                                                required
-                                                className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg bg-white text-sm focus:outline-none focus:border-[#218a72]"
-                                            >
-                                                <option value="">Seleccionar equipo</option>
-                                                {listaStock.map((eq) => (
-                                                    <option key={eq.id} value={eq.id}>{eq.nombre}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-
-                                        <div className="sm:col-span-3">
-                                            <label htmlFor={cantidadInputId} className="block text-xs font-bold text-gray-800 mb-1">Cantidad *</label>
-                                            <input type="number" id={cantidadInputId} min="1" value={item.cantidad}
-                                                onChange={(e) => handleItemChange(index, 'cantidad', parseInt(e.target.value) || 0)}
-                                                required
-                                                className="w-full px-3 py-2 border-2 border-gray-300 rounded-xl bg-white text-sm focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
-                                        </div>
-
-                                        <div className="sm:col-span-3">
-                                            <label htmlFor={precioInputId} className="block text-xs font-bold text-gray-800 mb-1">Precio Unit. *</label>
-                                            <div className="relative">
-                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm" aria-hidden="true">$</span>
-                                                <input type="number" id={precioInputId} min="0" value={item.precio_unitario_dia}
-                                                    onChange={(e) => handleItemChange(index, 'precio_unitario_dia', parseFloat(e.target.value) || 0)}
-                                                    required
-                                                    className="w-full pl-7 pr-3 py-2 border-2 border-gray-300 rounded-xl bg-white text-sm focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
-                                            </div>
-                                        </div>
-
-                                        <div className="sm:col-span-1 flex justify-center sm:justify-end pb-1">
-                                            <button type="button" disabled={items.length === 1} onClick={() => handleRemoveItem(index)}
-                                                className="p-2 text-red-500 hover:bg-red-50 disabled:opacity-30 disabled:hover:bg-transparent rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500"
-                                                aria-label={`Eliminar fila ${index + 1}`}>
-                                                <X size={18} aria-hidden="true" />
-                                            </button>
-                                        </div>
-                                    </div>
-                                );
-                            })}
+                            {items.map((item, index) => (
+                                <ItemRow
+                                    key={item.articulo_id || index}
+                                    item={item}
+                                    index={index}
+                                    listaStock={listaStock}
+                                    disableDelete={items.length === 1}
+                                    onChange={handleItemChange}
+                                    onRemove={handleRemoveItem}
+                                />
+                            ))}
                         </div>
                     </div>
 
@@ -463,10 +492,14 @@ export default function NuevoAlquilerPage() {
                             {submitting ? <LoaderCircle size={20} className="animate-spin" aria-hidden="true" /> : <Save size={20} aria-hidden="true" />}
                             {submitting ? 'Guardando...' : 'Guardar alquiler'}
                         </button>
-                        <button type="button" onClick={() => navigate('/app/')}
-                            className="px-6 py-4 border-2 border-gray-300 text-gray-700 rounded-xl font-bold hover:bg-gray-50 focus:bg-gray-50 transition-colors focus:outline-none focus:ring-4 focus:ring-gray-300"
-                            aria-label="Cancelar creación de alquiler y volver">
+                        <button
+                            type="button"
+                            onClick={() => navigate('/app/')}
+                            className="px-6 py-4 border-2 border-gray-300 text-gray-700 rounded-xl font-bold hover:bg-gray-50 focus:bg-gray-50 transition-colors focus:outline-none focus:ring-4 focus:ring-gray-300 flex items-center gap-2"
+                            aria-label="Cancelar creación de alquiler y volver"
+                        >
                             <X size={20} aria-hidden="true" />
+                            Cancelar
                         </button>
                     </div>
                 </form>
@@ -511,10 +544,7 @@ export default function NuevoAlquilerPage() {
                     </dl>
 
                     <dl className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100">
-                        <div>
-                            <dt className="text-xs font-bold text-gray-800 block uppercase tracking-wider mb-0.5">Items Únicos</dt>
-                            <dd className="text-2xl font-black text-gray-800">{resumen.itemsUnicos}</dd>
-                        </div>
+                    
                         <div>
                             <dt className="text-xs font-bold text-gray-800 block uppercase tracking-wider mb-0.5">Unidades Totales</dt>
                             <dd className="text-2xl font-black text-gray-800">{resumen.unidadesTotales}</dd>

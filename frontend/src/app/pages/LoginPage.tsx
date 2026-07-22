@@ -33,7 +33,6 @@ export default function LoginPage() {
         }
         
         try {
-            console.log("Hola estoy tratando");
             const response = await fetch(
                 'http://localhost:3001/api/usuarios/login',
                 {
@@ -47,14 +46,12 @@ export default function LoginPage() {
                     }),
                 },
             );
-            console.log("pase del await");
 
             if (!response.ok) {
                 throw new Error('Las credenciales ingresadas son inválidas.');
             }
 
             const data = await response.json();
-            console.log('Login exitoso', data);
 
             // localStorage.setItem("token", data.token);
             navigate('/app/'); 

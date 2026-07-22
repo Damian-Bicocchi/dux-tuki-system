@@ -5,6 +5,7 @@ const alquilerController = require("../controllers/alquiler.controller");
 
 
 const router = express.Router();
+
 const db = new Proxy(
     {},
     {
@@ -15,6 +16,7 @@ const db = new Proxy(
         },
     },
 );
+
 
     function runAsync(sql, params = []) {
         return new Promise((resolve, reject) => {
@@ -43,8 +45,8 @@ const db = new Proxy(
         });
     }
 
-// Historial específico de alquileres vinculados a un artículo (Soporte para StockDetallePage.tsx)
-router.get('/articulo/:id', alquilerController.obtenerAlquileresPorArticulo);
+    // Historial específico de alquileres vinculados a un artículo (Soporte para StockDetallePage.tsx)
+    router.get('/articulo/:id', alquilerController.obtenerAlquileresPorArticulo);
 
     // Calcula la diferencia en días entre dos fechas (mínimo 1)
     function calcularDias(fecha_inicio, fecha_fin) {
@@ -53,6 +55,65 @@ router.get('/articulo/:id', alquilerController.obtenerAlquileresPorArticulo);
         const diff = Math.ceil((fin - inicio) / (1000 * 60 * 60 * 24));
         return diff < 1 ? 1 : diff;
     }
+
+    // GET /api/alquileres/disponibilidad?articulo_id=1&fecha_inicio=2026-08-01&fecha_fin=2026-08-05
+    router.get('/disponibilidad', async (req, res) => {
+        const { articulo_id, fecha_inicio, fecha_fin, excluir_alquiler_id } = req.query;
+        if (!articulo_id || !fecha_inicio || !fecha_fin) {
+            return res.status(400).json({ error: 'Faltan parámetros obligatorios (articulo_id, fecha_inicio, fecha_fin)' });
+        }
+
+        try {
+            const articulo = await getAsync('SELECT id, nombre, stock_total FROM articulos WHERE id = ?', [articulo_id]);
+            if (!articulo) {
+                return res.status(404).json({ error: 'Artículo no encontrado' });
+            }
+
+
+            let query = `
+                SELECT COALESCE(SUM(
+                    CASE
+                        WHEN ai.cantidad - COALESCE(ciu.cantidad_devuelta, 0) > 0
+                            THEN ai.cantidad - COALESCE(ciu.cantidad_devuelta, 0)
+                        ELSE 0
+                    END
+                ), 0) AS ocupadas
+                FROM alquiler_items ai
+                JOIN alquileres al ON ai.alquiler_id = al.id
+                LEFT JOIN (
+                    SELECT ac.alquiler_id, ci.alquiler_item_id, SUM(ci.cantidad_devuelta) AS cantidad_devuelta
+                    FROM alquiler_cierres ac
+                    JOIN alquiler_cierre_items ci ON ci.cierre_id = ac.id
+                    GROUP BY ac.alquiler_id, ci.alquiler_item_id
+                ) ciu ON ciu.alquiler_id = al.id AND ciu.alquiler_item_id = ai.id
+                WHERE ai.articulo_id = ?
+                AND al.estado NOT IN ('cancelado')
+                AND al.fecha_inicio <= ?
+                AND al.fecha_fin   >= ?
+            `;
+            const params = [articulo_id, fecha_fin, fecha_inicio];
+
+            if (excluir_alquiler_id) {
+                query += ' AND al.id != ?';
+                params.push(excluir_alquiler_id);
+            }
+
+            const row = await getAsync(query, params);
+            const ocupadas = row ? row.ocupadas : 0;
+            const disponibles = Math.max(0, articulo.stock_total - ocupadas);
+
+
+            res.json({
+                articulo_id: articulo.id,
+                nombre: articulo.nombre,
+                stock_total: articulo.stock_total,
+                ocupadas,
+                disponibles,
+            });
+        } catch (err) {
+            res.status(500).json({ error: err.message });
+        }
+    });
 
     // Verifica disponibilidad de un artículo para un rango, excluyendo un alquiler_id (para ediciones)
     function verificarDisponibilidad(
@@ -208,16 +269,16 @@ router.get('/articulo/:id', alquilerController.obtenerAlquileresPorArticulo);
         const { estado, cliente_id, fecha_inicio, fecha_fin } = req.query;
         const params = [];
 
+
         let query = `
             SELECT al.*, c.nombre AS cliente_nombre,
-                   COUNT(ai.id) AS cantidad_items,
-                   COALESCE(ac.estado_entrega, 'pendiente') AS cierre_estado_entrega,
-                   COALESCE(ac.total_recargos, 0) AS cierre_total_recargos
+                (SELECT COUNT(*) FROM alquiler_items WHERE alquiler_id = al.id) AS cantidad_items,
+                COALESCE(ac.estado_entrega, 'pendiente') AS cierre_estado_entrega,
+                COALESCE(ac.total_recargos, 0) AS cierre_total_recargos
             FROM alquileres al
             JOIN clientes c ON al.cliente_id = c.id
-            LEFT JOIN alquiler_items ai ON al.id = ai.alquiler_id
             LEFT JOIN alquiler_cierres ac ON al.id = ac.alquiler_id
-            WHERE 1=1
+            WHERE 1=1            
         `;
 
         // el where 1=1 da siempre true, por lo que permite que construyamos condiciones adicionales con AND sin preocuparnos de si es la primera o no.
@@ -799,5 +860,7 @@ router.get('/articulo/:id', alquilerController.obtenerAlquileresPorArticulo);
             },
         );
     });
+
+    
 
 module.exports = router;

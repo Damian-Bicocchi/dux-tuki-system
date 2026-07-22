@@ -6,7 +6,6 @@ export default function ErrorPage() {
   let title = 'Ocurrió un error';
   let message =
     'No pudimos completar la operación solicitada.';
-
   if (isRouteErrorResponse(error)) {
     title = `${error.status}`;
     message = error.statusText;
