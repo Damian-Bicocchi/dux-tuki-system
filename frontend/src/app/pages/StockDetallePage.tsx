@@ -115,7 +115,6 @@ export default function StockDetallePage() {
 
         // 1. Obtener Categorías
         const resCategorias = await fetch(`${API_BASE_URL}/categorias`);
-        console.log("Loo de resCategorias funciono, aca esta", resCategorias);
         const dataCategorias = resCategorias.ok ? await resCategorias.json() : [];
         setCategorias(dataCategorias);
 

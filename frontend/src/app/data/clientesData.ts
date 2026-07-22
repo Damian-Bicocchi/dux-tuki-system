@@ -28,7 +28,6 @@ export async function getClientes(): Promise<Cliente[]> {
     });
     
     const data = await response.json();
-    console.log('Clientes obtenidos del backend:', data);
     
     // Mapeamos los datos al formato correcto
     const clientes: Cliente[] = data.map((json: any) => ({
@@ -40,8 +39,7 @@ export async function getClientes(): Promise<Cliente[]> {
       alquileres: json.alquileres || [],
     }));
     
-    console.log('Clientes listos para enviar a React:', clientes);
-    return clientes; // Ahora SÍ retorna cuando el array está lleno
+    return clientes;
 
   } catch (error) {
     console.error('Error al obtener clientes del backend:', error);

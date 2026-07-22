@@ -60,12 +60,10 @@ class CategoriasService {
   }
 
   async findOne(nombre){
-    console.log("que tal estoy buscand una categoria con nombre:", nombre);
     
     // CORRECCIÓN: Llamamos a findByName (que definiremos abajo en el repo)
     const categoriaMismoNombre = await categoriasRepository.findByName(nombre);
     
-    console.log("ya busque una categoria, fue ", categoriaMismoNombre);
     
     // CORRECCIÓN LÓGICA: Si es diferente de null/undefined, significa que SÍ existe.
     return categoriaMismoNombre !== undefined && categoriaMismoNombre !== null;
