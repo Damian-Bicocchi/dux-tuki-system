@@ -173,6 +173,26 @@ export default function AlquilerDetallePage() {
     };
   }, [id]);
 
+  const itemsAlquilados = useMemo(
+    () =>
+      (alquiler?.items || []).map((item) => ({
+        id: item.id,
+        nombre: item.articulo_nombre,
+        cantidad: item.cantidad,
+        precio: item.precio_unitario_dia,
+      })),
+    [alquiler],
+  );
+
+  useEffect(() => {
+    if (!itemsAlquilados.length) return;
+    const initialCantidades = itemsAlquilados.reduce<Record<number, number>>((acc, item) => {
+      acc[item.id] = item.cantidad;
+      return acc;
+    }, {});
+    setCantidadesDevueltas(initialCantidades);
+  }, [itemsAlquilados]);
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] px-6 text-center">
@@ -196,26 +216,6 @@ export default function AlquilerDetallePage() {
   }
 
   const estadoVista = mapEstadoDetalle(alquiler.estado, alquiler.fecha_fin);
-  const itemsAlquilados = useMemo(
-    () =>
-      (alquiler.items || []).map((item) => ({
-        id: item.id,
-        nombre: item.articulo_nombre,
-        cantidad: item.cantidad,
-        precio: item.precio_unitario_dia,
-      })),
-    [alquiler.items],
-  );
-
-  useEffect(() => {
-    if (!itemsAlquilados.length) return;
-    const initialCantidades = itemsAlquilados.reduce<Record<number, number>>((acc, item) => {
-      acc[item.id] = item.cantidad;
-      return acc;
-    }, {});
-    setCantidadesDevueltas(initialCantidades);
-  }, [itemsAlquilados]);
-
   const meta = ESTADO_META[estadoVista];
   const EstadoIcon = meta.icon;
   const dias = calcularDias(alquiler.fecha_inicio, alquiler.fecha_fin);
