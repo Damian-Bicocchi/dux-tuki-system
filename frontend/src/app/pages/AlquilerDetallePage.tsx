@@ -8,7 +8,6 @@ import {
   CheckCircle2,
   Package,
   Banknote,
-  FileText,
   ShieldCheck,
   AlertTriangle,
   ClipboardCheck,
@@ -601,7 +600,7 @@ export default function AlquilerDetallePage() {
         </div>
 
         {/* Columna Derecha: Liquidación y Fechas */}
-        <div className="space-y-6">
+        <div className="space-y-6 md:sticky md:top-[104px] md:self-start">
           {/* Bloque Período */}
           <section aria-labelledby="cronograma-titulo" className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
             <h2 id="cronograma-titulo" className="text-xs font-bold text-gray-500 uppercase tracking-wider px-5 pt-4 pb-1">
@@ -645,28 +644,12 @@ export default function AlquilerDetallePage() {
             >
               <div className="flex flex-col">
                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Monto Total Estimado</span>
-                <span className="text-xs text-[#218a72] font-semibold" id="iva-informacion">Precios con IVA inc.</span>
               </div>
-              <span className="text-xl font-black text-emerald-400" aria-describedby="iva-informacion">
+              <span className="text-xl font-black text-emerald-400">
                 <span className="sr-only">Total: </span>{formatMonto(balanceFinal)}
               </span>
             </div>
           </section>
-
-          {/* Bloque de Notas Originales */}
-          {alquiler.notas && (
-            <section aria-labelledby="notas-iniciales-titulo" className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-              <h2 id="notas-iniciales-titulo" className="text-xs font-bold text-gray-500 uppercase tracking-wider px-5 pt-4 pb-1">
-                Observaciones iniciales
-              </h2>
-              <div className="px-5 pb-4">
-                <div className="flex items-start gap-2.5 pt-1.5">
-                  <FileText size={15} className="text-gray-400 flex-shrink-0 mt-0.5" aria-hidden="true" />
-                  <p className="text-gray-600 text-xs leading-relaxed">{alquiler.notas}</p>
-                </div>
-              </div>
-            </section>
-          )}
         </div>
 
       </main>

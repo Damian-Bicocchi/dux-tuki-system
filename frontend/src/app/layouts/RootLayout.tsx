@@ -270,7 +270,7 @@ export default function RootLayout() {
                 aria-label="Configuración de accesibilidad"
               >
                 <Settings size={22} aria-hidden="true" />
-                <span className="text-[11px] font-medium opacity-90 leading-none">Accesibilidad</span>
+                <span className="hidden sm:inline text-[11px] font-medium opacity-90 leading-none">Accesibilidad</span>
               </button>
               <button
                 onClick={() => setNotificationsOpen(true)}
@@ -295,7 +295,7 @@ export default function RootLayout() {
                     </span>
                   )}
                 </span>
-                <span className="text-[11px] font-medium opacity-90 leading-none">Notificaciones</span>
+                <span className="hidden sm:inline text-[11px] font-medium opacity-90 leading-none">Notificaciones</span>
               </button>
               <button
                 onClick={() => setShowLogoutConfirm(true)}
@@ -305,7 +305,7 @@ export default function RootLayout() {
                 aria-expanded={showLogoutConfirm}
               >
                 <LogOut size={22} aria-hidden="true" />
-                <span className="text-[11px] font-medium opacity-90 leading-none">Cerrar sesión</span>
+                <span className="hidden sm:inline text-[11px] font-medium opacity-90 leading-none">Cerrar sesión</span>
               </button>
               {/*
               <button
