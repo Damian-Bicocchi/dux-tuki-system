@@ -216,15 +216,73 @@ export default function AlquilerDetallePage() {
         };
     }, [id]);
 
-    useEffect(() => {
-        if (!itemsAlquilados.length) return;
+  const itemsAlquilados = useMemo(
+    () =>
+      (alquiler?.items || []).map((item) => ({
+        id: item.id,
+        nombre: item.articulo_nombre,
+        cantidad: item.cantidad,
+        precio: item.precio_unitario_dia,
+      })),
+    [alquiler],
+  );
 
-        const initialCantidades = itemsAlquilados.reduce<
-            Record<number, number>
-        >((acc, item) => {
-            acc[item.id] = item.cantidad;
-            return acc;
-        }, {});
+  useEffect(() => {
+    if (!itemsAlquilados.length) return;
+    const initialCantidades = itemsAlquilados.reduce<Record<number, number>>((acc, item) => {
+      acc[item.id] = item.cantidad;
+      return acc;
+    }, {});
+    setCantidadesDevueltas(initialCantidades);
+  }, [itemsAlquilados]);
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] px-6 text-center">
+        <p className="text-gray-500 text-lg font-medium mb-4">Cargando alquiler...</p>
+      </div>
+    );
+  }
+
+  if (!alquiler || error) {
+    return (
+      <div role="alert" className="flex flex-col items-center justify-center min-h-[60vh] px-6 text-center">
+        <p className="text-gray-500 text-lg font-medium mb-4">{error || "Alquiler no encontrado."}</p>
+        <button
+          onClick={() => navigate("/app/alquileres")}
+          className="px-5 py-3 bg-[#218a72] text-white rounded-xl font-bold transition-transform active:scale-95"
+        >
+          Volver a alquileres
+        </button>
+      </div>
+    );
+  }
+
+  const estadoVista = mapEstadoDetalle(alquiler.estado, alquiler.fecha_fin);
+  const meta = ESTADO_META[estadoVista];
+  const EstadoIcon = meta.icon;
+  const dias = calcularDias(alquiler.fecha_inicio, alquiler.fecha_fin);
+  
+  // Cálculos económicos
+  const subtotal = itemsAlquilados.reduce((acc: number, item: any) => acc + (item.precio * item.cantidad * dias), 0);
+  const totalOriginal = subtotal + Number(alquiler.deposito_garantia || 0);
+  const cargosAdicionales = (tieneDanos ? cobroDanos : 0) + (fueraTermino ? cobroPenalizacion : 0);
+  const balanceFinal = totalOriginal + cargosAdicionales;
+  const totalPendiente = itemsAlquilados.reduce((acc, item) => {
+    const devuelta = entregaParcial ? Number(cantidadesDevueltas[item.id] ?? item.cantidad) : item.cantidad;
+    const pendiente = Math.max(0, item.cantidad - devuelta);
+    return acc + pendiente;
+  }, 0);
+
+  const handleProcesarEntrega = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!id) return;
+
+    if (entregaParcial && totalPendiente === 0) {
+      alert("Si la entrega es parcial, al menos un ítem debe quedar con cantidad pendiente.");
+      return;
+    }
 
         setCantidadesDevueltas(initialCantidades);
     }, [itemsAlquilados]);

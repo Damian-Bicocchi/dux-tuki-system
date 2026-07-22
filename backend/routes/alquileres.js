@@ -300,7 +300,7 @@ const db = new Proxy(
             params.push(fecha_fin);
         }
 
-        query += ' ORDER BY al.fecha_inicio DESC';
+        query += ' GROUP BY al.id ORDER BY al.fecha_inicio DESC';
 
         db.all(query, params, (err, rows) => {
             if (err) return res.status(500).json({ error: err.message });
