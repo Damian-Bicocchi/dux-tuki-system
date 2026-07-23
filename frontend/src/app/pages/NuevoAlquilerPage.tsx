@@ -331,69 +331,79 @@ export default function NuevoAlquilerPage() {
 
                     {/* Cliente Autocomplete */}
                     <div className="relative" ref={containerRef}>
-                        <label htmlFor="cliente-search" className="block text-sm font-bold text-gray-700 mb-2">
+                    <div className="flex justify-between items-center mb-2">
+                        <label htmlFor="cliente-search" className="block text-sm font-bold text-gray-700">
                             Cliente <span className="text-xs text-red-600 font-semibold ml-0.5">(obligatorio)</span>
                         </label>
-                        <div className="relative">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-800" size={18} aria-hidden="true" />
-                            <input
-                                id="cliente-search"
-                                type="text"
-                                placeholder="Buscar por nombre o DNI..."
-                                value={buscarCliente}
-                                onChange={(e) => {
-                                    setBuscarCliente(e.target.value);
-                                    setMostrarDropdown(true);
-                                    if (clienteSeleccionado) setClienteSeleccionado(null);
-                                }}
-                                onFocus={() => setMostrarDropdown(true)}
-                                onKeyDown={handleKeyDown}
-                                className="w-full pl-11 pr-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors"
-                                required={!clienteSeleccionado}
-                                role="combobox"
-                                aria-expanded={mostrarDropdown && clientesFiltrados.length > 0}
-                                aria-autocomplete="list"
-                                aria-controls="clientes-listbox"
-                                aria-haspopup="listbox"
-                                aria-activedescendant={focusedIndex >= 0 ? `opcion-cliente-${focusedIndex}` : undefined}
-                            />
-                        </div>
-
-                        {mostrarDropdown && clientesFiltrados.length > 0 && (
-                            <ul
-                                id="clientes-listbox"
-                                role="listbox"
-                                aria-label="Resultados de búsqueda de clientes"
-                                className="absolute z-10 w-full bg-white mt-1 border-2 border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto divide-y divide-gray-100"
-                            >
-                                {clientesFiltrados.map((c, idx) => (
-                                    <li key={c.id} role="none">
-                                        <button
-                                            id={`opcion-cliente-${idx}`}
-                                            type="button"
-                                            role="option"
-                                            aria-selected={focusedIndex === idx}
-                                            onClick={() => seleccionarCliente(c)}
-                                            className={`w-full text-left px-4 py-3 flex justify-between items-center transition-colors focus:outline-none ${
-                                                focusedIndex === idx ? 'bg-[#218a72]/10 text-gray-900 font-medium' : 'hover:bg-gray-50'
-                                            }`}
-                                        >
-                                            <div>
-                                                <span className="font-semibold block text-gray-800">{c.nombre}</span>
-                                                <span className="text-xs text-gray-500">DNI: {c.dni}</span>
-                                            </div>
-                                        </button>
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-
-                        {clienteSeleccionado && (
-                            <p role="status" aria-live="polite" className="text-xs text-[#218a72] font-semibold mt-1.5 flex items-center gap-1">
-                                ✓ Cliente seleccionado correctamente: {clienteSeleccionado.nombre} — DNI: {clienteSeleccionado.dni}
-                            </p>
-                        )}
+                        <button
+                            type="button"
+                            onClick={() => navigate('/app/clientes/nuevo')}
+                            className="text-xs bg-[#218a72]/10 text-[#218a72] hover:bg-[#218a72]/20 px-3 py-1.5 rounded-lg font-bold flex items-center gap-1 transition-colors focus:outline-none focus:ring-2 focus:ring-[#218a72] whitespace-nowrap"
+                            aria-label="Crear nuevo cliente"
+                        >
+                            <Plus size={14} aria-hidden="true" /> Registrar nuevo cliente
+                        </button>
                     </div>
+                    <div className="relative">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-800" size={18} aria-hidden="true" />
+                        <input
+                            id="cliente-search"
+                            type="text"
+                            placeholder="Buscar por nombre o DNI..."
+                            value={buscarCliente}
+                            onChange={(e) => {
+                                setBuscarCliente(e.target.value);
+                                setMostrarDropdown(true);
+                                if (clienteSeleccionado) setClienteSeleccionado(null);
+                            }}
+                            onFocus={() => setMostrarDropdown(true)}
+                            onKeyDown={handleKeyDown}
+                            className="w-full pl-11 pr-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors"
+                            required={!clienteSeleccionado}
+                            role="combobox"
+                            aria-expanded={mostrarDropdown && clientesFiltrados.length > 0}
+                            aria-autocomplete="list"
+                            aria-controls="clientes-listbox"
+                            aria-haspopup="listbox"
+                            aria-activedescendant={focusedIndex >= 0 ? `opcion-cliente-${focusedIndex}` : undefined}
+                        />
+                    </div>
+
+                    {mostrarDropdown && clientesFiltrados.length > 0 && (
+                        <ul
+                            id="clientes-listbox"
+                            role="listbox"
+                            aria-label="Resultados de búsqueda de clientes"
+                            className="absolute z-10 w-full bg-white mt-1 border-2 border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto divide-y divide-gray-100"
+                        >
+                            {clientesFiltrados.map((c, idx) => (
+                                <li key={c.id} role="none">
+                                    <button
+                                        id={`opcion-cliente-${idx}`}
+                                        type="button"
+                                        role="option"
+                                        aria-selected={focusedIndex === idx}
+                                        onClick={() => seleccionarCliente(c)}
+                                        className={`w-full text-left px-4 py-3 flex justify-between items-center transition-colors focus:outline-none ${
+                                            focusedIndex === idx ? 'bg-[#218a72]/10 text-gray-900 font-medium' : 'hover:bg-gray-50'
+                                        }`}
+                                    >
+                                        <div>
+                                            <span className="font-semibold block text-gray-800">{c.nombre}</span>
+                                            <span className="text-xs text-gray-500">DNI: {c.dni}</span>
+                                        </div>
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+
+                    {clienteSeleccionado && (
+                        <p role="status" aria-live="polite" className="text-xs text-[#218a72] font-semibold mt-1.5 flex items-center gap-1">
+                            ✓ Cliente seleccionado correctamente: {clienteSeleccionado.nombre} — DNI: {clienteSeleccionado.dni}
+                        </p>
+                    )}
+                </div>
 
                     {/* Fechas */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
