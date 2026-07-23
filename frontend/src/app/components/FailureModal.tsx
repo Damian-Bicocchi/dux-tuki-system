@@ -67,9 +67,9 @@ export function FailureModal({
         </div>
 
         {/* Título: El navegador lo lee automáticamente por el contexto de alertdialog y el foco inicial */}
-        <h2 className="text-xl font-extrabold text-gray-900 mb-2">
-          {title}
-        </h2>
+        <h2 id="failure-modal-title" className="text-xl font-extrabold text-gray-900 mb-2">
+            {title || 'Error'}
+        </h2> 
 
         {/* Mensaje opcional */}
         {message && (
