@@ -13,6 +13,7 @@ import {
   AlertTriangle,
   ClipboardCheck,
 } from "lucide-react";
+
 type EstadoDetalle = "activo" | "vencido" | "finalizado";
 
 interface AlquilerItemApi {
@@ -105,7 +106,6 @@ function InfoRow({
 }) {
   return (
     <div className="flex items-start gap-4 py-3 border-b border-gray-100 last:border-0">
-      {/* Icono decorativo oculto para lectores de pantalla */}
       <div className="w-8 h-8 rounded-lg bg-[#218a72]/10 flex items-center justify-center flex-shrink-0 mt-0.5" aria-hidden="true">
         <Icon size={16} className="text-[#218a72]" />
       </div>
@@ -126,7 +126,6 @@ export default function AlquilerDetallePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // --- Estados del Formulario de Entrega ---
   const [entregaParcial, setEntregaParcial] = useState(false);
   const [detalleParcial, setDetalleParcial] = useState("");
   const [tieneDanos, setTieneDanos] = useState(false);
@@ -220,7 +219,6 @@ export default function AlquilerDetallePage() {
   const EstadoIcon = meta.icon;
   const dias = calcularDias(alquiler.fecha_inicio, alquiler.fecha_fin);
   
-  // Cálculos económicos
   const subtotal = itemsAlquilados.reduce((acc: number, item: any) => acc + (item.precio * item.cantidad * dias), 0);
   const totalOriginal = subtotal + Number(alquiler.deposito_garantia || 0);
   const cargosAdicionales = (tieneDanos ? cobroDanos : 0) + (fueraTermino ? cobroPenalizacion : 0);
@@ -283,15 +281,15 @@ export default function AlquilerDetallePage() {
   };
 
   return (
-    <div className="pb-16 bg-gray-50 min-h-screen font-sans">
-      {/* Región de Encabezado de Página */}
-      <header className="bg-gradient-to-br from-[#1b6f5c] via-[#165a4b] to-[#0f3d33] px-5 pt-5 pb-10 text-white shadow-md">
+    <div className="pb-12 bg-gray-50 min-h-screen font-sans">
+      {/* Encabezado Homogéneo */}
+      <header className="bg-gradient-to-br from-[#1b6f5c] via-[#165a4b] to-[#0f3d33] px-5 pt-5 pb-8 text-white shadow-md">
         <button
           onClick={() => navigate("/app/alquileres")}
-          className="flex items-center gap-1.5 text-white/90 hover:text-white mb-6 focus:outline-none focus:ring-2 focus:ring-white rounded-lg px-2 py-1.5 transition-colors bg-white/10 text-xs font-semibold"
-          aria-label="Volver a la lista general de alquileres"
+          className="flex items-center gap-2 text-white/90 hover:text-white mb-5 focus:outline-none focus:ring-2 focus:ring-white rounded-lg px-3 py-1.5 transition-colors bg-white/10 text-xs font-semibold w-fit"
+          aria-label="Volver a Alquileres"
         >
-          <ArrowLeft size={14} aria-hidden="true" />
+          <ArrowLeft size={16} aria-hidden="true" />
           <span>Volver a Alquileres</span>
         </button>
 
@@ -305,10 +303,8 @@ export default function AlquilerDetallePage() {
         </div>
       </header>
 
-      {/* Región del Contenido Principal */}
-      <main className="px-4 -mt-6 max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
-        
-        {/* Bloque de Estado Grande y Protagónico */}
+      {/* Contenido Principal */}
+      <main className="px-4 -mt-4 max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
         <section 
           aria-labelledby="estado-contrato-titulo"
           className={`md:col-span-3 bg-white rounded-2xl border ${meta.border} p-5 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4`}
@@ -330,10 +326,7 @@ export default function AlquilerDetallePage() {
           </div>
         </section>
 
-        {/* Columna Izquierda: Información de Equipos e Interacciones */}
         <div className="md:col-span-2 space-y-6">
-          
-          {/* Bloque de Equipos adaptado a Multi-ítem */}
           <section aria-labelledby="inventario-titulo" className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
             <div className="px-5 pt-4 pb-3 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
               <h2 id="inventario-titulo" className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
@@ -368,7 +361,6 @@ export default function AlquilerDetallePage() {
             </div>
           </section>
 
-          {/* Formulario de Recepción y Entrega */}
           {estadoVista !== "finalizado" && (
             <section aria-labelledby="form-devolucion-titulo" className="bg-white rounded-2xl border-2 border-[#218a72]/30 shadow-md overflow-hidden">
               <div className="bg-gradient-to-r from-[#218a72] to-[#165a4b] px-5 py-3 text-white flex items-center gap-2">
@@ -377,8 +369,6 @@ export default function AlquilerDetallePage() {
               </div>
               
               <form onSubmit={handleProcesarEntrega} className="p-5 space-y-5">
-                
-                {/* Caso A y B: Control de Entrega Completa vs Parcial */}
                 <fieldset className="space-y-2">
                   <legend className="text-xs font-bold text-gray-700 uppercase tracking-wider block">
                     ¿Cómo es la entrega del inventario?
@@ -486,7 +476,6 @@ export default function AlquilerDetallePage() {
 
                 <hr className="border-gray-100" aria-hidden="true" />
 
-                {/* Caso C: Control de Daños / Roturas */}
                 <div className="space-y-3">
                   <label htmlFor="input-danos" className="flex items-center gap-2.5 cursor-pointer select-none">
                     <input
@@ -537,7 +526,6 @@ export default function AlquilerDetallePage() {
 
                 <hr className="border-gray-100" aria-hidden="true" />
 
-                {/* Caso D: Control de Fuera de Término */}
                 <div className="space-y-3">
                   <label htmlFor="input-retraso" className="flex items-center gap-2.5 cursor-pointer select-none">
                     <input
@@ -574,7 +562,6 @@ export default function AlquilerDetallePage() {
                   )}
                 </div>
 
-                {/* Notas generales de la recepción */}
                 <div className="space-y-1">
                   <label htmlFor="notas-recepcion" className="text-[11px] font-bold text-gray-500 uppercase tracking-wider block">Observaciones de Recepción</label>
                   <textarea
@@ -587,7 +574,6 @@ export default function AlquilerDetallePage() {
                   />
                 </div>
 
-                {/* Botón enviar */}
                 <button
                   type="submit"
                   disabled={processingCierre}
@@ -600,9 +586,7 @@ export default function AlquilerDetallePage() {
           )}
         </div>
 
-        {/* Columna Derecha: Liquidación y Fechas */}
         <div className="space-y-6">
-          {/* Bloque Período */}
           <section aria-labelledby="cronograma-titulo" className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
             <h2 id="cronograma-titulo" className="text-xs font-bold text-gray-500 uppercase tracking-wider px-5 pt-4 pb-1">
               Cronograma contractual
@@ -614,7 +598,6 @@ export default function AlquilerDetallePage() {
             </div>
           </section>
 
-          {/* Resumen Económico Completo */}
           <section aria-labelledby="liquidacion-titulo" className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
             <h2 id="liquidacion-titulo" className="text-xs font-bold text-gray-500 uppercase tracking-wider px-5 pt-4 pb-1">
               Liquidación Comercial
@@ -627,7 +610,6 @@ export default function AlquilerDetallePage() {
                 value={Number(alquiler.deposito_garantia || 0) > 0 ? formatMonto(Number(alquiler.deposito_garantia || 0)) : "Sin depósito"}
               />
               
-              {/* Desglose dinámico si hay penalizaciones en el formulario */}
               {cargosAdicionales > 0 && (
                 <div className="bg-rose-50/70 p-2.5 rounded-lg border border-rose-100 my-2 space-y-1 text-xs">
                   <span className="font-bold text-rose-900 block text-[10px] uppercase">Recargos aplicados en la entrega:</span>
@@ -637,7 +619,6 @@ export default function AlquilerDetallePage() {
               )}
             </div>
 
-            {/* Total Destacado Dinámico (Anuncia los cambios al lector automáticamente) */}
             <div 
               className="mx-4 mb-4 mt-1 rounded-xl bg-slate-900 text-white px-4 py-3.5 flex items-center justify-between shadow-inner"
               aria-live="polite"
@@ -653,7 +634,6 @@ export default function AlquilerDetallePage() {
             </div>
           </section>
 
-          {/* Bloque de Notas Originales */}
           {alquiler.notas && (
             <section aria-labelledby="notas-iniciales-titulo" className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
               <h2 id="notas-iniciales-titulo" className="text-xs font-bold text-gray-500 uppercase tracking-wider px-5 pt-4 pb-1">
@@ -668,7 +648,6 @@ export default function AlquilerDetallePage() {
             </section>
           )}
         </div>
-
       </main>
     </div>
   );

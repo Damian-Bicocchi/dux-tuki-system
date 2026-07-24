@@ -83,16 +83,13 @@ export default function StockDetallePage() {
   const ayudaDisponiblesId = useId();
   const barraProgresoId = useId();
 
-  // Estados de datos remotos
   const [item, setItem] = useState<StockItem | null>(null);
   const [categorias, setCategorias] = useState<CategoriaAPI[]>([]);
   const [alquileresBase, setAlquileresBase] = useState<AlquilerDeEquipo[]>([]);
   
-  // Estados de carga y error
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Estado del formulario
   const [form, setForm] = useState({
     nombre: "",
     categoria_id: "",
@@ -101,37 +98,29 @@ export default function StockDetallePage() {
   
   const [showSuccess, setShowSuccess] = useState(false);
 
-  // Estados de control para el historial de alquileres
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [filtroEstado, setFiltroEstado] = useState<FiltroEstado>("todos");
   const [pagina, setPagina] = useState(1);
 
-  // Cargar datos iniciales desde la API
   useEffect(() => {
     async function cargarDatos() {
       try {
         setLoading(true);
         setError(null);
 
-        // 1. Obtener Categorías
         const resCategorias = await fetch(`${API_BASE_URL}/categorias`);
         const dataCategorias = resCategorias.ok ? await resCategorias.json() : [];
         setCategorias(dataCategorias);
 
-        // 2. Obtener el artículo por ID
         const resArticulo = await fetch(`${API_BASE_URL}/stock/${id}`);
 
         if (!resArticulo.ok) {
           let mensajeError = "No se pudo obtener la información del artículo.";
 
           try {
-            // 1. Intentamos leer si el backend Express envió un objeto JSON con el detalle del error
-            // Por ejemplo: res.status(404).json({ message: "El artículo no existe" })
             const datosError = await resArticulo.json();
             mensajeError = datosError.message || datosError.error || mensajeError;
           } catch {
-            // 2. Si el backend no devolvió un JSON válido (ej: error de red o HTML de caída del servidor),
-            // evaluamos según el código de estado HTTP
             switch (resArticulo.status) {
               case 404:
                 mensajeError = `El artículo con ID #${id} no existe o fue eliminado del sistema.`;
@@ -148,12 +137,10 @@ export default function StockDetallePage() {
             }
           }
 
-          // Lanzamos el error con el mensaje hiper-específico que logramos capturar
           throw new Error(mensajeError);
         }
         const articuloData = await resArticulo.json();
 
-        // Mapeamos lo que viene de la BD sqlite al tipado de la interfaz de la App
         const itemMapeado: StockItem = {
           id: articuloData.id,
           nombre: articuloData.nombre,
@@ -169,7 +156,6 @@ export default function StockDetallePage() {
           disponibles: itemMapeado.disponibles,
         });
 
-        // 3. Obtener Historial de Alquileres de este artículo
         const resAlquileres = await fetch(`${API_BASE_URL}/alquileres/articulo/${id}`);
         if (resAlquileres.ok) {
           const alquileresData = await resAlquileres.json();
@@ -179,7 +165,8 @@ export default function StockDetallePage() {
       } catch (err: any) {
         console.error(err);
         setError(err.message || "Error al conectar con el servidor.");
-      } finally {
+      }
+      finally {
         setLoading(false);
       }
     }
@@ -193,7 +180,6 @@ export default function StockDetallePage() {
     setPagina(1);
   }, [filtroEstado]);
 
-  // Lógica de cálculo de stock dinámico en base al formulario
   const cantidadAlquilados = item ? Math.max(0, item.total - item.disponibles) : 0;
   const nuevoTotalCalculado = form.disponibles + cantidadAlquilados;
   const estado = calcularEstado(form.disponibles, nuevoTotalCalculado);
@@ -212,13 +198,11 @@ export default function StockDetallePage() {
         ? "Stock bajo"
         : "Agotado";
 
-  // Enviar cambios de actualización a la API
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     if (!form.nombre.trim() || !item) return;
 
     try {
-      // Mandamos la estructura que espera tu backend con SQLite
       const response = await fetch(`${API_BASE_URL}/stock/${item.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -250,7 +234,6 @@ export default function StockDetallePage() {
     }
   }
 
-  // Renderizados condicionales de carga y errores asíncronos
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -275,7 +258,6 @@ export default function StockDetallePage() {
     );
   }
 
-  // Procesamiento en memoria de filtros y paginación para el historial
   const alquileresFiltrados = alquileresBase.filter((alq) => {
     if (filtroEstado === "todos") return true;
     return alq.estado === filtroEstado;
@@ -300,19 +282,19 @@ export default function StockDetallePage() {
         message={`Los datos de "${form.nombre || item.nombre}" fueron actualizados correctamente.`}
         onClose={() => setShowSuccess(false)}
       />
-      <div className="pb-10 bg-gray-50 min-h-screen">
-        {/* Encabezado */}
-        <div className="bg-gradient-to-br from-[#1b6f5c] via-[#165a4b] to-[#0f3d33] px-5 pt-4 pb-6 text-white shadow-md">
+      <div className="pb-12 bg-gray-50 min-h-screen">
+        {/* Encabezado Homogéneo */}
+        <header className="bg-gradient-to-br from-[#1b6f5c] via-[#165a4b] to-[#0f3d33] px-5 pt-5 pb-8 text-white shadow-md">
           <button
             onClick={() => navigate("/app/stock")}
-            className="flex items-center gap-1.5 text-white/90 hover:text-white mb-4 focus:outline-none focus:ring-2 focus:ring-white rounded-lg px-2 py-1 transition-colors bg-white/10"
-            aria-label="Volver a la página anterior: Lista general de stock"
+            className="flex items-center gap-2 text-white/90 hover:text-white mb-5 focus:outline-none focus:ring-2 focus:ring-white rounded-lg px-3 py-1.5 transition-colors bg-white/10 text-xs font-semibold w-fit"
+            aria-label="Volver a Stock"
           >
-            <ArrowLeft size={18} aria-hidden="true" />
-            <span className="text-sm font-semibold">Volver a Stock</span>
+            <ArrowLeft size={16} aria-hidden="true" />
+            <span>Volver a Stock</span>
           </button>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 max-w-5xl mx-auto">
             <div
               className="w-14 h-14 rounded-2xl bg-white/20 border-2 border-white/40 flex items-center justify-center flex-shrink-0"
               aria-hidden="true"
@@ -329,16 +311,14 @@ export default function StockDetallePage() {
               </p>
             </div>
           </div>
-        </div>
+        </header>
 
         <div className="px-5 py-6 max-w-lg md:max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-          {/* Formulario de edición */}
           <section aria-labelledby="editar-titulo" className="w-full">
             <h2 id="editar-titulo" className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-3">
               Modificar especificaciones del equipo
             </h2>
             <form onSubmit={handleSave} className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4 shadow-sm">
-              {/* Nombre */}
               <div>
                 <label htmlFor="edit-nombre" className="flex items-center gap-2 text-sm font-bold text-gray-800 mb-2">
                   <Package size={15} className="text-[#165a4b]" aria-hidden="true" />
@@ -354,7 +334,6 @@ export default function StockDetallePage() {
                 />
               </div>
 
-              {/* Categoría Dinámica */}
               <div>
                 <label htmlFor="edit-categoria" className="flex items-center gap-2 text-sm font-bold text-gray-800 mb-2">
                   <Tag size={15} className="text-[#165a4b]" aria-hidden="true" />
@@ -375,7 +354,6 @@ export default function StockDetallePage() {
                 </select>
               </div>
 
-              {/* Cantidad Disponible */}
               <div>
                 <label htmlFor="edit-disponibles" className="flex items-center gap-2 text-sm font-bold text-gray-800 mb-2">
                   <Hash size={15} className="text-[#165a4b]" aria-hidden="true" />
@@ -407,7 +385,6 @@ export default function StockDetallePage() {
                 </p>
               </div>
 
-              {/* Barra Visual Informativa */}
               <div className="bg-gray-50 p-3 rounded-xl border border-gray-200 mt-2">
                 <div className="flex items-center justify-between mb-1.5">
                   <span id={barraProgresoId} className="text-xs font-bold text-gray-600">
@@ -443,7 +420,6 @@ export default function StockDetallePage() {
             </form>
           </section>
 
-          {/* Alquileres relacionados */}
           <section aria-labelledby="alquileres-titulo" className="w-full space-y-4">
             <h2 id="alquileres-titulo" className="text-xs font-bold text-gray-700 uppercase tracking-wider self-center">
               Historial de Alquileres ({alquileresFiltrados.length})
@@ -451,7 +427,6 @@ export default function StockDetallePage() {
 
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
-                {/* Selector de Filtrado */}
                 <div className="relative flex items-center bg-white border-2 border-gray-300 rounded-xl h-14 shadow-sm flex-1 sm:w-56 focus-within:ring-4 focus-within:ring-[#218a72]/20 focus-within:border-[#165a4b] transition-all">
                   <div className="absolute left-4 pointer-events-none text-gray-500" aria-hidden="true">
                     <Filter size={18} />
@@ -478,7 +453,6 @@ export default function StockDetallePage() {
                   </div>
                 </div>
 
-                {/* Botón de Ordenamiento */}
                 {alquileresFiltrados.length > 0 && (
                   <button
                     onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
@@ -502,7 +476,6 @@ export default function StockDetallePage() {
               </div>
             </div>
 
-            {/* Listado de alquileres */}
             <div
               id="contenedor-alquileres-lista"
               role="region"
@@ -559,7 +532,6 @@ export default function StockDetallePage() {
               )}
             </div>
 
-            {/* Paginación */}
             {totalPaginas > 1 && (
               <div className="flex items-center justify-between bg-white border border-gray-200 rounded-xl p-2 shadow-sm mt-4">
                 <button
