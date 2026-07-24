@@ -133,22 +133,7 @@ export default function AlquileresPage() {
         });
     }, [alquileres, searchTerm, filterEstado]);
 
-    const stats = useMemo(() => {
-        const activos = alquileres.filter(
-            (alq) => alq.estado === 'activo',
-        ).length;
-        const pendientes = alquileres.filter(
-            (alq) => alq.estado === 'pendiente',
-        ).length;
-        const devueltos = alquileres.filter(
-            (alq) => alq.estado === 'devuelto',
-        ).length;
-        const conRecargos = alquileres.filter(
-            (alq) => (alq.cierre_total_recargos || 0) > 0,
-        ).length;
-
-        return { activos, pendientes, devueltos, conRecargos };
-    }, [alquileres]);
+    
 
     return (
         <div className="px-5 py-6 pb-10 min-h-screen bg-gradient-to-b from-white via-[#f7fbfa] to-white">
@@ -166,28 +151,7 @@ export default function AlquileresPage() {
                 </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 mb-6">
-                <MetricCard
-                    label="Activos"
-                    value={stats.activos}
-                    tone="bg-green-50 text-green-800 border-green-200"
-                />
-                <MetricCard
-                    label="Pendientes"
-                    value={stats.pendientes}
-                    tone="bg-amber-50 text-amber-900 border-amber-200"
-                />
-                <MetricCard
-                    label="Devueltos"
-                    value={stats.devueltos}
-                    tone="bg-slate-50 text-slate-800 border-slate-200"
-                />
-                <MetricCard
-                    label="Con recargos"
-                    value={stats.conRecargos}
-                    tone="bg-red-50 text-red-800 border-red-200"
-                />
-            </div>
+            
 
             <div className="space-y-3 mb-5">
                 <div className="relative">
@@ -336,24 +300,7 @@ export default function AlquileresPage() {
     );
 }
 
-function MetricCard({
-    label,
-    value,
-    tone,
-}: {
-    label: string;
-    value: number;
-    tone: string;
-}) {
-    return (
-        <div className={`rounded-2xl border-2 p-4 ${tone}`}>
-            <div className="text-2xl font-black leading-none mb-1">{value}</div>
-            <div className="text-xs font-bold uppercase tracking-wider opacity-80">
-                {label}
-            </div>
-        </div>
-    );
-}
+
 
 function InfoPill({
     icon: Icon,

@@ -1,4 +1,5 @@
-import { TrendingUp, DollarSign, Users, Percent } from 'lucide-react';
+import { TrendingUp, DollarSign, Users, Percent, ClipboardList } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 export default function EstadisticasPage() {
@@ -15,6 +16,67 @@ export default function EstadisticasPage() {
     { nombre: 'Integrante 3', porcentaje: 25 },
   ];
 
+  type EstadoAlquiler = 'pendiente' | 'activo' | 'devuelto' | 'cancelado';
+
+  interface AlquilerResumenApi {
+      id: number;
+      cliente_nombre: string;
+      fecha_inicio: string;
+      fecha_fin: string;
+      estado: EstadoAlquiler;
+      precio_total: number;
+      cantidad_items: number;
+      cierre_estado_entrega?: 'pendiente' | 'parcial' | 'cerrado';
+      cierre_total_recargos?: number;
+  }
+
+  const [alquileres, setAlquileres] = useState<AlquilerResumenApi[]>([]);
+  const API_URL = 'http://localhost:3001/api/alquileres';
+
+  const stats = useMemo(() => {
+        const activos = alquileres.filter(
+            (alq) => alq.estado === 'activo',
+        ).length;
+        const pendientes = alquileres.filter(
+            (alq) => alq.estado === 'pendiente',
+        ).length;
+        const devueltos = alquileres.filter(
+            (alq) => alq.estado === 'devuelto',
+        ).length;
+        const conRecargos = alquileres.filter(
+            (alq) => (alq.cierre_total_recargos || 0) > 0,
+        ).length;
+
+        return { activos, pendientes, devueltos, conRecargos };
+    }, [alquileres]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadAlquileres() {
+        try {
+            const response = await fetch(API_URL);
+            if (!response.ok) {
+                throw new Error('No se pudieron cargar los alquileres');
+            }
+            const data = (await response.json()) as AlquilerResumenApi[];
+            if (isMounted) {
+                setAlquileres(data);
+            }
+        } catch (loadError) {
+            if (isMounted) {
+                
+            }
+        }
+    }
+
+    loadAlquileres();
+
+    return () => {
+        isMounted = false;
+    };
+}, []);
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-AR', {
       style: 'currency',
@@ -28,6 +90,25 @@ export default function EstadisticasPage() {
     { name: 'Ganancia neta mensual', value: gananciaNetaMensual },
     { name: 'Costos operativos', value: costosOperativos },
   ];
+
+  function MetricCard({
+      label,
+      value,
+      tone,
+  }: {
+      label: string;
+      value: number;
+      tone: string;
+  }) {
+      return (
+          <div className={`rounded-2xl border-2 p-4 ${tone}`}>
+              <div className="text-2xl font-black leading-none mb-1">{value}</div>
+              <div className="text-xs font-bold uppercase tracking-wider opacity-80">
+                  {label}
+              </div>
+          </div>
+      );
+}
 
   const PIE_COLORS = ['#29a285', '#f5e663'];
 
@@ -82,6 +163,42 @@ export default function EstadisticasPage() {
           </p>
         </div>
       </section>
+
+      <section>
+        <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-[#218a72]/10 rounded-xl flex items-center justify-center" aria-hidden="true">
+                    <ClipboardList size={20} className="text-[#218a72]" />
+                </div>
+                <h2 className="font-bold text-lg text-gray-800">Estadísticas de alquileres</h2>
+            </div>
+            <span className="text-xs bg-gray-100 text-gray-600 px-3 py-1 rounded-full font-medium">
+                {stats.activos + stats.pendientes + stats.devueltos + stats.conRecargos} total
+            </span>
+        </div>
+        <div className="grid grid-cols-2 gap-3 mb-6">
+            <MetricCard
+                label="Activos"
+                value={stats.activos}
+                tone="bg-green-50 text-green-800 border-green-200"
+            />
+            <MetricCard
+                label="Pendientes"
+                value={stats.pendientes}
+                tone="bg-amber-50 text-amber-900 border-amber-200"
+            />
+            <MetricCard
+                label="Devueltos"
+                value={stats.devueltos}
+                tone="bg-slate-50 text-slate-800 border-slate-200"
+            />
+            <MetricCard
+                label="Con recargos"
+                value={stats.conRecargos}
+                tone="bg-red-50 text-red-800 border-red-200"
+            />
+        </div>
+    </section>
 
       {/* Gráfico de torta — Distribución mensual */}
       <section aria-labelledby="distribucion-titulo" className="bg-white rounded-2xl border-2 border-gray-100 p-6">
