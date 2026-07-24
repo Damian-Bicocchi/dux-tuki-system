@@ -124,7 +124,6 @@ export default function NuevoAlquilerPage() {
                         const res = await fetch(
                             `${API_URL}/alquileres/disponibilidad?articulo_id=${item.articulo_id}&fecha_inicio=${fechaInicio}&fecha_fin=${fechaFin}`
                         );
-                        console.error("Linea 127 de NuevoAlquilerPage.tsx");
                         if (!res.ok) return { ...item, error: undefined };
 
                         const data = await res.json();
