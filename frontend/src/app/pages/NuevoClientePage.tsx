@@ -81,7 +81,7 @@ export default function NuevoClientePage() {
     }
 
     return (
-        <div className="px-5 py-6 pb-10 max-w-lg mx-auto">
+        <div className="px-5 py-2 pb-10 max-w-lg mx-auto">
             {/* Volver */}
             <button
                 onClick={() => navigate('/app/clientes')}
@@ -262,14 +262,14 @@ export default function NuevoClientePage() {
                 <div className="flex flex-col gap-3 pt-2">
                     <button
                         type="submit"
-                        className="w-full py-4 bg-[#218a72] hover:bg-[#1b6f5c] active:scale-[0.98] text-white rounded-xl font-bold transition-all focus:outline-none focus:ring-4 focus:ring-[#218a72]/30"
+                        className="w-full py-2.5 bg-[#218a72] hover:bg-[#1b6f5c] active:scale-[0.98] text-white rounded-xl font-bold transition-all focus:outline-none focus:ring-4 focus:ring-[#218a72]/30 text-sm"
                     >
                         Registrar cliente
                     </button>
                     <button
                         type="button"
                         onClick={() => navigate('/app/clientes')}
-                        className="w-full py-4 border-2 border-gray-200 bg-white text-gray-700 rounded-xl font-bold hover:bg-gray-50 active:scale-[0.98] transition-all focus:outline-none focus:ring-4 focus:ring-gray-200"
+                        className="w-full py-2.5 border-2 border-gray-300 bg-white text-gray-700 rounded-xl font-bold hover:bg-gray-100 hover:border-gray-400 active:scale-[0.98] transition-all focus:outline-none focus:ring-4 focus:ring-gray-300 focus:border-gray-400 text-sm"
                     >
                         Cancelar
                     </button>
@@ -313,7 +313,7 @@ function FormField({
                 <Icon size={16} className="text-[#218a72]" aria-hidden="true" />
                 {label}
                 {required && (
-                    <span className="text-red-600 font-bold">Obligatorio</span>
+                    <span className="text-red-600 font-bold">(obligatorio)</span>
                 )}
                 {optional && (
                     <span className="text-gray-400 font-normal text-xs">
