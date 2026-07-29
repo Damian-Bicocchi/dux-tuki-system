@@ -339,8 +339,37 @@ export default function AlquilerDetallePage() {
               </span>
             </div>
             
-            <div className="overflow-x-auto w-full">
-              <table className="w-full min-w-[360px] text-left border-collapse text-sm" aria-label="Lista detallada de equipos alquilados">
+            <div>
+            {/* Vista Celular: Tarjetas estilizadas */}
+            <div className="block sm:hidden divide-y divide-gray-100">
+              {itemsAlquilados.map((item: any, idx: number) => (
+                <div key={item.id || idx} className="p-3.5 space-y-2.5 bg-white">
+                  <div className="flex justify-between items-start gap-2">
+                    <span className="font-bold text-gray-900 text-sm leading-snug">
+                      {item.nombre}
+                    </span>
+                    <span className="bg-emerald-50 text-[#165a4b] text-xs font-bold px-2 py-0.5 rounded-md flex-shrink-0 border border-emerald-100">
+                      x{item.cantidad}
+                    </span>
+                  </div>
+                  
+                  <div className="flex justify-between items-end text-xs text-gray-500 pt-1 border-t border-gray-50">
+                    <div>
+                      <span className="text-[10px] text-gray-400 uppercase font-bold block mb-0.5">Precio / Día</span>
+                      <span className="font-semibold text-gray-700">{formatMonto(item.precio)}</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[10px] text-gray-400 uppercase font-bold block mb-0.5">Subtotal ({dias}d)</span>
+                      <span className="font-extrabold text-sm text-gray-900">{formatMonto(item.precio * item.cantidad * dias)}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Vista Tablet / Desktop: Tabla tradicional */}
+            <div className="hidden sm:block overflow-x-auto w-full">
+              <table className="w-full text-left border-collapse text-sm" aria-label="Lista detallada de equipos alquilados">
                 <thead>
                   <tr className="border-b border-gray-100 bg-gray-50/50 text-xs font-bold text-gray-500 uppercase tracking-wider">
                     <th scope="col" className="py-2.5 px-4">Equipo</th>
@@ -361,6 +390,7 @@ export default function AlquilerDetallePage() {
                 </tbody>
               </table>
             </div>
+</div>
           </section>
 
           {/* Formulario de devolución */}
