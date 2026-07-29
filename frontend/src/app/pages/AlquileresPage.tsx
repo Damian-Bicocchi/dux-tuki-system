@@ -279,7 +279,7 @@ export default function AlquileresPage() {
                                 />
                                 <InfoPill
                                     icon={ChevronRight}
-                                    
+                                    label = ""
                                     value={
                                         alquiler.cierre_estado_entrega
                                             ? `Cierre ${alquiler.cierre_estado_entrega}`
