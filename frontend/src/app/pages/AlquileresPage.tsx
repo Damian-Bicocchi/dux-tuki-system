@@ -138,17 +138,13 @@ export default function AlquileresPage() {
     return (
         <div className="px-5 py-6 pb-10 min-h-screen bg-gradient-to-b from-white via-[#f7fbfa] to-white">
             <div className="mb-6">
-                <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#1b6f5c] mb-2">
+                <h1 className="text-3xl font-bold uppercase tracking-[0.24em] text-[#1b6f5c] mb-2">
                     Gestión de alquileres
-                </p>
-                <h1 className="text-3xl font-black text-gray-900 leading-tight">
-                    Cada alquiler abre su propia ventana
                 </h1>
-                <p className="mt-2 text-sm text-gray-600 max-w-2xl">
-                    Desde aquí abrís el detalle del alquiler, marcás qué se
-                    devolvió, cargás observaciones y registrás recargos o
-                    roturas.
-                </p>
+                <h2 className="text-xs font-black text-gray-900 leading-tight">
+                    Cada alquiler abre su propia ventana
+                </h2>
+                
             </div>
 
             
@@ -164,7 +160,7 @@ export default function AlquileresPage() {
                         type="search"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        placeholder="Buscar por cliente o número de alquiler..."
+                        placeholder="Buscar por cliente"
                         className="w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-2xl bg-white focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors"
                         aria-label="Buscar alquileres"
                     />
@@ -283,7 +279,7 @@ export default function AlquileresPage() {
                                 />
                                 <InfoPill
                                     icon={ChevronRight}
-                                    label="Abrir"
+                                    
                                     value={
                                         alquiler.cierre_estado_entrega
                                             ? `Cierre ${alquiler.cierre_estado_entrega}`
@@ -304,7 +300,6 @@ export default function AlquileresPage() {
 
 function InfoPill({
     icon: Icon,
-    label,
     value,
     alignRight = false,
 }: {
@@ -321,7 +316,7 @@ function InfoPill({
                 className={`flex items-center gap-2 text-[11px] font-bold uppercase tracking-wide text-gray-500 ${alignRight ? 'justify-end' : ''}`}
             >
                 <Icon size={13} aria-hidden="true" />
-                {label}
+                
             </div>
             <div className="mt-1 text-sm font-semibold text-gray-800 break-words">
                 {value}
