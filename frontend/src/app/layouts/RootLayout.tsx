@@ -191,7 +191,7 @@ export default function RootLayout() {
       title: "Alquileres del día",
       path: "/app/calendario",
     },
-    { icon: Package, title: "Stock", path: "/app/stock" },
+    { icon: Package, title: "Listado de Stock", path: "/app/stock" },
     { icon: Users, title: "Clientes", path: "/app/clientes" },
     {
       icon: BarChart3,
