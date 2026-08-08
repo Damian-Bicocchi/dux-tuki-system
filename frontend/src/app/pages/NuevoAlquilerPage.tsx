@@ -16,7 +16,6 @@ interface Cliente {
     telefono?: string;
 }
 
-// Interfaz para los artículos que vienen del catálogo/API de stock
 interface ArticuloStock {
     id: number;
     nombre: string;
@@ -24,13 +23,19 @@ interface ArticuloStock {
     deposito_garantia: number;
 }
 
-// Interfaz acoplada estrictamente para las filas del formulario
 interface ItemAlquiler {
     articulo_id: number | '';
     cantidad: number | '';
     precio_unitario_dia: number | '';
     deposito_garantia: number;
     error?: string;
+}
+
+interface FieldErrors {
+    cliente?: string;
+    fechaInicio?: string;
+    fechaFin?: string;
+    general?: string;
 }
 
 const formatearFechaVista = (fechaStr: string): string => {
@@ -46,8 +51,7 @@ export default function NuevoAlquilerPage() {
     const [clientesLista, setClientesLista] = useState<Cliente[]>([]);
     const [clienteSeleccionado, setClienteSeleccionado] = useState<Cliente | null>(null);
     const [mostrarDropdown, setMostrarDropdown] = useState(false);
-    
-    // Usamos la interfaz local limpia para el catálogo de stock
+
     const [listaStock, setListaStock] = useState<ArticuloStock[]>([]);
     const [focusedIndex, setFocusedIndex] = useState(-1);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -59,11 +63,22 @@ export default function NuevoAlquilerPage() {
         { articulo_id: '', cantidad: 1, precio_unitario_dia: '', deposito_garantia: 0 },
     ]);
 
-    const [formErrors, setFormErrors] = useState<string[]>([]);
+    // Estados de validación
+    const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+    const [touchedFields, setTouchedFields] = useState<Set<string>>(new Set());
+
     const [showSuccess, setShowSuccess] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
 
+    // IDs para mensajes de error (accesibilidad)
+    const errorIds = {
+        cliente: 'error-cliente',
+        fechaInicio: 'error-fechaInicio',
+        fechaFin: 'error-fechaFin',
+    };
+
+    // Carga inicial
     useEffect(() => {
         async function fetchClientes() {
             try {
@@ -76,7 +91,6 @@ export default function NuevoAlquilerPage() {
         async function fetchStock() {
             try {
                 const data = await getStocks();
-                // Forzamos el tipado a nuestra interfaz local limpia
                 setListaStock(data as unknown as ArticuloStock[]);
             } catch (error) {
                 console.error('Error al cargar el stock:', error);
@@ -86,6 +100,7 @@ export default function NuevoAlquilerPage() {
         fetchClientes();
     }, []);
 
+    // Filtro de clientes
     const clientesFiltrados = useMemo(() => {
         if (!buscarCliente.trim()) return [];
         const query = buscarCliente.toLowerCase();
@@ -110,6 +125,7 @@ export default function NuevoAlquilerPage() {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
+    // Verificar stock
     useEffect(() => {
         async function verificarStockItems() {
             if (!fechaInicio || !fechaFin) return;
@@ -133,7 +149,6 @@ export default function NuevoAlquilerPage() {
                             const errorMsg = data.disponibles <= 0
                                 ? `No hay stock disponible para las fechas seleccionadas.`
                                 : `Solo hay stock de ${data.disponibles} unidad(es) disponible(s) para la fecha.`;
-                            
                             return { ...item, error: errorMsg };
                         }
 
@@ -144,7 +159,6 @@ export default function NuevoAlquilerPage() {
                 })
             );
 
-            // Evitamos bucles comparando cambios reales
             const cambioDetectado = itemsActualizados.some(
                 (it, idx) => it.error !== items[idx]?.error
             );
@@ -157,6 +171,7 @@ export default function NuevoAlquilerPage() {
         verificarStockItems();
     }, [fechaInicio, fechaFin, items]);
 
+    // Teclado autocomplete
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (!mostrarDropdown || clientesFiltrados.length === 0) return;
         switch (e.key) {
@@ -188,6 +203,8 @@ export default function NuevoAlquilerPage() {
         setBuscarCliente(`${c.nombre} (${c.dni})`);
         setMostrarDropdown(false);
         setFocusedIndex(-1);
+        setFieldErrors((prev) => ({ ...prev, cliente: undefined }));
+        setTouchedFields((prev) => new Set(prev).add('cliente'));
     };
 
     const diasAlquiler = useMemo(() => {
@@ -199,14 +216,14 @@ export default function NuevoAlquilerPage() {
     }, [fechaInicio, fechaFin]);
 
     const handleAddItem = () => {
-        setItems([...items, { articulo_id: '', cantidad: 1, precio_unitario_dia: 0, deposito_garantia: 0 }]);
+        setItems([...items, { articulo_id: '', cantidad: 1, precio_unitario_dia: '', deposito_garantia: 0 }]);
     };
 
     const handleRemoveItem = (index: number) => {
         if (items.length > 1) setItems(items.filter((_, i) => i !== index));
     };
 
-   const handleItemChange = (index: number, field: keyof ItemAlquiler, value: string | number) => {
+    const handleItemChange = (index: number, field: keyof ItemAlquiler, value: string | number) => {
         const newItems = [...items];
         if (field === 'articulo_id') {
             const articuloId = value === '' ? '' : Number(value);
@@ -216,13 +233,13 @@ export default function NuevoAlquilerPage() {
                 articulo_id: articuloId,
                 precio_unitario_dia: art?.precio_por_dia ?? '',
                 deposito_garantia: art?.deposito_garantia ?? 0,
-                error: undefined, // Limpia el error al cambiar de equipo
+                error: undefined,
             };
         } else if (field === 'cantidad' || field === 'precio_unitario_dia') {
-            newItems[index] = { 
-                ...newItems[index], 
+            newItems[index] = {
+                ...newItems[index],
                 [field]: value === '' ? '' : Number(value),
-                error: undefined, // Limpia el error al cambiar cantidad
+                error: undefined,
             };
         } else {
             newItems[index] = { ...newItems[index], [field]: value };
@@ -230,17 +247,16 @@ export default function NuevoAlquilerPage() {
         setItems(newItems);
     };
 
-    // Resumen dinámico que calcula los globales reactivamente al mutar los items
+    // Resumen
     const resumen = useMemo(() => {
         const itemsValidos = items.filter((item) => item.articulo_id !== '');
-        
+
         const subtotal = itemsValidos.reduce(
             (acc, curr) =>
                 acc + (Number(curr.cantidad) || 0) * (Number(curr.precio_unitario_dia) || 0) * diasAlquiler,
             0,
         );
 
-        // Suma reactiva de los depósitos multiplicados por su cantidad individual
         const depositoGlobalCalculado = itemsValidos.reduce(
             (acc, curr) => acc + (Number(curr.deposito_garantia) || 0) * (Number(curr.cantidad) || 0),
             0,
@@ -255,22 +271,122 @@ export default function NuevoAlquilerPage() {
         };
     }, [items, diasAlquiler]);
 
-    const handleSubmit = async (e: React.SubmitEvent) => {
-        e.preventDefault();
-        const errs: string[] = [];
-        if (!clienteSeleccionado) errs.push('Seleccioná un cliente válido antes de continuar.');
-        if (items.some((i) => !i.articulo_id)) errs.push('Completá el artículo en todas las filas de dispositivos.');
-        if (!fechaInicio) errs.push('Ingresá la fecha de inicio.');
-        if (!fechaFin) errs.push('Ingresá la fecha de fin.');
-        if (items.some((i) => i.error)) {
-            errs.push('Revisá los problemas de stock señalados en color rojo.');
+    // Validación en blur (para mostrar errores temprano)
+    const validateFieldOnBlur = (fieldName: string, value: string, inputElement?: HTMLInputElement) => {
+        let error = '';
+
+        if (fieldName === 'cliente') {
+            if (!clienteSeleccionado) {
+                error = 'Debés seleccionar un cliente de la lista.';
+            }
+        } else if (fieldName === 'fechaInicio' || fieldName === 'fechaFin') {
+            if (inputElement) {
+                if (!inputElement.validity.valid) {
+                    if (inputElement.validity.valueMissing) {
+                        error = fieldName === 'fechaInicio' 
+                            ? 'La fecha de inicio es obligatoria.' 
+                            : 'La fecha de fin es obligatoria.';
+                    } else if (inputElement.validity.rangeOverflow || inputElement.validity.rangeUnderflow) {
+                        error = fieldName === 'fechaInicio'
+                            ? 'La fecha de inicio no puede ser posterior a la fecha de fin.'
+                            : 'La fecha de fin debe ser posterior a la de inicio.';
+                    } else {
+                        error = inputElement.validationMessage || 'Campo inválido.';
+                    }
+                }
+            } else {
+                if (!value) {
+                    error = fieldName === 'fechaInicio' 
+                        ? 'La fecha de inicio es obligatoria.' 
+                        : 'La fecha de fin es obligatoria.';
+                }
+            }
         }
-        if (errs.length > 0) {
-            setFormErrors(errs);
+
+        setFieldErrors((prev) => ({ ...prev, [fieldName]: error }));
+        setTouchedFields((prev) => new Set(prev).add(fieldName));
+    };
+
+    // Submit con validación y enfoque al primer error
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+
+        // Marcar todos los campos como tocados
+        setTouchedFields(new Set(['cliente', 'fechaInicio', 'fechaFin']));
+
+        let hasError = false;
+        const newErrors: FieldErrors = {};
+
+        // Validar cliente
+        if (!clienteSeleccionado) {
+            hasError = true;
+            newErrors.cliente = 'Debés seleccionar un cliente de la lista.';
+        }
+
+        // Validar fechas con checkValidity() de los inputs
+        const form = e.currentTarget;
+        const fechaInicioInput = form.querySelector<HTMLInputElement>('#fechaInicio');
+        const fechaFinInput = form.querySelector<HTMLInputElement>('#fechaFin');
+
+        if (fechaInicioInput && !fechaInicioInput.checkValidity()) {
+            hasError = true;
+            if (fechaInicioInput.validity.valueMissing) {
+                newErrors.fechaInicio = 'La fecha de inicio es obligatoria.';
+            } else if (fechaInicioInput.validity.rangeOverflow) {
+                newErrors.fechaInicio = 'La fecha de inicio no puede ser posterior a la fecha de fin.';
+            } else {
+                newErrors.fechaInicio = fechaInicioInput.validationMessage || 'Fecha inválida.';
+            }
+        }
+
+        if (fechaFinInput && !fechaFinInput.checkValidity()) {
+            hasError = true;
+            if (fechaFinInput.validity.valueMissing) {
+                newErrors.fechaFin = 'La fecha de fin es obligatoria.';
+            } else if (fechaFinInput.validity.rangeUnderflow) {
+                newErrors.fechaFin = 'La fecha de fin debe ser posterior a la de inicio.';
+            } else {
+                newErrors.fechaFin = fechaFinInput.validationMessage || 'Fecha inválida.';
+            }
+        }
+
+        // Validar items
+        const itemsConArticulo = items.filter((i) => i.articulo_id !== '');
+        if (itemsConArticulo.length === 0) {
+            hasError = true;
+            newErrors.general = 'Debés agregar al menos un equipo con artículo seleccionado.';
+        } else {
+            const itemsConError = items.filter((i) => i.error);
+            if (itemsConError.length > 0) {
+                hasError = true;
+                newErrors.general = 'Revisá los problemas de stock señalados en color rojo.';
+            }
+        }
+
+        if (hasError) {
+            setFieldErrors(newErrors);
+            // Enfocar el primer campo con error
+            const firstErrorField = Object.keys(newErrors)[0];
+            if (firstErrorField) {
+                let elementId = '';
+                if (firstErrorField === 'cliente') elementId = 'cliente-search';
+                else if (firstErrorField === 'fechaInicio') elementId = 'fechaInicio';
+                else if (firstErrorField === 'fechaFin') elementId = 'fechaFin';
+                // Para errores generales, no hay campo específico; enfocamos el primer input del formulario
+                if (elementId) {
+                    const el = document.getElementById(elementId);
+                    if (el) el.focus();
+                } else {
+                    // Si el error es general, enfocamos el botón de añadir equipo o el primer input
+                    const firstInput = form.querySelector('input, select, button');
+                    if (firstInput && 'focus' in firstInput) firstInput.focus();
+                }
+            }
             return;
         }
 
-        setFormErrors([]);
+        // Limpiar errores
+        setFieldErrors({});
         setSubmitError(null);
         setSubmitting(true);
 
@@ -282,7 +398,7 @@ export default function NuevoAlquilerPage() {
                     cliente_id: clienteSeleccionado!.id,
                     fecha_inicio: fechaInicio,
                     fecha_fin: fechaFin,
-                    deposito_garantia: resumen.depositoGlobal, // Mandamos el depósito calculado
+                    deposito_garantia: resumen.depositoGlobal,
                     items: items.map((i) => ({
                         articulo_id: i.articulo_id,
                         cantidad: i.cantidad,
@@ -308,9 +424,9 @@ export default function NuevoAlquilerPage() {
     const handleDateClick = (e: React.MouseEvent<HTMLInputElement>) => {
         const input = e.currentTarget;
         if (input.showPicker) {
-            input.showPicker(); // abre el calendario nativo
+            input.showPicker();
         } else {
-            input.focus(); // fallback para navegadores antiguos
+            input.focus();
         }
     };
 
@@ -324,85 +440,101 @@ export default function NuevoAlquilerPage() {
             />
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-
                 {/* COLUMNA FORMULARIO */}
                 <form onSubmit={handleSubmit} className="lg:col-span-2 space-y-3 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-
                     {/* Cliente Autocomplete */}
                     <div className="relative" ref={containerRef}>
-                    <div className="flex justify-between items-center mb-2">
-                        <label htmlFor="cliente-search" className="block text-sm font-bold text-gray-700">
-                            Cliente <span className="text-xs text-red-600 font-semibold ml-0.5">(obligatorio)</span>
-                        </label>
-                        <button
-                            type="button"
-                            onClick={() => navigate('/app/clientes/nuevo')}
-                            className="text-xs bg-[#218a72]/10 text-[#218a72] hover:bg-[#218a72]/20 px-3 py-1.5 rounded-lg font-bold flex items-center gap-1 transition-colors focus:outline-none focus:ring-2 focus:ring-[#218a72] whitespace-nowrap"
-                            aria-label="Crear nuevo cliente"
-                        >
-                            <Plus size={14} aria-hidden="true" /> Registrar nuevo cliente
-                        </button>
-                    </div>
-                    <div className="relative">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-800" size={18} aria-hidden="true" />
-                        <input
-                            id="cliente-search"
-                            type="text"
-                            placeholder="Buscar por nombre o DNI..."
-                            value={buscarCliente}
-                            onChange={(e) => {
-                                setBuscarCliente(e.target.value);
-                                setMostrarDropdown(true);
-                                if (clienteSeleccionado) setClienteSeleccionado(null);
-                            }}
-                            onFocus={() => setMostrarDropdown(true)}
-                            onKeyDown={handleKeyDown}
-                            className="w-full pl-11 pr-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors"
-                            required={!clienteSeleccionado}
-                            role="combobox"
-                            aria-expanded={mostrarDropdown && clientesFiltrados.length > 0}
-                            aria-autocomplete="list"
-                            aria-controls="clientes-listbox"
-                            aria-haspopup="listbox"
-                            aria-activedescendant={focusedIndex >= 0 ? `opcion-cliente-${focusedIndex}` : undefined}
-                        />
-                    </div>
+                        <div className="flex justify-between items-center mb-2">
+                            <label htmlFor="cliente-search" className="block text-sm font-bold text-gray-700">
+                                Cliente <span className="text-xs text-red-600 font-semibold ml-0.5">(obligatorio)</span>
+                            </label>
+                            <button
+                                type="button"
+                                onClick={() => navigate('/app/clientes/nuevo')}
+                                className="text-xs bg-[#218a72]/10 text-[#218a72] hover:bg-[#218a72]/20 px-3 py-1.5 rounded-lg font-bold flex items-center gap-1 transition-colors focus:outline-none focus:ring-2 focus:ring-[#218a72] whitespace-nowrap"
+                                aria-label="Crear nuevo cliente"
+                            >
+                                <Plus size={14} aria-hidden="true" /> Registrar nuevo cliente
+                            </button>
+                        </div>
+                        <div className="relative">
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-800" size={18} aria-hidden="true" />
+                            <input
+                                id="cliente-search"
+                                type="text"
+                                placeholder="Buscar por nombre o DNI..."
+                                value={buscarCliente}
+                                onChange={(e) => {
+                                    setBuscarCliente(e.target.value);
+                                    setMostrarDropdown(true);
+                                    if (clienteSeleccionado) setClienteSeleccionado(null);
+                                    setFieldErrors((prev) => ({ ...prev, cliente: undefined }));
+                                    setTouchedFields((prev) => new Set(prev).add('cliente'));
+                                }}
+                                onFocus={() => setMostrarDropdown(true)}
+                                onBlur={() => {
+                                    if (touchedFields.has('cliente')) {
+                                        validateFieldOnBlur('cliente', buscarCliente);
+                                    }
+                                }}
+                                onKeyDown={handleKeyDown}
+                                aria-invalid={!!fieldErrors.cliente && touchedFields.has('cliente')}
+                                aria-describedby={fieldErrors.cliente && touchedFields.has('cliente') ? errorIds.cliente : undefined}
+                                className={`w-full pl-11 pr-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors ${
+                                    fieldErrors.cliente && touchedFields.has('cliente') 
+                                        ? 'border-red-500 bg-red-50' 
+                                        : 'border-gray-300'
+                                }`}
+                                role="combobox"
+                                aria-expanded={mostrarDropdown && clientesFiltrados.length > 0}
+                                aria-autocomplete="list"
+                                aria-controls="clientes-listbox"
+                                aria-haspopup="listbox"
+                                aria-activedescendant={focusedIndex >= 0 ? `opcion-cliente-${focusedIndex}` : undefined}
+                            />
+                        </div>
 
-                    {mostrarDropdown && clientesFiltrados.length > 0 && (
-                        <ul
-                            id="clientes-listbox"
-                            role="listbox"
-                            aria-label="Resultados de búsqueda de clientes"
-                            className="absolute z-10 w-full bg-white mt-1 border-2 border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto divide-y divide-gray-100"
-                        >
-                            {clientesFiltrados.map((c, idx) => (
-                                <li key={c.id} role="none">
-                                    <button
-                                        id={`opcion-cliente-${idx}`}
-                                        type="button"
-                                        role="option"
-                                        aria-selected={focusedIndex === idx}
-                                        onClick={() => seleccionarCliente(c)}
-                                        className={`w-full text-left px-4 py-3 flex justify-between items-center transition-colors focus:outline-none ${
-                                            focusedIndex === idx ? 'bg-[#218a72]/10 text-gray-900 font-medium' : 'hover:bg-gray-50'
-                                        }`}
-                                    >
-                                        <div>
-                                            <span className="font-semibold block text-gray-800">{c.nombre}</span>
-                                            <span className="text-xs text-gray-500">DNI: {c.dni}</span>
-                                        </div>
-                                    </button>
-                                </li>
-                            ))}
-                        </ul>
-                    )}
+                        {mostrarDropdown && clientesFiltrados.length > 0 && (
+                            <ul
+                                id="clientes-listbox"
+                                role="listbox"
+                                aria-label="Resultados de búsqueda de clientes"
+                                className="absolute z-10 w-full bg-white mt-1 border-2 border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto divide-y divide-gray-100"
+                            >
+                                {clientesFiltrados.map((c, idx) => (
+                                    <li key={c.id} role="none">
+                                        <button
+                                            id={`opcion-cliente-${idx}`}
+                                            type="button"
+                                            role="option"
+                                            aria-selected={focusedIndex === idx}
+                                            onClick={() => seleccionarCliente(c)}
+                                            className={`w-full text-left px-4 py-3 flex justify-between items-center transition-colors focus:outline-none ${
+                                                focusedIndex === idx ? 'bg-[#218a72]/10 text-gray-900 font-medium' : 'hover:bg-gray-50'
+                                            }`}
+                                        >
+                                            <div>
+                                                <span className="font-semibold block text-gray-800">{c.nombre}</span>
+                                                <span className="text-xs text-gray-500">DNI: {c.dni}</span>
+                                            </div>
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
 
-                    {clienteSeleccionado && (
-                        <p role="status" aria-live="polite" className="text-xs text-[#218a72] font-semibold mt-1.5 flex items-center gap-1">
-                            ✓ Cliente seleccionado correctamente: {clienteSeleccionado.nombre} — DNI: {clienteSeleccionado.dni}
-                        </p>
-                    )}
-                </div>
+                        {clienteSeleccionado && (
+                            <p role="status" aria-live="polite" className="text-xs text-[#218a72] font-semibold mt-1.5 flex items-center gap-1">
+                                ✓ Cliente seleccionado correctamente: {clienteSeleccionado.nombre} — DNI: {clienteSeleccionado.dni}
+                            </p>
+                        )}
+
+                        {fieldErrors.cliente && touchedFields.has('cliente') && (
+                            <p id={errorIds.cliente} className="text-sm text-red-600 mt-1 font-medium" role="alert">
+                                {fieldErrors.cliente}
+                            </p>
+                        )}
+                    </div>
 
                     {/* Fechas */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -410,21 +542,69 @@ export default function NuevoAlquilerPage() {
                             <label htmlFor="fechaInicio" className="block text-sm font-bold text-gray-700 mb-2">
                                 Fecha inicio <span className="text-xs text-red-600 font-semibold ml-0.5">(obligatorio)</span>
                             </label>
-                            <input type="date" id="fechaInicio" value={fechaInicio}
-                                onChange={(e) => setFechaInicio(e.target.value)} 
-                                onClick={handleDateClick} 
-                                required max={fechaFin}
-                                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors" />
+                            <input
+                                type="date"
+                                id="fechaInicio"
+                                value={fechaInicio}
+                                onChange={(e) => {
+                                    setFechaInicio(e.target.value);
+                                    setFieldErrors((prev) => ({ ...prev, fechaInicio: undefined }));
+                                    setTouchedFields((prev) => new Set(prev).add('fechaInicio'));
+                                }}
+                                onBlur={(e) => {
+                                    setTouchedFields((prev) => new Set(prev).add('fechaInicio'));
+                                    validateFieldOnBlur('fechaInicio', e.target.value, e.target);
+                                }}
+                                onClick={handleDateClick}
+                                max={fechaFin || undefined}
+                                required
+                                aria-invalid={!!fieldErrors.fechaInicio && touchedFields.has('fechaInicio')}
+                                aria-describedby={fieldErrors.fechaInicio && touchedFields.has('fechaInicio') ? errorIds.fechaInicio : undefined}
+                                className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors ${
+                                    fieldErrors.fechaInicio && touchedFields.has('fechaInicio')
+                                        ? 'border-red-500 bg-red-50'
+                                        : 'border-gray-300'
+                                }`}
+                            />
+                            {fieldErrors.fechaInicio && touchedFields.has('fechaInicio') && (
+                                <p id={errorIds.fechaInicio} className="text-sm text-red-600 mt-1 font-medium" role="alert">
+                                    {fieldErrors.fechaInicio}
+                                </p>
+                            )}
                         </div>
                         <div>
                             <label htmlFor="fechaFin" className="block text-sm font-bold text-gray-700 mb-2">
                                 Fecha fin <span className="text-xs text-red-600 font-semibold ml-0.5">(obligatorio)</span>
                             </label>
-                            <input type="date" id="fechaFin" value={fechaFin}
-                                onChange={(e) => setFechaFin(e.target.value)} 
-                                onClick={handleDateClick} 
-                                required min={fechaInicio}
-                                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors" />
+                            <input
+                                type="date"
+                                id="fechaFin"
+                                value={fechaFin}
+                                onChange={(e) => {
+                                    setFechaFin(e.target.value);
+                                    setFieldErrors((prev) => ({ ...prev, fechaFin: undefined }));
+                                    setTouchedFields((prev) => new Set(prev).add('fechaFin'));
+                                }}
+                                onBlur={(e) => {
+                                    setTouchedFields((prev) => new Set(prev).add('fechaFin'));
+                                    validateFieldOnBlur('fechaFin', e.target.value, e.target);
+                                }}
+                                onClick={handleDateClick}
+                                min={fechaInicio || undefined}
+                                required
+                                aria-invalid={!!fieldErrors.fechaFin && touchedFields.has('fechaFin')}
+                                aria-describedby={fieldErrors.fechaFin && touchedFields.has('fechaFin') ? errorIds.fechaFin : undefined}
+                                className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors ${
+                                    fieldErrors.fechaFin && touchedFields.has('fechaFin')
+                                        ? 'border-red-500 bg-red-50'
+                                        : 'border-gray-300'
+                                }`}
+                            />
+                            {fieldErrors.fechaFin && touchedFields.has('fechaFin') && (
+                                <p id={errorIds.fechaFin} className="text-sm text-red-600 mt-1 font-medium" role="alert">
+                                    {fieldErrors.fechaFin}
+                                </p>
+                            )}
                         </div>
                     </div>
 
@@ -460,30 +640,28 @@ export default function NuevoAlquilerPage() {
 
                     <hr className="border-gray-100" />
 
-                    {/* Depósito de garantía global automático */}
+                    {/* Depósito de garantía global */}
                     <div>
                         <label htmlFor="deposito" className="block text-sm font-bold text-gray-700 mb-2">
                             Depósito de garantía (Global - Calculado)
                         </label>
                         <div className="relative max-w-xs">
                             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-semibold" aria-hidden="true">$</span>
-                            <input 
-                                type="number" 
-                                id="deposito" 
-                                value={resumen.depositoGlobal} 
+                            <input
+                                type="number"
+                                id="deposito"
+                                value={resumen.depositoGlobal}
                                 readOnly
                                 disabled
-                                className="w-full pl-8 pr-4 py-3 border-2 border-gray-200 bg-gray-50 text-gray-500 rounded-xl cursor-not-allowed focus:outline-none shadow-inner font-semibold" 
+                                className="w-full pl-8 pr-4 py-3 border-2 border-gray-200 bg-gray-50 text-gray-500 rounded-xl cursor-not-allowed focus:outline-none shadow-inner font-semibold"
                             />
                         </div>
                     </div>
 
-                    {/* Errores de validación */}
-                    {formErrors.length > 0 && (
-                        <div role="alert" aria-live="assertive" className="p-4 rounded-xl border border-red-200 bg-red-50 space-y-1">
-                            {formErrors.map((err, i) => (
-                                <p key={i} className="text-sm text-red-700 font-medium">{err}</p>
-                            ))}
+                    {/* Errores generales */}
+                    {fieldErrors.general && (
+                        <div role="alert" aria-live="assertive" className="p-4 rounded-xl border border-red-200 bg-red-50">
+                            <p className="text-sm text-red-700 font-medium">{fieldErrors.general}</p>
                         </div>
                     )}
 
@@ -513,7 +691,7 @@ export default function NuevoAlquilerPage() {
                     </div>
                 </form>
 
-                {/* CUADRO DE RESUMEN */}
+                {/* CUADRO DE RESUMEN (sin cambios) */}
                 <aside className="lg:sticky lg:top-6 bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-6" aria-labelledby="titulo-resumen">
                     <h2 id="titulo-resumen" className="text-lg font-bold border-b border-gray-100 pb-3 text-[#145a4a]">
                         Resumen del Alquiler
@@ -553,7 +731,6 @@ export default function NuevoAlquilerPage() {
                     </dl>
 
                     <dl className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100">
-                    
                         <div>
                             <dt className="text-xs font-bold text-gray-800 block uppercase tracking-wider mb-0.5">Unidades Totales</dt>
                             <dd className="text-2xl font-black text-gray-800">{resumen.unidadesTotales}</dd>

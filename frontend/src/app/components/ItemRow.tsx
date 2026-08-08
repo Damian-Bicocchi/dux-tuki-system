@@ -6,7 +6,7 @@ export interface ItemAlquiler {
     cantidad: number | '';
     precio_unitario_dia: number | '';
     deposito_garantia: number;
-    error?: string; // <--- Mensaje de error de stock en línea
+    error?: string;
 }
 
 export interface StockItem {
@@ -34,15 +34,14 @@ export const ItemRow: React.FC<ItemRowProps> = ({
     const equipoInputId = `equipo-select-${index}`;
     const cantidadInputId = `equipo-cantidad-${index}`;
     const precioInputId = `equipo-precio-${index}`;
+    const errorId = `error-item-${index}`;
 
     const MAX_VALUE_QUANTITY = 999;
 
-    // Estado local para el buscador y despliegue del menú
     const [searchTerm, setSearchTerm] = useState('');
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
-    // Sincronizar el texto del input cuando 'item.articulo_id' o 'listaStock' cambian
     useEffect(() => {
         const seleccionado = listaStock.find((eq) => String(eq.id) === String(item.articulo_id));
         if (seleccionado) {
@@ -52,12 +51,10 @@ export const ItemRow: React.FC<ItemRowProps> = ({
         }
     }, [item.articulo_id, listaStock]);
 
-    // Cerrar el desplegable si se hace clic fuera del componente
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
                 setIsOpen(false);
-                // Si el usuario hace clic fuera, restaurar el nombre del ítem actualmente seleccionado
                 const seleccionado = listaStock.find((eq) => String(eq.id) === String(item.articulo_id));
                 setSearchTerm(seleccionado ? seleccionado.nombre : '');
             }
@@ -66,35 +63,34 @@ export const ItemRow: React.FC<ItemRowProps> = ({
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [item.articulo_id, listaStock]);
 
-    // Filtrar la lista de stock según lo escrito en el buscador
     const listaFiltrada = listaStock.filter((eq) =>
         eq.nombre.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    // Manejar selección de opción
     const handleSelectOption = (eq: StockItem) => {
         onChange(index, 'articulo_id', eq.id);
         setSearchTerm(eq.nombre);
         setIsOpen(false);
     };
 
-    // Manejar cambio al escribir
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
         setSearchTerm(value);
         setIsOpen(true);
 
-        // Si se borra el texto, reseteamos el articulo_id
         if (value.trim() === '') {
             onChange(index, 'articulo_id', '');
         }
     };
 
+    // Determinar si hay error para este item
+    const hasError = !!item.error;
+
     return (
         <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 space-y-2">
             <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end relative">
                 
-                {/* Equipo / Artículo (Buscable / Filtrable) */}
+                {/* Equipo / Artículo */}
                 <div className="sm:col-span-5 relative" ref={dropdownRef}>
                     <label htmlFor={equipoInputId} className="block text-xs font-bold text-gray-800 mb-1">
                         Equipo (Fila {index + 1}) <span className="text-xs text-red-600 font-semibold ml-0.5">(obligatorio)</span>
@@ -110,14 +106,18 @@ export const ItemRow: React.FC<ItemRowProps> = ({
                             onFocus={() => setIsOpen(true)}
                             required={!item.articulo_id}
                             autoComplete="off"
-                            className={`w-full px-3 py-2 border-2 rounded-lg bg-white text-sm pr-8 focus:outline-none transition-colors ${
-                                item.error ? 'border-red-500 focus:border-red-600' : 'border-gray-300 focus:border-[#218a72]'
+                            aria-invalid={hasError}
+                            aria-describedby={hasError ? errorId : undefined}
+                            className={`w-full px-3 py-2 border-2 rounded-xl text-sm pr-8 focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors ${
+                                hasError
+                                    ? 'border-red-500 bg-red-50'
+                                    : 'border-gray-300 bg-white'
                             }`}
                         />
                         <ChevronDown className="w-4 h-4 text-gray-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                     </div>
 
-                    {/* Menú Desplegable de Opciones Filtradas */}
+                    {/* Menú Desplegable */}
                     {isOpen && (
                         <ul className="absolute z-50 left-0 right-0 mt-1 max-h-52 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg py-1 text-sm">
                             {listaFiltrada.length > 0 ? (
@@ -164,8 +164,12 @@ export const ItemRow: React.FC<ItemRowProps> = ({
                             onChange(index, 'cantidad', clampedVal);
                         }}
                         required
-                        className={`w-full px-3 py-2 border-2 rounded-xl bg-white text-sm focus:outline-none transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
-                            item.error ? 'border-red-500 focus:border-red-600 ring-2 ring-red-100' : 'border-gray-300 focus:border-[#218a72]'
+                        aria-invalid={hasError}
+                        aria-describedby={hasError ? errorId : undefined}
+                        className={`w-full px-3 py-2 border-2 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                            hasError
+                                ? 'border-red-500 bg-red-50'
+                                : 'border-gray-300 bg-white'
                         }`}
                     />
                 </div>
@@ -184,7 +188,13 @@ export const ItemRow: React.FC<ItemRowProps> = ({
                             value={item.precio_unitario_dia}
                             onChange={(e) => onChange(index, 'precio_unitario_dia', e.target.value === '' ? '' : parseFloat(e.target.value) || 0)}
                             required
-                            className="w-full pl-7 pr-3 py-2 border-2 border-gray-300 rounded-xl bg-white text-sm focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            aria-invalid={hasError}
+                            aria-describedby={hasError ? errorId : undefined}
+                            className={`w-full pl-7 pr-3 py-2 border-2 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                                hasError
+                                    ? 'border-red-500 bg-red-50'
+                                    : 'border-gray-300 bg-white'
+                            }`}
                         />
                     </div>
                 </div>
@@ -203,11 +213,12 @@ export const ItemRow: React.FC<ItemRowProps> = ({
                 </div>
             </div>
 
-            {/* Mensaje de error dinámico en rojo */}
+            {/* Mensaje de error con accesibilidad mejorada */}
             {item.error && (
-                <div className="text-xs font-bold text-red-600 bg-red-50 border border-red-200 p-2 rounded-lg flex items-center gap-1.5 animate-fadeIn">
-                    <span className="inline-block w-2 h-2 rounded-full bg-red-600"></span>
-                    {item.error}
+                <div role="alert" aria-live="assertive" className="p-3 rounded-xl border border-red-200 bg-red-50">
+                    <p id={errorId} className="text-sm text-red-700 font-medium">
+                        {item.error}
+                    </p>
                 </div>
             )}
         </div>

@@ -234,47 +234,59 @@ export default function RootLayout() {
       {/* Header */}
       <header
         role="banner"
-        className="bg-gradient-to-br from-[#29a285] via-[#218a72] to-[#1b6f5c] text-white sticky top-0 z-40 shadow-md"
+        className="bg-gradient-to-br from-[#29a285] via-[#218a72] to-[#1b6f5c] text-white sticky top-0 z-40 shadow-md w-full"
       >
-        <div className="px-5 py-5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+        <div className="px-3 sm:px-5 py-2.5 sm:py-4">
+          <div className="flex items-center justify-between gap-2 min-w-0">
+            
+            {/* Lado izquierdo: Botón Menú + Título */}
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
               <button
                 onClick={() => setMenuOpen(!menuOpen)}
-                className="p-3 -ml-2 hover:bg-white/10 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-[#218a72]"
-                aria-label={
-                  menuOpen ? "Cerrar menú" : "Abrir menú"
-                }
+                className="flex items-center gap-1.5 px-2 py-1.5 sm:px-2.5 sm:py-2 -ml-1 hover:bg-white/10 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-white flex-shrink-0"
+                aria-label={menuOpen ? "Cerrar menú" : "Abrir menú"}
                 aria-expanded={menuOpen}
                 aria-controls="mobile-menu"
               >
                 {menuOpen ? (
-                  <X size={24} />
+                  <X size={20} />
                 ) : (
-                  <Menu size={24} />
+                  <Menu size={20} />
                 )}
+                <span className="text-xs sm:text-sm font-semibold tracking-wide">
+                  Menú
+                </span>
               </button>
-              <div>
-                <div className="text-xs font-semibold opacity-80 tracking-wider">
+
+              <div className="min-w-0 flex-1">
+                <div className="text-[10px] sm:text-xs font-semibold opacity-80 tracking-wider truncate">
                   TUKI SYSTEM
                 </div>
-                <h1 className="text-xl font-bold">
+                <h1 className="text-base sm:text-lg font-bold truncate">
                   {currentPage?.title || "Inicio"}
                 </h1>
               </div>
             </div>
-            <div className="flex items-center gap-1">
+
+            {/* Lado derecho: Acciones */}
+            <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
+              
+              {/* Accesibilidad */}
               <button
                 onClick={() => setSettingsOpen(true)}
-                className="flex flex-col items-center gap-0.5 px-2 py-2 hover:bg-white/10 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-[#218a72]"
+                className="flex flex-col items-center justify-center p-2 sm:px-2.5 sm:py-1.5 hover:bg-white/10 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-white"
                 aria-label="Configuración de accesibilidad"
               >
-                <Settings size={22} aria-hidden="true" />
-                <span className="text-[11px] font-medium opacity-90 leading-none">Accesibilidad</span>
+                <Settings size={20} className="sm:w-[22px] sm:h-[22px]" aria-hidden="true" />
+                <span className="hidden sm:inline text-[10px] sm:text-[11px] font-medium opacity-90 leading-none mt-1">
+                  Accesibilidad
+                </span>
               </button>
+
+              {/* Notificaciones */}
               <button
                 onClick={() => setNotificationsOpen(true)}
-                className="flex flex-col items-center gap-0.5 px-2 py-2 hover:bg-white/10 rounded-xl transition-colors relative focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-[#218a72]"
+                className="flex flex-col items-center justify-center p-2 sm:px-2.5 sm:py-1.5 hover:bg-white/10 rounded-xl transition-colors relative focus:outline-none focus:ring-2 focus:ring-white"
                 aria-label={
                   unreadCount > 0
                     ? `Notificaciones, ${unreadCount} sin leer`
@@ -283,48 +295,47 @@ export default function RootLayout() {
                 aria-haspopup="dialog"
               >
                 <span className="relative">
-                  <Bell size={22} aria-hidden="true" />
+                  <Bell size={20} className="sm:w-[22px] sm:h-[22px]" aria-hidden="true" />
                   {unreadCount > 0 && (
                     <span
-                      className="absolute -top-1 -right-1 min-w-[16px] h-[16px] bg-[#f5e663] text-[#1b6f5c] rounded-full flex items-center justify-center px-0.5 border-2 border-[#218a72]"
+                      className="absolute -top-1 -right-1 min-w-[15px] h-[15px] bg-[#f5e663] text-[#1b6f5c] rounded-full flex items-center justify-center px-0.5 border-2 border-[#218a72]"
                       aria-hidden="true"
                     >
-                      <span className="text-[9px] font-extrabold leading-none">
+                      <span className="text-[8px] sm:text-[9px] font-extrabold leading-none">
                         {unreadCount > 9 ? "9+" : unreadCount}
                       </span>
                     </span>
                   )}
                 </span>
-                <span className="text-[11px] font-medium opacity-90 leading-none">Notificaciones</span>
+                <span className="hidden sm:inline text-[10px] sm:text-[11px] font-medium opacity-90 leading-none mt-1">
+                  Notificaciones
+                </span>
               </button>
+
+              {/* Cerrar Sesión */}
               <button
                 onClick={() => setShowLogoutConfirm(true)}
-                className="flex flex-col items-center gap-0.5 px-2 py-2 hover:bg-white/10 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-[#218a72]"
+                className="flex flex-col items-center justify-center p-2 sm:px-2.5 sm:py-1.5 hover:bg-white/10 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-white"
                 aria-label="Cerrar sesión"
                 aria-haspopup="dialog"
                 aria-expanded={showLogoutConfirm}
               >
-                <LogOut size={22} aria-hidden="true" />
-                <span className="text-[11px] font-medium opacity-90 leading-none">Cerrar sesión</span>
+                <LogOut size={20} className="sm:w-[22px] sm:h-[22px]" aria-hidden="true" />
+                <span className="hidden sm:inline text-[10px] sm:text-[11px] font-medium opacity-90 leading-none mt-1">
+                  Cerrar sesión
+                </span>
               </button>
-              {/*
-              <button
-                className="p-3 hover:bg-white/10 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-[#218a72]"
-                aria-label="Buscar"
-              >
-                <Search size={22} />
-              </button>
-                */}
+
             </div>
           </div>
         </div>
 
-        {/* Menu móvil */}
+        {/* Menú móvil */}
         {menuOpen && (
-          <div className="bg-white/5 backdrop-blur-sm border-t border-white/10">
+          <div className="bg-white/10 backdrop-blur-md border-t border-white/10">
             <nav
               id="mobile-menu"
-              className="px-5 py-4 space-y-1"
+              className="px-4 py-3 space-y-1"
               aria-label="Menú principal"
             >
               {menuItems.map((item, idx) => {
@@ -336,9 +347,9 @@ export default function RootLayout() {
                       navigate(item.path);
                       setMenuOpen(false);
                     }}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-white ${
+                    className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-white ${
                       isActive
-                        ? "bg-white/20"
+                        ? "bg-white/20 font-semibold"
                         : "hover:bg-white/10 focus:bg-white/10"
                     }`}
                     aria-current={isActive ? "page" : undefined}
@@ -349,7 +360,7 @@ export default function RootLayout() {
                       className="flex-shrink-0"
                       aria-hidden="true"
                     />
-                    <span className="font-medium">
+                    <span className="font-medium text-sm">
                       {item.title}
                     </span>
                   </button>
