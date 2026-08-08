@@ -300,7 +300,8 @@ export default function StockDetallePage() {
         message={`Los datos de "${form.nombre || item.nombre}" fueron actualizados correctamente.`}
         onClose={() => setShowSuccess(false)}
       />
-      <div className="pb-10 bg-gray-50 min-h-screen">
+      {/* Se reemplaza 'min-h-screen pb-1' por 'w-full bg-gray-50 pb-8' */}
+      <div className="w-full bg-gray-50 pb-8">
         {/* Encabezado */}
         <div className="bg-gradient-to-br from-[#1b6f5c] via-[#165a4b] to-[#0f3d33] px-5 pt-4 pb-6 text-white shadow-md">
           <button
@@ -331,7 +332,8 @@ export default function StockDetallePage() {
           </div>
         </div>
 
-        <div className="px-5 py-6 max-w-lg md:max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+        {/* Grid Principal: Se ajusta py-6 a pt-6 pb-2 para evitar empujar el pie de página */}
+        <div className="px-5 pt-6 pb-2 max-w-lg md:max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
           {/* Formulario de edición */}
           <section aria-labelledby="editar-titulo" className="w-full">
             <h2 id="editar-titulo" className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-3">
@@ -403,7 +405,7 @@ export default function StockDetallePage() {
                 </div>
                 <p id={ayudaDisponiblesId} className="text-xs text-gray-500 mt-2 font-medium">
                   * Hay <span className="font-bold text-gray-700">{cantidadAlquilados}</span> unidad
-                  {cantidadAlquilados !== 1 ? "es" : ""} retenida{cantidadAlquilados !== 1 ? "as" : ""} en alquileres activos. Modificar este valor recalculará el stock total.
+                  {cantidadAlquilados !== 1 ? "es" : ""} retenida {cantidadAlquilados !== 1 ? "s" : ""} en alquileres activos. Modificar este valor recalculará el stock total.
                 </p>
               </div>
 
