@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { Save, X, Plus, Search, LoaderCircle } from 'lucide-react';
+import { Save, X, Plus, Search, LoaderCircle, Bold } from 'lucide-react';
 import { SuccessModal } from '../components/SuccessModal';
 import { getClientes } from '../data/clientesData';
 import { getStocks } from '../data/stockData';
@@ -658,23 +658,8 @@ export default function NuevoAlquilerPage() {
 
                     <hr className="border-gray-100" />
 
-                    {/* Depósito de garantía global */}
-                    <div>
-                        <label htmlFor="deposito" className="block text-sm font-bold text-gray-700 mb-2">
-                            Depósito de garantía (Global - Calculado)
-                        </label>
-                        <div className="relative max-w-xs">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-semibold" aria-hidden="true">$</span>
-                            <input
-                                type="number"
-                                id="deposito"
-                                value={resumen.depositoGlobal}
-                                readOnly
-                                disabled
-                                className="w-full pl-8 pr-4 py-3 border-2 border-gray-200 bg-gray-50 text-gray-500 rounded-xl cursor-not-allowed focus:outline-none shadow-inner font-semibold"
-                            />
-                        </div>
-                    </div>
+
+                
 
                     {/* Errores generales */}
                     {fieldErrors.general && (
@@ -761,7 +746,7 @@ export default function NuevoAlquilerPage() {
                                 <dt>Subtotal equipos ({diasAlquiler} {diasAlquiler === 1 ? 'día' : 'días'}):</dt>
                                 <dd className="font-semibold text-gray-800">${resumen.subtotal.toLocaleString('es-AR')}</dd>
                             </div>
-                            <div className="flex justify-between text-sm text-gray-800">
+                            <div className="flex justify-between text-sm text-gray-800 font-bold">
                                 <dt>Depósito garantía:</dt>
                                 <dd className="font-semibold text-gray-800">${resumen.depositoGlobal.toLocaleString('es-AR')}</dd>
                             </div>
