@@ -46,15 +46,13 @@ export default function LoginPage() {
             );
 
             if (!response.ok) {
-                throw new Error('Las credenciales ingresadas son inválidas.');
+                throw new Error('Correo electrónico y/o contraseña incorrectos.');
             }
 
             const data = await response.json();
 
-            // localStorage.setItem("token", data.token);
             navigate('/app/'); 
         } catch (error: any) {
-            console.error("El fetch fallo porque: ", error);
             setErrorModal({
                 isOpen: true,
                 title: 'Error de inicio de sesión',
@@ -65,30 +63,30 @@ export default function LoginPage() {
 
     return (
         <main
-            className="min-h-screen flex items-center justify-center bg-gray-100 p-4 sm:p-6"
+            className="min-h-screen flex items-center justify-center bg-gray-100 p-4 sm:p-6 md:p-8"
             aria-labelledby="login-title"
         >
             <a
                 href="#login-form"
-                className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-white p-2 rounded shadow z-50"
+                className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-white p-2 rounded shadow z-50 text-sm"
             >
                 Saltar al formulario de inicio de sesión
             </a>
 
             <section
-                className="w-full max-w-md bg-white p-6 sm:p-8 rounded-2xl shadow-xl flex flex-col justify-center"
+                className="w-full max-w-md sm:max-w-lg md:max-w-xl bg-white p-6 sm:p-8 md:p-10 rounded-2xl md:rounded-3xl shadow-xl flex flex-col justify-center my-auto"
                 aria-describedby="login-description"
             >
-                <header className="mb-6 text-center">
+                <header className="mb-6 md:mb-8 text-center">
                     <h1
                         id="login-title"
-                        className="text-2xl sm:text-3xl font-extrabold tracking-tight text-gray-900"
+                        className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight text-gray-900"
                     >
                         Iniciar sesión
                     </h1>
                     <p
                         id="login-description"
-                        className="text-gray-500 text-sm sm:text-base mt-2"
+                        className="text-gray-500 text-sm sm:text-base md:text-lg mt-2 font-normal"
                     >
                         Ingresá tus credenciales para acceder al sistema.
                     </p>
@@ -97,15 +95,15 @@ export default function LoginPage() {
                 <form
                     id="login-form"
                     onSubmit={handleLogin}
-                    className="flex flex-col gap-4"
+                    className="flex flex-col gap-4 sm:gap-5"
                     aria-label="Formulario de inicio de sesión"
                     noValidate
                 >
                     {/* EMAIL */}
-                    <div className="flex flex-col gap-1.5">
+                    <div className="flex flex-col gap-1.5 sm:gap-2">
                         <label
                             htmlFor="email"
-                            className="text-sm font-semibold text-gray-800"
+                            className="text-sm sm:text-base font-semibold text-gray-800"
                         >
                             Correo electrónico
                         </label>
@@ -119,21 +117,21 @@ export default function LoginPage() {
                             aria-required="true"
                             aria-describedby="email-help"
                             placeholder="ejemplo@correo.com"
-                            className="border border-gray-300 rounded-xl p-3 text-sm focus:outline-none focus:ring-4 focus:ring-[#218a72]/30 focus:border-[#218a72] transition-shadow"
+                            className="border border-gray-300 rounded-xl p-3 md:p-3.5 text-sm sm:text-base focus:outline-none focus:ring-4 focus:ring-[#218a72]/30 focus:border-[#218a72] transition-shadow"
                         />
                         <span
                             id="email-help"
-                            className="text-xs text-gray-500"
+                            className="text-xs sm:text-sm text-gray-500"
                         >
                             Ingresá el correo asociado a tu cuenta.
                         </span>
                     </div>
 
                     {/* PASSWORD */}
-                    <div className="flex flex-col gap-1.5">
+                    <div className="flex flex-col gap-1.5 sm:gap-2">
                         <label
                             htmlFor="password"
-                            className="text-sm font-semibold text-gray-800"
+                            className="text-sm sm:text-base font-semibold text-gray-800"
                         >
                             Contraseña
                         </label>
@@ -147,7 +145,7 @@ export default function LoginPage() {
                                 aria-required="true"
                                 aria-describedby="password-help"
                                 placeholder="Ingresá tu contraseña"
-                                className="w-full border border-gray-300 rounded-xl p-3 pr-10 text-sm focus:outline-none focus:ring-4 focus:ring-[#218a72]/30 focus:border-[#218a72] transition-shadow"
+                                className="w-full border border-gray-300 rounded-xl p-3 md:p-3.5 pr-10 md:pr-12 text-sm sm:text-base focus:outline-none focus:ring-4 focus:ring-[#218a72]/30 focus:border-[#218a72] transition-shadow"
                             />
                             <button
                                 type="button"
@@ -156,12 +154,16 @@ export default function LoginPage() {
                                 aria-controls="password"
                                 className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#218a72] rounded-lg transition-colors"
                             >
-                                {showPassword ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
+                                {showPassword ? (
+                                    <EyeOff className="size-5 sm:size-6" aria-hidden="true" />
+                                ) : (
+                                    <Eye className="size-5 sm:size-6" aria-hidden="true" />
+                                )}
                             </button>
                         </div>
                         <span
                             id="password-help"
-                            className="text-xs text-gray-500"
+                            className="text-xs sm:text-sm text-gray-500"
                         >
                             La contraseña distingue mayúsculas y minúsculas.
                         </span>
@@ -171,24 +173,24 @@ export default function LoginPage() {
                     <button
                         type="submit"
                         aria-label="Ingresar al sistema"
-                        className="bg-[#1b6f5c] hover:bg-[#155648] active:scale-[0.99] transition-all text-white font-bold text-base p-3 mt-2 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#1b6f5c]/40 shadow-lg shadow-[#1b6f5c]/20"
+                        className="bg-[#1b6f5c] hover:bg-[#155648] active:scale-[0.99] transition-all text-white font-bold text-base sm:text-lg p-3 md:p-3.5 mt-2 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#1b6f5c]/40 shadow-lg shadow-[#1b6f5c]/20"
                     >
                         Ingresar
                     </button>
                 </form>
 
                 {/* Enlace a ayuda */}
-                <div className="mt-6 pt-5 border-t border-gray-200 text-center">
-                    <p className="text-gray-700 text-xs sm:text-sm font-medium mb-3">
+                <div className="mt-6 sm:mt-8 pt-5 sm:pt-6 border-t border-gray-200 text-center">
+                    <p className="text-gray-700 text-xs sm:text-sm md:text-base font-medium mb-3">
                         ¿Primera vez en el sistema o tenés dudas?
                     </p>
                     <button
                         onClick={() => navigate('/ayuda')}
-                        className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[#1b6f5c] text-white font-semibold text-sm hover:bg-[#155648] transition-all focus:outline-none focus:ring-4 focus:ring-[#1b6f5c]/40 active:scale-[0.99] shadow-md shadow-[#1b6f5c]/20"
+                        className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-2.5 sm:py-3 rounded-xl bg-[#1b6f5c] text-white font-semibold text-sm sm:text-base hover:bg-[#155648] transition-all focus:outline-none focus:ring-4 focus:ring-[#1b6f5c]/40 active:scale-[0.99] shadow-md shadow-[#1b6f5c]/20"
                         aria-label="Ver guía de ayuda y documentación del sistema"
                     >
                         <HelpCircle
-                            size={18}
+                            className="size-5"
                             aria-hidden="true"
                             strokeWidth={2}
                         />
