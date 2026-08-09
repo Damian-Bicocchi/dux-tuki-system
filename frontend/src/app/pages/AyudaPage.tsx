@@ -223,7 +223,7 @@ export default function AyudaPage() {
               },
               {
                 icon: MonitorCog,
-                title: "Opciones de administrador",
+                title: "Configuraciones avanzadas",
                 description: "Permite al administrador crear nuevos usuarios para el sistema"
               }
             ].map((f) => (
