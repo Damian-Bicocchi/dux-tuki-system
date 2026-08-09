@@ -1,3 +1,43 @@
 @import './fonts.css';
 @import './tailwind.css';
 @import './theme.css';
+
+/* Adaptación de react-phone-number-input a tu UI */
+.PhoneInput {
+    display: flex;
+    align-items: center;
+    background-color: #ffffff;
+    border: 2px solid #d1d5db;
+    /* border-gray-300 */
+    border-radius: 0.75rem;
+    /* rounded-xl */
+    padding: 0.5rem 0.75rem;
+    transition: all 0.2s ease;
+}
+
+.PhoneInput:focus-within {
+    border-color: #218a72;
+    box-shadow: 0 0 0 4px rgba(33, 138, 114, 0.2);
+}
+
+.PhoneInput.has-error {
+    border-color: #f87171;
+    /* border-red-400 */
+}
+
+.PhoneInput.has-error:focus-within {
+    box-shadow: 0 0 0 4px rgba(248, 113, 113, 0.2);
+}
+
+.PhoneInputInput {
+    border: none !important;
+    outline: none !important;
+    font-size: 0.875rem;
+    color: #111827;
+    width: 100%;
+    margin-left: 0.5rem;
+}
+
+.PhoneInputCountry {
+    margin-right: 0.25rem;
+}

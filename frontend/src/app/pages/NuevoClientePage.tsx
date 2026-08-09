@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { ArrowLeft, UserPlus, Mail, IdCard, Phone, User } from 'lucide-react';
-import { addCliente } from '../data/clientesData';
+import { ArrowLeft, UserPlus, Mail, IdCard, Phone, User, AlertCircle } from 'lucide-react';
+import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input';
+import es from "react-phone-number-input/locale/es";
+import 'react-phone-number-input/style.css';
 import { SuccessModal } from '../components/SuccessModal';
 
 export default function NuevoClientePage() {
@@ -16,6 +18,10 @@ export default function NuevoClientePage() {
     const [submitted, setSubmitted] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
     const [clienteNombre, setClienteNombre] = useState('');
+    
+    /* Nuevos estados para manejar errores de servidor y carga */
+    const [apiError, setApiError] = useState<string | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     function validate() {
         const errs: Partial<typeof formData> = {};
@@ -30,51 +36,67 @@ export default function NuevoClientePage() {
         } else if (formData.dni.length < 7) {
             errs.dni = 'El DNI debe tener al menos 7 dígitos';
         }
-        if (!formData.telefono.trim()) {
+
+        if (!formData.telefono) {
             errs.telefono = 'El teléfono es obligatorio';
-        }else if (!/^\d+$/.test(formData.telefono)) {
-            errs.telefono = 'El teléfono debe contener solo números';
+        } else if (!isValidPhoneNumber(formData.telefono)) {
+            errs.telefono = 'Ingresá un número de teléfono válido';
         }
+
         return errs;
     }
 
-    function handleSubmit(e: React.SubmitEvent) {
+    async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
         setSubmitted(true);
+        setApiError(null); // Limpiamos errores previos del servidor
+
         const errs = validate();
         if (Object.keys(errs).length > 0) {
             setErrors(errs);
             return;
         }
+
+        setIsSubmitting(true);
+
         const payload = {
             nombre: formData.nombre.trim(),
             email: formData.email.trim().toLowerCase(),
-            dni: formData.dni.trim(), // OJO: Tu backend actual ignora este campo
-            telefono: formData.telefono.trim(),
+            dni: formData.dni.trim(),
+            telefono: formData.telefono,
         };
-        fetch('http://127.0.0.1:3001/api/clientes', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload), // ESTA ES LA MAGIA QUE FALTABA
-        })
-            .then(async (response) => {
-                if (response.ok) {
-                    setClienteNombre(formData.nombre.trim());
-                    setShowSuccess(true);
-                } else {
-                    // Extraemos el error del backend para mostrarlo
-                    const errorData = await response.json();
-                    console.error('Error del servidor:', errorData.error);
-                    // Aquí podrías hacer un setErrors({ general: errorData.error }) para mostrarlo en la UI
-                }
-            })
-            .catch((error) => {
-                console.error('Error de red:', error);
+
+        try {
+            const response = await fetch('http://127.0.0.1:3001/api/clientes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
             });
+
+            if (response.ok) {
+                setClienteNombre(formData.nombre.trim());
+                setShowSuccess(true);
+            } else {
+                // Captura el mensaje retornado por la API o usa uno genérico
+                const errorData = await response.json().catch(() => ({}));
+                setApiError(
+                    errorData.error || errorData.message || 'Ocurrió un error al registrar el cliente.'
+                );
+            }
+        } catch (error) {
+            // Error de conexión / servidor caído
+            setApiError('No se pudo conectar con el servidor. Intentalo de nuevo más tarde.');
+        } finally {
+            setIsSubmitting(false);
+        }
     }
 
     function handleChange(field: keyof typeof formData, value: string) {
         setFormData((prev) => ({ ...prev, [field]: value }));
+        
+        // Al escribir limpiamos la alerta general
+        if (apiError) setApiError(null);
+        
         if (submitted) {
             setErrors((prev) => ({ ...prev, [field]: undefined }));
         }
@@ -131,24 +153,15 @@ export default function NuevoClientePage() {
                     error={errors.nombre}
                 >
                     <input
-                        id="nombre" 
+                        id="nombre"
                         type="text"
                         value={formData.nombre}
                         onChange={(e) => handleChange('nombre', e.target.value)}
                         placeholder="Ej: Juan Pérez"
-                        aria-required="true"
-                        aria-invalid={!!errors.nombre}
-                        aria-describedby={
-                            errors.nombre ? 'error-nombre' : undefined
-                        }
                         className={inputClass(!!errors.nombre)}
                     />
                     {errors.nombre && (
-                        <p
-                            id="error-nombre"
-                            className="text-xs text-red-600 mt-1.5 font-semibold"
-                            role="alert"
-                        >
+                        <p className="text-xs text-red-600 mt-1.5 font-semibold">
                             {errors.nombre}
                         </p>
                     )}
@@ -170,22 +183,15 @@ export default function NuevoClientePage() {
                         onChange={(e) =>
                             handleChange(
                                 'dni',
-                                e.target.value.replace(/\D/g, ''),
+                                e.target.value.replace(/\D/g, '')
                             )
                         }
                         placeholder="Ej: 35123456"
                         maxLength={8}
-                        aria-required="true"
-                        aria-invalid={!!errors.dni}
-                        aria-describedby={errors.dni ? 'error-dni' : undefined}
                         className={inputClass(!!errors.dni)}
                     />
                     {errors.dni && (
-                        <p
-                            id="error-dni"
-                            className="text-xs text-red-600 mt-1.5 font-semibold"
-                            role="alert"
-                        >
+                        <p className="text-xs text-red-600 mt-1.5 font-semibold">
                             {errors.dni}
                         </p>
                     )}
@@ -206,19 +212,10 @@ export default function NuevoClientePage() {
                         value={formData.email}
                         onChange={(e) => handleChange('email', e.target.value)}
                         placeholder="Ej: juan@email.com"
-                        aria-required="true"
-                        aria-invalid={!!errors.email}
-                        aria-describedby={
-                            errors.email ? 'error-email' : undefined
-                        }
                         className={inputClass(!!errors.email)}
                     />
                     {errors.email && (
-                        <p
-                            id="error-email"
-                            className="text-xs text-red-600 mt-1.5 font-semibold"
-                            role="alert"
-                        >
+                        <p className="text-xs text-red-600 mt-1.5 font-semibold">
                             {errors.email}
                         </p>
                     )}
@@ -232,20 +229,20 @@ export default function NuevoClientePage() {
                     required
                     error={errors.telefono}
                 >
-                    <input
+                    <PhoneInput
                         id="telefono"
-                        type="tel"
-                        inputMode="tel"
-                        aria-required="true"
-                        aria-invalid={!!errors.telefono}
-                        aria-describedby={errors.telefono ? 'error-telefono' : undefined}
-                        maxLength={15}
+                        defaultCountry="AR"
+                        labels={es}
+                        withCountryCallingCode
+                        international
+                        countryCallingCodeEditable={false}
                         value={formData.telefono}
-                        onChange={(e) =>
-                            handleChange('telefono', e.target.value)
+                        limitMaxLength={true}
+                        onChange={(value) =>
+                            handleChange('telefono', value || '')
                         }
-                        placeholder="Ej: 1145237890 (sin guiones ni espacios)"
-                        className={inputClass(!!errors.telefono)}
+                        placeholder="Ej: 1145237890"
+                        className={errors.telefono ? 'has-error' : ''}
                     />
                     {errors.telefono && (
                         <p
@@ -258,18 +255,30 @@ export default function NuevoClientePage() {
                     )}
                 </FormField>
 
+                {/* Cartel de Error del Servidor / Red */}
+                {apiError && (
+                    <div
+                        className="p-3.5 bg-red-50 border-2 border-red-200 rounded-xl flex items-center gap-2.5 text-red-700 text-sm font-medium animate-fade-in"
+                        role="alert"
+                    >
+                        <AlertCircle size={18} className="text-red-500 shrink-0" aria-hidden="true" />
+                        <span>{apiError}</span>
+                    </div>
+                )}
+
                 {/* Acciones */}
                 <div className="flex flex-col gap-3 pt-2">
                     <button
                         type="submit"
-                        className="w-full py-2.5 bg-[#218a72] hover:bg-[#1b6f5c] active:scale-[0.98] text-white rounded-xl font-bold transition-all focus:outline-none focus:ring-4 focus:ring-[#218a72]/30 text-sm"
+                        disabled={isSubmitting}
+                        className="w-full py-2.5 bg-[#218a72] hover:bg-[#1b6f5c] disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] text-white rounded-xl font-bold transition-all focus:outline-none focus:ring-4 focus:ring-[#218a72]/30 text-sm"
                     >
-                        Registrar cliente
+                        {isSubmitting ? 'Registrando...' : 'Registrar cliente'}
                     </button>
                     <button
                         type="button"
                         onClick={() => navigate('/app/clientes')}
-                        className="w-full py-2.5 border-2 border-gray-300 bg-white text-gray-700 rounded-xl font-bold hover:bg-gray-100 hover:border-gray-400 active:scale-[0.98] transition-all focus:outline-none focus:ring-4 focus:ring-gray-300 focus:border-gray-400 text-sm"
+                        className="w-full py-2.5 border-2 border-gray-300 bg-white text-gray-700 rounded-xl font-bold hover:bg-gray-100 hover:border-gray-400 active:scale-[0.98] transition-all focus:outline-none focus:ring-4 focus:ring-gray-300 text-sm"
                     >
                         Cancelar
                     </button>
@@ -293,7 +302,6 @@ function FormField({
     icon: Icon,
     required,
     optional,
-    error,
     children,
 }: {
     id: string;
