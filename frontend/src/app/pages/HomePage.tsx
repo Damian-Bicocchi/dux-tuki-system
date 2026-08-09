@@ -77,7 +77,7 @@ export default function HomePage({
     },
     {
       icon: Package,
-      title: "Listado de Stock",
+      title: "Stock",
       subtitle: "Inventario y disponibilidad",
       color: "bg-amber-50",
       iconColor: "text-amber-600",

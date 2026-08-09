@@ -1,6 +1,8 @@
 import { TrendingUp, DollarSign, Users, Percent, ClipboardList } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { getClientes, type Cliente } from '../data/clientesData';
+
 
 export default function EstadisticasPage() {
   const inversionTotal = 850000;
@@ -9,6 +11,8 @@ export default function EstadisticasPage() {
   const gananciaNetaMensual = gananciaMensual - costosOperativos;
   const gananciaAnual = gananciaNetaMensual * 12;
   const roi = ((gananciaAnual / inversionTotal) * 100).toFixed(1);
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+
 
   const integrantes = [
     { nombre: 'Integrante 1', porcentaje: 40 },
@@ -142,6 +146,24 @@ export default function EstadisticasPage() {
     }
     return null;
   };
+    useEffect(() => {
+    // ✅ 2. Creamos una función asíncrona interna para esperar los datos
+    const fetchDatos = async () => {
+      try {
+        const datos = await getClientes();
+        setClientes(datos);
+      } catch (error) {
+        console.error("Error al cargar clientes", error);
+      } finally {
+      }
+    };
+
+    fetchDatos(); // Ejecutamos la función
+  }, []);
+
+  const totalAlquileres = clientes.reduce((sum, c) => sum + c.alquileres.length, 0);
+  const promedioAlquileres =
+    clientes.length > 0 ? Math.round(totalAlquileres / clientes.length) : 0;
 
   return (
     <div className="px-5 py-6 space-y-6">
@@ -198,6 +220,59 @@ export default function EstadisticasPage() {
                 tone="bg-red-50 text-red-800 border-red-200"
             />
         </div>
+    </section>
+
+    <section aria-labelledby="titulo-stats-clientes">
+      {/* Encabezado con estilo unificado */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div
+            className="w-10 h-10 bg-[#218a72]/10 rounded-xl flex items-center justify-center"
+            aria-hidden="true"
+          >
+            <Users size={20} className="text-[#218a72]" />
+          </div>
+          <h2 id="titulo-stats-clientes" className="font-bold text-lg text-gray-800">
+            Estadísticas de clientes
+          </h2>
+        </div>
+        <span className="text-xs bg-gray-100 text-gray-600 px-3 py-1 rounded-full font-medium">
+          {clientes.length} total
+        </span>
+      </div>
+
+      {/* Tarjetas de Estadísticas */}
+      <div
+        className="grid grid-cols-2 gap-3 mb-6"
+        role="list"
+        aria-label="Estadísticas de clientes"
+      >
+        <div
+          className="bg-blue-50 border-2 border-blue-200 rounded-2xl p-5 text-center"
+          role="listitem"
+          aria-label={`Total de clientes: ${clientes.length}`}
+        >
+          <div className="text-3xl font-extrabold text-blue-800 mb-1" aria-hidden="true">
+            {clientes.length}
+          </div>
+          <div className="text-xs font-bold text-blue-700 uppercase tracking-wide" aria-hidden="true">
+            Total clientes
+          </div>
+        </div>
+
+        <div
+          className="bg-purple-50 border-2 border-purple-200 rounded-2xl p-5 text-center"
+          role="listitem"
+          aria-label={`Promedio de alquileres por cliente: ${promedioAlquileres}`}
+        >
+          <div className="text-3xl font-extrabold text-purple-800 mb-1" aria-hidden="true">
+            {promedioAlquileres}
+          </div>
+          <div className="text-xs font-bold text-purple-700 uppercase tracking-wide" aria-hidden="true">
+            Prom. alquileres por cliente
+          </div>
+        </div>
+      </div>
     </section>
 
       {/* Gráfico de torta — Distribución mensual */}
