@@ -200,7 +200,7 @@ export default function RootLayout() {
     },
     {
       icon: MonitorCog,
-      title: "Opciones de administrador",
+      title: "Configuraciones avanzadas",
       path: "/app/sistema"
     }
   ];

@@ -101,7 +101,7 @@ export default function HomePage({
     },
     {
       icon: Users,
-      title: "Sistema",
+      title: "Configuraciones avanzadas",
       subtitle: "Opciones de configuración del sistema",
       color: "bg-purple-50",
       iconColor: "text-green-600",
