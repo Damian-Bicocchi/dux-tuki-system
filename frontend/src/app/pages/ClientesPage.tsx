@@ -45,39 +45,13 @@ export default function ClientesPage() {
     );
   });
 
-  const totalAlquileres = clientes.reduce((sum, c) => sum + c.alquileres.length, 0);
-  const promedioAlquileres =
-    clientes.length > 0 ? Math.round(totalAlquileres / clientes.length) : 0;
+  
+  
 
   return (
     <div className="px-5 py-6 pb-10">
       {/* Estadísticas */}
-      <div className="grid grid-cols-2 gap-3 mb-6" role="list" aria-label="Estadísticas de clientes">
-        <div
-          className="bg-blue-50 border-2 border-blue-200 rounded-2xl p-5 text-center"
-          role="listitem"
-          aria-label={`Total de clientes: ${clientes.length}`}
-        >
-          <div className="text-3xl font-extrabold text-blue-800 mb-1" aria-hidden="true">
-            {clientes.length}
-          </div>
-          <div className="text-xs font-bold text-blue-700 uppercase tracking-wide" aria-hidden="true">
-            Total clientes
-          </div>
-        </div>
-        <div
-          className="bg-purple-50 border-2 border-purple-200 rounded-2xl p-5 text-center"
-          role="listitem"
-          aria-label={`Promedio de alquileres por cliente: ${promedioAlquileres}`}
-        >
-          <div className="text-3xl font-extrabold text-purple-800 mb-1" aria-hidden="true">
-            {promedioAlquileres}
-          </div>
-          <div className="text-xs font-bold text-purple-700 uppercase tracking-wide" aria-hidden="true">
-            Prom. alquileres por cliente
-          </div>
-        </div>
-      </div>
+      
 
       {/* Buscador */}
       <div className="mb-4">
