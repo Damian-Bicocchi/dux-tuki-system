@@ -23,7 +23,8 @@ interface ArticuloStock {
     deposito_garantia: number;
 }
 
-interface ItemAlquiler {
+export interface ItemAlquiler {
+    id: string; // 👈 Agregar ID único
     articulo_id: number | '';
     cantidad: number | '';
     precio_unitario_dia: number | '';
@@ -59,9 +60,30 @@ export default function NuevoAlquilerPage() {
     const [fechaInicio, setFechaInicio] = useState('');
     const [fechaFin, setFechaFin] = useState('');
 
+    // Estado inicial con ID único
     const [items, setItems] = useState<ItemAlquiler[]>([
-        { articulo_id: '', cantidad: 1, precio_unitario_dia: '', deposito_garantia: 0 },
+        { 
+            id: crypto.randomUUID(), 
+            articulo_id: '', 
+            cantidad: 1, 
+            precio_unitario_dia: '', 
+            deposito_garantia: 0 
+        },
     ]);
+
+    // Función para agregar item con ID único
+    const handleAddItem = () => {
+        setItems([
+            ...items, 
+            { 
+                id: crypto.randomUUID(), 
+                articulo_id: '', 
+                cantidad: 1, 
+                precio_unitario_dia: '', 
+                deposito_garantia: 0 
+            }
+        ]);
+    };
 
     // Estados de validación
     const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
@@ -214,10 +236,6 @@ export default function NuevoAlquilerPage() {
         const diff = Math.floor((fin.getTime() - inicio.getTime()) / (1000 * 60 * 60 * 24));
         return diff > 0 ? diff : 1;
     }, [fechaInicio, fechaFin]);
-
-    const handleAddItem = () => {
-        setItems([...items, { articulo_id: '', cantidad: 1, precio_unitario_dia: '', deposito_garantia: 0 }]);
-    };
 
     const handleRemoveItem = (index: number) => {
         if (items.length > 1) setItems(items.filter((_, i) => i !== index));
@@ -621,7 +639,7 @@ export default function NuevoAlquilerPage() {
                         <div className="space-y-3" role="group" aria-labelledby="titulo-dispositivos">
                             {items.map((item, index) => (
                                 <ItemRow
-                                    key={item.articulo_id || index}
+                                    key={item.id}
                                     item={item}
                                     index={index}
                                     listaStock={listaStock}

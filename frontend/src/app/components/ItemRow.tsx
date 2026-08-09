@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, ChevronDown } from 'lucide-react';
 
 export interface ItemAlquiler {
+    id: string; // 👈 Agregar ID único
     articulo_id: number | '';
     cantidad: number | '';
     precio_unitario_dia: number | '';
