@@ -62,7 +62,7 @@ export default function HomePage({
     {
       icon: List,
       title: "Ver Alquileres",
-      subtitle: "Listado con filtros y estados",
+      subtitle: "Listado de los alquileres con filtros y estados. Podes crear uno nuevo desde este apartado",
       color: "bg-blue-50",
       iconColor: "text-blue-600",
       path: "/app/alquileres",
@@ -70,7 +70,7 @@ export default function HomePage({
     {
       icon: Calendar,
       title: "Calendario",
-      subtitle: "Vista de alquileres por fecha",
+      subtitle: "Visualizacion del estado de los alquileres que inician y finalizan en un dia determinado",
       color: "bg-pink-50",
       iconColor: "text-pink-600",
       path: "/app/calendario",
@@ -78,7 +78,7 @@ export default function HomePage({
     {
       icon: Package,
       title: "Stock",
-      subtitle: "Inventario y disponibilidad",
+      subtitle: "Listado del inventario y disponibilidad de los productos. Podes crear uno nuevo desde este apartado",
       color: "bg-amber-50",
       iconColor: "text-amber-600",
       path: "/app/stock",
@@ -86,7 +86,7 @@ export default function HomePage({
     {
       icon: Users,
       title: "Clientes",
-      subtitle: "Base de clientes completa",
+      subtitle: "Listado de todos los clientes registrados en el sistema. Podes crear uno nuevo desde este apartado",
       color: "bg-purple-50",
       iconColor: "text-purple-600",
       path: "/app/clientes",
@@ -102,7 +102,7 @@ export default function HomePage({
     {
       icon: Users,
       title: "Configuraciones avanzadas",
-      subtitle: "Opciones de configuración del sistema",
+      subtitle: "Opciones de configuración del sistema. Podes crear, editar y eliminar usuarios, roles y permisos. Acceso restringido a administradores",
       color: "bg-purple-50",
       iconColor: "text-green-600",
       path: "/app/sistema",
