@@ -73,6 +73,40 @@ class AlquilerController {
       return res.status(500).json({ error: error.message });
     }
   }
+
+  async getAlquileresEmpiezanFecha (req, res) {
+    try {
+      const { fecha } = req.query;
+
+      if (!fecha || typeof fecha !== 'string') {
+        return res.status(400).json({ message: 'El parámetro "fecha" es requerido.' });
+      }
+
+      const alquileres = await alquilerService.getAlquileresEmpiezanFecha(fecha);
+      return res.status(200).json(alquileres);
+    } catch (error) {
+      return res.status(500).json({ message: 'Error interno del servidor', error: error.message });
+    }
+  };
+
+  async getAlquileresTerminanFecha (req, res) {
+    try {
+      const { fecha } = req.query;
+
+      if (!fecha || typeof fecha !== 'string') {
+        return res.status(400).json({ message: 'El parámetro "fecha" es requerido.' });
+      }
+
+      const alquileres = await alquilerService.getAlquileresTerminanFecha(fecha);
+      return res.status(200).json(alquileres);
+    } catch (error) {
+      return res.status(500).json({ message: 'Error interno del servidor', error: error.message });
+    }
+  };
+
+
+
+
 }
 
 module.exports = new AlquilerController();

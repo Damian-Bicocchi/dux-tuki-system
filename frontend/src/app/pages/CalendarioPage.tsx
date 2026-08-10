@@ -1,5 +1,5 @@
-import { useState, useCallback, useMemo } from 'react';
-import { Calendar, RotateCcw, Package, User, ArrowRight, LogIn, LogOut } from 'lucide-react';
+import { useState, useCallback, useEffect } from 'react';
+import { Calendar, RotateCcw, Package, User, ArrowRight, LogIn, LogOut, Loader2 } from 'lucide-react';
 
 interface Alquiler {
   id: number;
@@ -8,21 +8,6 @@ interface Alquiler {
   fechaInicio: string;
   fechaFin: string;
 }
-
-const alquileres: Alquiler[] = [
-  { id: 1,  cliente: 'Juan Pérez',      equipo: 'Cámara Sony A7 III',      fechaInicio: '2026-06-07', fechaFin: '2026-06-14' },
-  { id: 2,  cliente: 'María González',  equipo: 'Micrófono Rode NT1',       fechaInicio: '2026-06-03', fechaFin: '2026-06-07' },
-  { id: 3,  cliente: 'Carlos López',    equipo: 'Trípode Gitzo',            fechaInicio: '2026-06-02', fechaFin: '2026-06-07' },
-  { id: 4,  cliente: 'Ana Martínez',    equipo: 'Flash Godox AD600',        fechaInicio: '2026-06-07', fechaFin: '2026-06-10' },
-  { id: 5,  cliente: 'Roberto Sánchez', equipo: 'Monitor SmallHD 4K',       fechaInicio: '2026-06-01', fechaFin: '2026-06-09' },
-  { id: 6,  cliente: 'Laura Torres',    equipo: 'Gimbal DJI RS3',           fechaInicio: '2026-06-07', fechaFin: '2026-06-12' },
-  { id: 7,  cliente: 'Diego Sosa',      equipo: 'Grabadora Zoom F6',        fechaInicio: '2026-06-05', fechaFin: '2026-06-08' },
-  { id: 8,  cliente: 'Sofía Blanco',    equipo: 'Lente Sigma 18-35mm',      fechaInicio: '2026-06-10', fechaFin: '2026-06-15' },
-  { id: 9,  cliente: 'Pedro Ruiz',      equipo: 'Dron DJI Mini 3 Pro',      fechaInicio: '2026-06-07', fechaFin: '2026-06-09' },
-  { id: 10, cliente: 'Valeria Cruz',    equipo: 'Kit iluminación Nanlite',   fechaInicio: '2026-06-08', fechaFin: '2026-06-11' },
-  { id: 11, cliente: 'Martín Leiva',    equipo: 'Cámara Canon R5',          fechaInicio: '2026-06-12', fechaFin: '2026-06-07' },
-  { id: 12, cliente: 'Lucía Méndez',    equipo: 'Micrófono Sennheiser MKH', fechaInicio: '2026-06-07', fechaFin: '2026-06-20' },
-];
 
 function toDateStr(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -40,30 +25,79 @@ function formatDateShort(dateStr: string): string {
 
 const todayStr = toDateStr(new Date());
 
+const API_URL = 'http://localhost:3001/api';
+
+export const getAlquileresEmpiezanFecha = async (fecha: string): Promise<Alquiler[]> => {
+  console.log(`${API_URL}/empiezan?fecha=${(fecha)}`);
+  const response = await fetch(`${API_URL}/alquileres/empiezan?fecha=${(fecha)}`);
+  if (!response.ok) {
+    throw new Error('Error al obtener alquileres por fecha de inicio');
+  }
+  return response.json();
+};
+
+export const getAlquileresTerminanFecha = async (fecha: string): Promise<Alquiler[]> => {
+  const response = await fetch(`${API_URL}/alquileres/terminan?fecha=${encodeURIComponent(fecha)}`);
+  if (!response.ok) throw new Error('Error al obtener alquileres por fecha de fin');
+  return response.json();
+};
+
 export default function CalendarioPage() {
   const [selectedDate, setSelectedDate] = useState(todayStr);
+  
+  // Estados para almacenar los datos de las peticiones
+  const [inicianHoy, setInicianHoy] = useState<Alquiler[]>([]);
+  const [vencenHoy, setVencenHoy] = useState<Alquiler[]>([]);
+  const [cargando, setCargando] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   const isToday = selectedDate === todayStr;
 
   const resetToToday = useCallback(() => setSelectedDate(todayStr), []);
 
-  // Optimizamos con useMemo para evitar recálculos innecesarios
-  const inicianHoy = useMemo(() => alquileres.filter((a) => a.fechaInicio === selectedDate), [selectedDate]);
-  const vencenHoy  = useMemo(() => alquileres.filter((a) => a.fechaFin === selectedDate), [selectedDate]);
-
   const labelDia = isToday ? 'Hoy' : formatDateLabel(selectedDate);
 
-  // Texto hablado por el lector de pantallas cuando cambia la fecha de forma dinámica
-  const anuncioLector = useMemo(() => {
-    return `Mostrando resultados para el ${labelDia}. ${inicianHoy.length} alquileres inician, ${vencenHoy.length} alquileres vencen.`;
-  }, [labelDia, inicianHoy.length, vencenHoy.length]);
+  useEffect(() => {
+    let isMounted = true; // Previene actualizaciones si el componente se desmonta antes de recibir la respuesta
+
+    const cargarDatos = async () => {
+      setCargando(true);
+      setError(null);
+      try {
+        const [iniciados, vencidos] = await Promise.all([
+          getAlquileresEmpiezanFecha(selectedDate),
+          getAlquileresTerminanFecha(selectedDate)
+        ]);
+
+        if (isMounted) {
+          setInicianHoy(iniciados);
+          setVencenHoy(vencidos);
+        }
+      } catch (err) {
+        if (isMounted) {
+          console.error(err);
+          setError('Error al consultar los alquileres de la fecha seleccionada.');
+        }
+      } finally {
+        if (isMounted) {
+          setCargando(false);
+        }
+      }
+    };
+
+    cargarDatos();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedDate]);
 
   return (
     <main className="px-5 py-6 pb-10 max-w-5xl mx-auto space-y-5" aria-label="Calendario de Alquileres">
       
-      {/* Región asíncrona: El lector anunciará los cambios de estado de manera sutil sin interrumpir al usuario */}
+      {/* Región asíncrona para lectores de pantalla */}
       <div className="sr-only" aria-live="polite" aria-atomic="true">
-        {anuncioLector}
+        {cargando ? 'Cargando alquileres...' : `Mostrando alquileres para ${labelDia}`}
       </div>
 
       {/* Selector de fecha */}
@@ -82,7 +116,6 @@ export default function CalendarioPage() {
               id="date-input"
               type="date"
               value={selectedDate}
-              min={todayStr}
               onChange={(e) => {
                 if (e.target.value) setSelectedDate(e.target.value);
               }}
@@ -101,34 +134,48 @@ export default function CalendarioPage() {
           )}
         </div>
 
-        <p className="text-base font-extrabold text-gray-900 capitalize">
-          <span className="sr-only">Fecha seleccionada: </span>{labelDia}
-        </p>
+        <div className="flex items-center justify-between">
+          <p className="text-base font-extrabold text-gray-900 capitalize">
+            <span className="sr-only">Fecha seleccionada: </span>{labelDia}
+          </p>
+          {cargando && (
+            <div className="flex items-center gap-2 text-[#218a72] text-xs font-bold">
+              <Loader2 size={16} className="animate-spin" />
+              <span>Cargando...</span>
+            </div>
+          )}
+        </div>
+
+        {error && (
+          <p className="text-xs font-semibold text-red-600 bg-red-50 p-2.5 rounded-lg border border-red-200">
+            {error}
+          </p>
+        )}
       </section>
 
       {/* Contenedor en paralelo para los dos cuadros */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-start">
-        {/* Sección: Inician hoy */}
+        {/* Sección: Inician el día seleccionado */}
         <Section
           id="sec-inician"
           icon={LogIn}
-          title="Inician hoy"
+          title={isToday ? "Inician hoy" : "Inician esta fecha"}
           color="green"
           alquileres={inicianHoy}
-          emptyText="No hay alquileres que inicien este día"
+          emptyText={cargando ? "Cargando..." : "No hay alquileres que inicien este día"}
           renderExtra={(a) => (
             <DateRange label="Hasta el" fecha={formatDateShort(a.fechaFin)} />
           )}
         />
 
-        {/* Sección: Vencen hoy */}
+        {/* Sección: Vencen el día seleccionado */}
         <Section
           id="sec-vencen"
           icon={LogOut}
-          title="Vencen hoy"
+          title={isToday ? "Vencen hoy" : "Vencen esta fecha"}
           color="yellow"
           alquileres={vencenHoy}
-          emptyText="No hay alquileres que venzan este día"
+          emptyText={cargando ? "Cargando..." : "No hay alquileres que venzan este día"}
           renderExtra={(a) => (
             <DateRange label="Desde el" fecha={formatDateShort(a.fechaInicio)} />
           )}
@@ -138,7 +185,6 @@ export default function CalendarioPage() {
   );
 }
 
-/* ── Componentes internos ─────────────────────────────────────── */
 
 type Color = 'green' | 'yellow';
 
@@ -149,7 +195,6 @@ const colorTokens: Record<Color, {
   badgeBg: string; badgeText: string;
 }> = {
   green: {
-    // CAMBIO: Usamos un verde más profundo (#165e4e) que eleva el contraste a un masivo 8.4:1 (Clase AAA)
     headerBg: 'bg-[#165e4e]', 
     headerText: 'text-white',
     countBg: 'bg-white/20', countText: 'text-white',
@@ -157,7 +202,6 @@ const colorTokens: Record<Color, {
     badgeBg: 'bg-[#e1f5ee]', badgeText: 'text-[#085041]',
   },
   yellow: {
-    // CAMBIO: Usamos un marrón/dorado mucho más oscuro (#785002) para cumplir con el ratio de 4.5:1 obligatorio
     headerBg: 'bg-[#785002]', 
     headerText: 'text-white',
     countBg: 'bg-white/20', countText: 'text-white',
@@ -214,10 +258,9 @@ function Section({
               <li
                 key={a.id}
                 className={`px-5 py-4 border-l-4 ${tk.cardBorder} focus-visible:bg-gray-50 outline-none`}
-                tabIndex={0} // Permite que usuarios de teclado naveguen y lean las tarjetas individualmente
+                tabIndex={0}
                 aria-label={`Equipo: ${a.equipo}. Cliente: ${a.cliente}.`}
               >
-                {/* Estructura visual interna (Oculta al lector, ya que se lee el aria-label global de arriba) */}
                 <div aria-hidden="true">
                   <div className="flex items-start gap-3 mb-2.5">
                     <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${tk.iconBg}`}>

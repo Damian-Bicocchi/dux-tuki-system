@@ -193,6 +193,75 @@ class AlquilerRepository {
       });
     });
   }
+
+  getAlquileresEmpiezanFecha(fecha) {
+
+    return new Promise((resolve, reject) => {
+      const query = `
+        SELECT 
+          a.id,
+          c.nombre AS cliente,
+          COALESCE(
+            (SELECT GROUP_CONCAT(art.nombre, ', ') 
+             FROM alquiler_items ai 
+             JOIN articulos art ON ai.articulo_id = art.id 
+             WHERE ai.alquiler_id = a.id),
+            'Sin especificar'
+          ) AS equipo,
+          a.fecha_inicio AS fechaInicio,
+          a.fecha_fin AS fechaFin
+        FROM alquileres a
+        INNER JOIN clientes c ON a.cliente_id = c.id
+        WHERE a.fecha_inicio = ?
+          AND a.estado NOT IN ('cancelado')
+        ORDER BY a.id DESC
+      `;
+
+      getDb().all(query, [fecha], (err, rows) => {
+        if (err) {
+          console.error("🔴 Error SQLite en getAlquileresEmpiezanFecha:", err.message);
+          return reject(err);
+        }
+        resolve(rows || []);
+      });
+    });
+  }
+
+  getAlquileresTerminanFecha(fecha) {
+
+    return new Promise((resolve, reject) => {
+      const query = `
+        SELECT 
+          a.id,
+          c.nombre AS cliente,
+          COALESCE(
+            (SELECT GROUP_CONCAT(art.nombre, ', ') 
+             FROM alquiler_items ai 
+             JOIN articulos art ON ai.articulo_id = art.id 
+             WHERE ai.alquiler_id = a.id),
+            'Sin especificar'
+          ) AS equipo,
+          a.fecha_inicio AS fechaInicio,
+          a.fecha_fin AS fechaFin
+        FROM alquileres a
+        INNER JOIN clientes c ON a.cliente_id = c.id
+        WHERE a.fecha_fin = ?
+          AND a.estado NOT IN ('cancelado')
+        ORDER BY a.id DESC
+      `;
+
+      getDb().all(query, [fecha], (err, rows) => {
+        if (err) {
+          console.error("🔴 Error SQLite en getAlquileresTerminanFecha:", err.message);
+          return reject(err);
+        }
+        resolve(rows || []);
+      });
+    });
+  }
+
+
+
 }
 
 module.exports = new AlquilerRepository();
