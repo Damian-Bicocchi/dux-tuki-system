@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { UsuariosTab } from './administracion/tabs/UsuariosTab';
-import { CategoriasTab } from './administracion/tabs/CategoriasTab';
 import { RolesTab } from './administracion/tabs/RolesTab';
 
-type TabId = 'usuarios' | 'categorias' | 'roles';
+type TabId = 'usuarios' | 'roles';
 
 interface TabDefinition {
   id: TabId;
@@ -18,22 +17,16 @@ const tabs: TabDefinition[] = [
     component: UsuariosTab,
   },
   {
-    id: 'categorias',
-    label: 'Administrar categorías',
-    component: CategoriasTab
-  },
-  {
     id: 'roles',
-    label: "Administrar roles",
-    component: RolesTab
-  }
+    label: 'Administrar roles',
+    component: RolesTab,
+  },
 ];
 
-export default function AdministracionPage() {
+export default function ConfiguracionesAvanzadasPage() {
   const [activeTab, setActiveTab] = useState<TabId>('usuarios');
 
-  const ActiveComponent =
-    tabs.find(tab => tab.id === activeTab)?.component;
+  const ActiveComponent = tabs.find((tab) => tab.id === activeTab)?.component;
 
   return (
     <div className="px-5 py-6 max-w-6xl mx-auto">
@@ -47,7 +40,7 @@ export default function AdministracionPage() {
         className="border-b border-gray-200 mb-8"
       >
         <div className="flex gap-2">
-          {tabs.map(tab => (
+          {tabs.map((tab) => (
             <button
               key={tab.id}
               type="button"

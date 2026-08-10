@@ -1,8 +1,6 @@
 import { createBrowserRouter } from 'react-router';
-
 import RootLayout from './layouts/RootLayout';
 import ErrorPage from './pages/ErrorPage';
-
 import LoginPage from "./pages/LoginPage";
 import AyudaPage from "./pages/AyudaPage";
 import HomePage from "./pages/HomePage";
@@ -17,7 +15,7 @@ import NuevoClientePage from "./pages/NuevoClientePage";
 import StockDetallePage from "./pages/StockDetallePage";
 import EstadisticasPage from "./pages/EstadisticasPage";
 import CalendarioPage from "./pages/CalendarioPage";
-import AdministracionPage from "./pages/AdministracionPage";
+import ConfiguracionesAvanzadasPage from "./pages/ConfiguracionesAvanzadasPage";
 
 export const router = createBrowserRouter([
   {
@@ -47,7 +45,7 @@ export const router = createBrowserRouter([
       { path: "clientes/nuevo", Component: NuevoClientePage },
       { path: "clientes/:id", Component: ClienteDetallePage },
       { path: "estadisticas", Component: EstadisticasPage },
-      { path: "sistema", Component: AdministracionPage },
+      { path: "sistema", Component: ConfiguracionesAvanzadasPage },
     ],
   },
 ]);
