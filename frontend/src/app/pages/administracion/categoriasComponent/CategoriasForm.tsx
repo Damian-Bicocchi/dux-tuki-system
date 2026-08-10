@@ -59,6 +59,7 @@ export default function CategoriasForm({ onCategoriaCreada }: CategoriasFormProp
 
   return (
     <>
+    <h2 className="font-bold">Administrar categorías</h2>
       <form
         onSubmit={handleSubmit}
         aria-labelledby="form-title"
