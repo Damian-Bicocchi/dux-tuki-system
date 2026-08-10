@@ -264,6 +264,12 @@ const db = new Proxy(
         );
     }
 
+       // GET /api/alquileres/empiezan?fecha=YYYY-MM-DD
+    router.get('/empiezan', alquilerController.getAlquileresEmpiezanFecha);
+
+    // GET /api/alquileres/terminan?fecha=YYYY-MM-DD
+    router.get('/terminan', alquilerController.getAlquileresTerminanFecha);
+
     // ── GET /api/alquileres — listar todos ─────────────────────────────────────
     router.get('/', (req, res) => {
         const { estado, cliente_id, fecha_inicio, fecha_fin } = req.query;

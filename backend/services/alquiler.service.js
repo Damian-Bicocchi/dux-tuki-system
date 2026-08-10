@@ -162,6 +162,17 @@ async _verificarDisponibilidad(articulo_id, cantidad, fecha_inicio, fecha_fin, e
       };
     });
   }
+
+  async getAlquileresEmpiezanFecha(fecha) {
+
+    return await alquilerRepository.getAlquileresEmpiezanFecha(fecha);
+  }
+
+  async getAlquileresTerminanFecha(fecha) {
+    return await alquilerRepository.getAlquileresTerminanFecha(fecha);
+  }
+
+
 }
 
 module.exports = new AlquilerService();
