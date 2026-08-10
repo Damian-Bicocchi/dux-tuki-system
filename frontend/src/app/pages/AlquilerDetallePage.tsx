@@ -14,6 +14,8 @@ import {
   ClipboardCheck,
 } from "lucide-react";
 
+import { getAuthHeaders } from '../../../../backend/utils/putHeaders';
+
 type EstadoDetalle = "activo" | "vencido" | "finalizado";
 
 interface AlquilerItemApi {
@@ -146,7 +148,7 @@ export default function AlquilerDetallePage() {
       setError(null);
 
       try {
-        const response = await fetch(`${API_BASE_URL}/alquileres/${id}`);
+        const response = await fetch(`${API_BASE_URL}/alquileres/${id}`, {headers:getAuthHeaders()});
         if (!response.ok) {
           throw new Error("No se pudo cargar el detalle del alquiler");
         }
@@ -263,7 +265,7 @@ export default function AlquilerDetallePage() {
 
       const response = await fetch(`${API_BASE_URL}/alquileres/${id}/cierre`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         body: JSON.stringify(payload),
       });
 

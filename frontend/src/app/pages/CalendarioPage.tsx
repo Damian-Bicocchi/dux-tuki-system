@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Calendar, RotateCcw, Package, User, ArrowRight, LogIn, LogOut, Loader2 } from 'lucide-react';
+import { getAuthHeaders } from '../../../../backend/utils/putHeaders';
 
 interface Alquiler {
   id: number;
@@ -29,7 +30,7 @@ const API_URL = 'http://localhost:3001/api';
 
 export const getAlquileresEmpiezanFecha = async (fecha: string): Promise<Alquiler[]> => {
   console.log(`${API_URL}/empiezan?fecha=${(fecha)}`);
-  const response = await fetch(`${API_URL}/alquileres/empiezan?fecha=${(fecha)}`);
+  const response = await fetch(`${API_URL}/alquileres/empiezan?fecha=${(fecha)}`, {headers: getAuthHeaders()});
   if (!response.ok) {
     throw new Error('Error al obtener alquileres por fecha de inicio');
   }
@@ -37,7 +38,7 @@ export const getAlquileresEmpiezanFecha = async (fecha: string): Promise<Alquile
 };
 
 export const getAlquileresTerminanFecha = async (fecha: string): Promise<Alquiler[]> => {
-  const response = await fetch(`${API_URL}/alquileres/terminan?fecha=${encodeURIComponent(fecha)}`);
+  const response = await fetch(`${API_URL}/alquileres/terminan?fecha=${encodeURIComponent(fecha)}`, {headers: getAuthHeaders()});
   if (!response.ok) throw new Error('Error al obtener alquileres por fecha de fin');
   return response.json();
 };

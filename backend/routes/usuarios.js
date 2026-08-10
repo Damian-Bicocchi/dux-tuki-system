@@ -4,12 +4,9 @@ const jwt = require('jsonwebtoken'); // 1. IMPORTAR JWT
 const { getDb } = require('../db');
 const authenticate = require('../middlewares/auth');
 const checkPermission = require('../middlewares/checkPermission');
+const { JWT_SECRET } = require('../config/env');
 
 const router = express.Router();
-
-
-// Clave secreta para firmar tokens (debería estar en tu archivo .env)
-const JWT_SECRET = process.env.JWT_SECRET || 'tu_clave_secreta_super_segura';
 
 // POST /api/usuarios/login — login
 router.post('/login', (req, res) => {

@@ -22,6 +22,7 @@ import {
   type EstadoAlquilerStock,
 } from "../data/stockData";
 import { SuccessModal } from "../components/SuccessModal";
+import { getAuthHeaders } from "../../../../backend/utils/putHeaders";
 
 type SortDir = "asc" | "desc";
 type FiltroEstado = "todos" | EstadoAlquilerStock;
@@ -114,12 +115,12 @@ export default function StockDetallePage() {
         setError(null);
 
         // 1. Obtener Categorías
-        const resCategorias = await fetch(`${API_BASE_URL}/categorias`);
+        const resCategorias = await fetch(`${API_BASE_URL}/categorias`, {headers:getAuthHeaders()});
         const dataCategorias = resCategorias.ok ? await resCategorias.json() : [];
         setCategorias(dataCategorias);
 
         // 2. Obtener el artículo por ID
-        const resArticulo = await fetch(`${API_BASE_URL}/stock/${id}`);
+        const resArticulo = await fetch(`${API_BASE_URL}/stock/${id}`, {headers:getAuthHeaders()});
 
         if (!resArticulo.ok) {
           let mensajeError = "No se pudo obtener la información del artículo.";
@@ -170,7 +171,7 @@ export default function StockDetallePage() {
         });
 
         // 3. Obtener Historial de Alquileres de este artículo
-        const resAlquileres = await fetch(`${API_BASE_URL}/alquileres/articulo/${id}`);
+        const resAlquileres = await fetch(`${API_BASE_URL}/alquileres/articulo/${id}`, {headers:getAuthHeaders()});
         if (resAlquileres.ok) {
           const alquileresData = await resAlquileres.json();
           setAlquileresBase(alquileresData);
@@ -221,7 +222,7 @@ export default function StockDetallePage() {
       // Mandamos la estructura que espera tu backend con SQLite
       const response = await fetch(`${API_BASE_URL}/stock/${item.id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           nombre: form.nombre.trim(),
           categoria_id: form.categoria_id ? Number(form.categoria_id) : null,

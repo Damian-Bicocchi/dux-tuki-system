@@ -2,6 +2,7 @@ import { TrendingUp, DollarSign, Users, Percent, ClipboardList } from 'lucide-re
 import { useEffect, useMemo, useState } from 'react';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { getClientes, type Cliente } from '../data/clientesData';
+import { getAuthHeaders } from '../../../../backend/utils/putHeaders';
 
 
 export default function EstadisticasPage() {
@@ -59,7 +60,7 @@ export default function EstadisticasPage() {
 
     async function loadAlquileres() {
         try {
-            const response = await fetch(API_URL);
+            const response = await fetch(API_URL, {headers: getAuthHeaders()});
             if (!response.ok) {
                 throw new Error('No se pudieron cargar los alquileres');
             }

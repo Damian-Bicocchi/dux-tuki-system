@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { SuccessModal } from "../components/SuccessModal";
 import { FailureModal } from "../components/FailureModal";
+import { getAuthHeaders } from "../../../../backend/utils/putHeaders";
 
 interface Categoria {
   id: number;
@@ -77,7 +78,7 @@ export default function NuevoStockPage() {
     try {
       setCargandoCategorias(true);
       setErrorCategorias(false);
-      const response = await fetch("http://localhost:3001/api/categorias");
+      const response = await fetch("http://localhost:3001/api/categorias", {headers:getAuthHeaders()});
       if (!response.ok) throw new Error("Error al obtener las categorías");
       const data = await response.json();
       setCategorias(data);
@@ -91,7 +92,7 @@ export default function NuevoStockPage() {
 
   const cargarArticulosAPI = async () => {
     try {
-      const response = await fetch("http://localhost:3001/api/stock");
+      const response = await fetch("http://localhost:3001/api/stock", {headers:getAuthHeaders()});
       if (response.ok) {
         const data = await response.json();
         setStockItems(data);
@@ -206,9 +207,7 @@ export default function NuevoStockPage() {
 
       const response = await fetch("http://localhost:3001/api/stock", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers:getAuthHeaders(),
         body: JSON.stringify({
           nombre: nombre.trim(),
           categoria: categoria || "Otros",

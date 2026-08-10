@@ -5,6 +5,7 @@ import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input';
 import es from "react-phone-number-input/locale/es";
 import 'react-phone-number-input/style.css';
 import { SuccessModal } from '../components/SuccessModal';
+import { getAuthHeaders } from '../../../../backend/utils/putHeaders';
 
 export default function NuevoClientePage() {
     const navigate = useNavigate();
@@ -69,7 +70,7 @@ export default function NuevoClientePage() {
         try {
             const response = await fetch('http://127.0.0.1:3001/api/clientes', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: getAuthHeaders(),
                 body: JSON.stringify(payload),
             });
 

@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { Search, Package, Plus, ChevronRight, Info } from "lucide-react";
 import { calcularEstado, type StockItem } from "../data/stockData";
+import { getAuthHeaders } from "../../../../backend/utils/putHeaders";
 
 // 1. Definimos la interfaz para las categorías que vienen de la API
 interface Categoria {
@@ -21,8 +22,12 @@ export default function StockPage() {
     const cargarDatos = async () => {
       try {
         const [resStock, resCategorias] = await Promise.all([
-          fetch("http://localhost:3001/api/stock"),
-          fetch("http://localhost:3001/api/categorias")
+        fetch("http://localhost:3001/api/stock", {
+            headers: getAuthHeaders(), // 👈 Headers con el token para stock
+        }),
+        fetch("http://localhost:3001/api/categorias", {
+            headers: getAuthHeaders(), // 👈 Headers con el token para categorías
+        }),
         ]);
 
         if (!resStock.ok || !resCategorias.ok) {

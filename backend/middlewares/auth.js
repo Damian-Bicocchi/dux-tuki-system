@@ -1,4 +1,6 @@
 const jwt = require('jsonwebtoken');
+const { JWT_SECRET } = require('../config/env');
+
 
 // OPCIONAL: Si prefieres consultar la base de datos en cada petición para reflejar 
 // cambios de permisos en tiempo real, puedes importar tu modelo/repositorio de usuarios aquí:
@@ -31,7 +33,7 @@ const authenticate = async (req, res, next) => {
     }
 
     // 4. Verificar la firma y validez del token
-    const secretKey = process.env.JWT_SECRET || 'tu_clave_secreta_por_defecto';
+    const secretKey = JWT_SECRET || 'tu_clave_secreta_por_defecto';
     const decodedPayload = jwt.verify(token, secretKey);
 
     // =========================================================================
