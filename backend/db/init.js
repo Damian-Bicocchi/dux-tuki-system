@@ -5,19 +5,22 @@ function initializeTables() {
 
     db.serialize(() => {
         // 1. Categorías
-        db.run(`
+        db.run(
+            `
       CREATE TABLE IF NOT EXISTS categorias (
         id          INTEGER PRIMARY KEY AUTOINCREMENT,
         nombre      TEXT    NOT NULL UNIQUE,
         descripcion TEXT,
         created_at  TEXT    DEFAULT (datetime('now','localtime'))
       )
-    `, (err) => {
-      if (err) {
-        console.error(err);
-        return;
-      }
-    });
+    `,
+            (err) => {
+                if (err) {
+                    console.error(err);
+                    return;
+                }
+            },
+        );
 
         // 2. Artículos
         db.run(`
@@ -56,7 +59,7 @@ function initializeTables() {
         fecha_inicio   TEXT    NOT NULL,
         fecha_fin      TEXT    NOT NULL,
         estado         TEXT    NOT NULL DEFAULT 'pendiente'
-                        CHECK(estado IN ('pendiente','activo','devuelto','cancelado')),
+                        CHECK(estado IN ('pendiente','activo','vencido','devuelto','cancelado')),
         precio_total   REAL    NOT NULL DEFAULT 0,
         deposito_garantia REAL  NOT NULL DEFAULT 0,
         notas          TEXT,
@@ -67,30 +70,33 @@ function initializeTables() {
 
         // Migracion idempotente para bases existentes: agrega deposito_garantia si no existe.
         db.all(`PRAGMA table_info(alquileres)`, (err, columns = []) => {
-          if (err) {
-            console.error('Error al leer columnas de alquileres:', err.message);
-            return;
-          }
-          const hasDepositoGarantia = columns.some(
-            (col) => col.name === 'deposito_garantia',
-          );
-          if (!hasDepositoGarantia) {
-            db.run(
-              `ALTER TABLE alquileres ADD COLUMN deposito_garantia REAL NOT NULL DEFAULT 0`,
-              (alterErr) => {
-                if (alterErr) {
-                  console.error(
-                    'Error al agregar columna deposito_garantia:',
-                    alterErr.message,
-                  );
-                  return;
-                }
-                console.log(
-                  '✅ Columna deposito_garantia agregada en alquileres.',
+            if (err) {
+                console.error(
+                    'Error al leer columnas de alquileres:',
+                    err.message,
                 );
-              },
+                return;
+            }
+            const hasDepositoGarantia = columns.some(
+                (col) => col.name === 'deposito_garantia',
             );
-          }
+            if (!hasDepositoGarantia) {
+                db.run(
+                    `ALTER TABLE alquileres ADD COLUMN deposito_garantia REAL NOT NULL DEFAULT 0`,
+                    (alterErr) => {
+                        if (alterErr) {
+                            console.error(
+                                'Error al agregar columna deposito_garantia:',
+                                alterErr.message,
+                            );
+                            return;
+                        }
+                        console.log(
+                            '✅ Columna deposito_garantia agregada en alquileres.',
+                        );
+                    },
+                );
+            }
         });
 
         // 5. Usuarios (¡La tabla se queda, las consultas SELECT/INSERT de abajo se van!)

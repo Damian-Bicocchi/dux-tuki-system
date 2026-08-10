@@ -2,18 +2,45 @@
 const { getDb } = require('../db');
 
 class AlquilerRepository {
-  getStockTotalArticulo(articulo_id) {
-    return new Promise((resolve, reject) => {
-      getDb().get('SELECT stock_total, precio_por_dia FROM articulos WHERE id = ?', [articulo_id], (err, row) => {
-        if (err) return reject(err);
-        resolve(row);
-      });
-    });
-  }
+    _estadoEfectivo(row) {
+        if (!row) return row;
 
-  getCantidadOcupada(articulo_id, fecha_inicio, fecha_fin, excluir_alquiler_id = null) {
-    return new Promise((resolve, reject) => {
-      let query = `
+        const hoy = new Date().toISOString().split('T')[0];
+        const fechaFin = row.fecha_fin || row.fechaFin;
+        const estado = row.estado;
+
+        if (estado === 'devuelto' || estado === 'cancelado') {
+            return estado;
+        }
+
+        if (fechaFin && fechaFin < hoy) {
+            return 'vencido';
+        }
+
+        return estado;
+    }
+
+    getStockTotalArticulo(articulo_id) {
+        return new Promise((resolve, reject) => {
+            getDb().get(
+                'SELECT stock_total, precio_por_dia FROM articulos WHERE id = ?',
+                [articulo_id],
+                (err, row) => {
+                    if (err) return reject(err);
+                    resolve(row);
+                },
+            );
+        });
+    }
+
+    getCantidadOcupada(
+        articulo_id,
+        fecha_inicio,
+        fecha_fin,
+        excluir_alquiler_id = null,
+    ) {
+        return new Promise((resolve, reject) => {
+            let query = `
         SELECT COALESCE(SUM(
           CASE
             WHEN ai.cantidad - COALESCE(ciu.cantidad_devuelta, 0) > 0
@@ -34,152 +61,219 @@ class AlquilerRepository {
           AND al.fecha_inicio <= ?
           AND al.fecha_fin   >= ?
       `;
-      const params = [articulo_id, fecha_fin, fecha_inicio];
+            const params = [articulo_id, fecha_fin, fecha_inicio];
 
-      if (excluir_alquiler_id) {
-        query += ' AND al.id != ?';
-        params.push(excluir_alquiler_id);
-      }
+            if (excluir_alquiler_id) {
+                query += ' AND al.id != ?';
+                params.push(excluir_alquiler_id);
+            }
 
-      getDb().get(query, params, (err, row) => {
-        if (err) return reject(err);
-        resolve(row ? row.ocupadas : 0);
-      });
-    });
-  }
+            getDb().get(query, params, (err, row) => {
+                if (err) return reject(err);
+                resolve(row ? row.ocupadas : 0);
+            });
+        });
+    }
 
-  getAlquilerBase(id) {
-    return new Promise((resolve, reject) => {
-      getDb().get(
-        `SELECT al.*, c.nombre AS cliente_nombre, c.email AS cliente_email, c.telefono AS cliente_telefono
+    getAlquilerBase(id) {
+        return new Promise((resolve, reject) => {
+            getDb().get(
+                `SELECT al.*, c.nombre AS cliente_nombre, c.email AS cliente_email, c.telefono AS cliente_telefono
          FROM alquileres al
          JOIN clientes c ON al.cliente_id = c.id
          WHERE al.id = ?`,
-        [id],
-        (err, row) => {
-          if (err) return reject(err);
-          resolve(row);
-        }
-      );
-    });
-  }
+                [id],
+                (err, row) => {
+                    if (err) return reject(err);
+                    resolve(row);
+                },
+            );
+        });
+    }
 
-  getItemsDelAlquiler(id) {
-    return new Promise((resolve, reject) => {
-      getDb().all(
-        `SELECT ai.*, a.nombre AS articulo_nombre, a.precio_por_dia AS precio_articulo_actual
+    getItemsDelAlquiler(id) {
+        return new Promise((resolve, reject) => {
+            getDb().all(
+                `SELECT ai.*, a.nombre AS articulo_nombre, a.precio_por_dia AS precio_articulo_actual
          FROM alquiler_items ai
          JOIN articulos a ON ai.articulo_id = a.id
          WHERE ai.alquiler_id = ?`,
-        [id],
-        (err, rows) => {
-          if (err) return reject(err);
-          resolve(rows || []);
-        }
-      );
-    });
-  }
+                [id],
+                (err, rows) => {
+                    if (err) return reject(err);
+                    resolve(rows || []);
+                },
+            );
+        });
+    }
 
-  listarAlquileresFiltrados({ estado, cliente_id, fecha_inicio, fecha_fin }) {
-    return new Promise((resolve, reject) => {
-      let query = `
+    listarAlquileresFiltrados({ estado, cliente_id, fecha_inicio, fecha_fin }) {
+        return new Promise((resolve, reject) => {
+            const normalizarEstado = (row) => this._estadoEfectivo(row);
+            let query = `
         SELECT al.*, c.nombre AS cliente_nombre
         FROM alquileres al
         JOIN clientes c ON al.cliente_id = c.id
         WHERE 1=1
       `;
-      const params = [];
+            const params = [];
+            const hoySql = "date('now','localtime')";
 
-      if (estado)       { query += ' AND al.estado = ?';       params.push(estado); }
-      if (cliente_id)   { query += ' AND al.cliente_id = ?';   params.push(cliente_id); }
-      if (fecha_inicio) { query += ' AND al.fecha_fin >= ?';   params.push(fecha_inicio); }
-      if (fecha_fin)    { query += ' AND al.fecha_inicio <= ?'; params.push(fecha_fin); }
+            if (estado === 'vencido') {
+                query += ` AND al.estado IN ('pendiente','activo') AND date(al.fecha_fin) < ${hoySql}`;
+            } else if (estado === 'pendiente' || estado === 'activo') {
+                query += ` AND al.estado = ? AND date(al.fecha_fin) >= ${hoySql}`;
+                params.push(estado);
+            } else if (estado) {
+                query += ' AND al.estado = ?';
+                params.push(estado);
+            }
+            if (cliente_id) {
+                query += ' AND al.cliente_id = ?';
+                params.push(cliente_id);
+            }
+            if (fecha_inicio) {
+                query += ' AND al.fecha_fin >= ?';
+                params.push(fecha_inicio);
+            }
+            if (fecha_fin) {
+                query += ' AND al.fecha_inicio <= ?';
+                params.push(fecha_fin);
+            }
 
-      query += ' ORDER BY al.fecha_inicio DESC';
+            query += ' ORDER BY al.fecha_inicio DESC';
 
-      getDb().all(query, params, (err, rows) => {
-        if (err) return reject(err);
-        resolve(rows || []);
-      });
-    });
-  }
+            getDb().all(query, params, (err, rows) => {
+                if (err) return reject(err);
+                resolve(
+                    (rows || []).map((row) => ({
+                        ...row,
+                        estado: normalizarEstado(row),
+                    })),
+                );
+            });
+        });
+    }
 
-  insertarAlquiler({ cliente_id, fecha_inicio, fecha_fin, estado, precio_total, notas }) {
-    return new Promise((resolve, reject) => {
-      getDb().run(
-        `INSERT INTO alquileres (cliente_id, fecha_inicio, fecha_fin, estado, precio_total, notas)
+    insertarAlquiler({
+        cliente_id,
+        fecha_inicio,
+        fecha_fin,
+        estado,
+        precio_total,
+        notas,
+    }) {
+        return new Promise((resolve, reject) => {
+            getDb().run(
+                `INSERT INTO alquileres (cliente_id, fecha_inicio, fecha_fin, estado, precio_total, notas)
          VALUES (?, ?, ?, ?, ?, ?)`,
-        [cliente_id, fecha_inicio, fecha_fin, estado || 'pendiente', precio_total, notas || null],
-        function (err) {
-          if (err) return reject(err);
-          resolve(this.lastID);
-        }
-      );
-    });
-  }
+                [
+                    cliente_id,
+                    fecha_inicio,
+                    fecha_fin,
+                    estado || 'pendiente',
+                    precio_total,
+                    notas || null,
+                ],
+                function (err) {
+                    if (err) return reject(err);
+                    resolve(this.lastID);
+                },
+            );
+        });
+    }
 
-  insertarItemsAlquiler(alquiler_id, items) {
-    return new Promise((resolve, reject) => {
-      const stmt = getDb().prepare(
-        'INSERT INTO alquiler_items (alquiler_id, articulo_id, cantidad, precio_unitario_dia) VALUES (?, ?, ?, ?)'
-      );
-      for (const item of items) {
-        stmt.run([alquiler_id, item.articulo_id, item.cantidad, item.precio_unitario_dia]);
-      }
-      stmt.finalize((err) => {
-        if (err) return reject(err);
-        resolve();
-      });
-    });
-  }
+    insertarItemsAlquiler(alquiler_id, items) {
+        return new Promise((resolve, reject) => {
+            const stmt = getDb().prepare(
+                'INSERT INTO alquiler_items (alquiler_id, articulo_id, cantidad, precio_unitario_dia) VALUES (?, ?, ?, ?)',
+            );
+            for (const item of items) {
+                stmt.run([
+                    alquiler_id,
+                    item.articulo_id,
+                    item.cantidad,
+                    item.precio_unitario_dia,
+                ]);
+            }
+            stmt.finalize((err) => {
+                if (err) return reject(err);
+                resolve();
+            });
+        });
+    }
 
-  actualizarAlquiler(alquiler_id, { cliente_id, fecha_inicio, fecha_fin, estado, precio_total, notas }) {
-    return new Promise((resolve, reject) => {
-      getDb().run(
-        `UPDATE alquileres
+    actualizarAlquiler(
+        alquiler_id,
+        { cliente_id, fecha_inicio, fecha_fin, estado, precio_total, notas },
+    ) {
+        return new Promise((resolve, reject) => {
+            getDb().run(
+                `UPDATE alquileres
          SET cliente_id = ?, fecha_inicio = ?, fecha_fin = ?,
              estado = ?, precio_total = ?, notas = ?
          WHERE id = ?`,
-        [cliente_id, fecha_inicio, fecha_fin, estado || 'pendiente', precio_total, notas || null, alquiler_id],
-        function (err) {
-          if (err) return reject(err);
-          resolve(this.changes);
-        }
-      );
-    });
-  }
+                [
+                    cliente_id,
+                    fecha_inicio,
+                    fecha_fin,
+                    estado || 'pendiente',
+                    precio_total,
+                    notas || null,
+                    alquiler_id,
+                ],
+                function (err) {
+                    if (err) return reject(err);
+                    resolve(this.changes);
+                },
+            );
+        });
+    }
 
-  borrarItemsAlquiler(alquiler_id) {
-    return new Promise((resolve, reject) => {
-      getDb().run('DELETE FROM alquiler_items WHERE alquiler_id = ?', [alquiler_id], (err) => {
-        if (err) return reject(err);
-        resolve();
-      });
-    });
-  }
+    borrarItemsAlquiler(alquiler_id) {
+        return new Promise((resolve, reject) => {
+            getDb().run(
+                'DELETE FROM alquiler_items WHERE alquiler_id = ?',
+                [alquiler_id],
+                (err) => {
+                    if (err) return reject(err);
+                    resolve();
+                },
+            );
+        });
+    }
 
-  actualizarEstadoAlquiler(id, estado) {
-    return new Promise((resolve, reject) => {
-      getDb().run('UPDATE alquileres SET estado = ? WHERE id = ?', [estado, id], function (err) {
-        if (err) return reject(err);
-        resolve(this.changes);
-      });
-    });
-  }
+    actualizarEstadoAlquiler(id, estado) {
+        return new Promise((resolve, reject) => {
+            getDb().run(
+                'UPDATE alquileres SET estado = ? WHERE id = ?',
+                [estado, id],
+                function (err) {
+                    if (err) return reject(err);
+                    resolve(this.changes);
+                },
+            );
+        });
+    }
 
-  eliminarAlquiler(id) {
-    return new Promise((resolve, reject) => {
-      getDb().run('DELETE FROM alquileres WHERE id = ?', [id], function (err) {
-        if (err) return reject(err);
-        resolve(this.changes);
-      });
-    });
-  }
-  
-  // Nuevo método requerido para buscar alquileres asociados a un item en StockDetallePage.tsx
-  findAlquileresByArticuloId(articuloId) {
-    return new Promise((resolve, reject) => {
-      const query = `
+    eliminarAlquiler(id) {
+        return new Promise((resolve, reject) => {
+            getDb().run(
+                'DELETE FROM alquileres WHERE id = ?',
+                [id],
+                function (err) {
+                    if (err) return reject(err);
+                    resolve(this.changes);
+                },
+            );
+        });
+    }
+
+    // Nuevo método requerido para buscar alquileres asociados a un item en StockDetallePage.tsx
+    findAlquileresByArticuloId(articuloId) {
+        return new Promise((resolve, reject) => {
+            const normalizarEstado = (row) => this._estadoEfectivo(row);
+            const query = `
         SELECT al.id, c.nombre AS cliente, al.estado, al.fecha_inicio, al.fecha_fin, al.precio_total AS precio
         FROM alquileres al
         JOIN clientes c ON al.cliente_id = c.id
@@ -187,17 +281,21 @@ class AlquilerRepository {
         WHERE ai.articulo_id = ?
         ORDER BY al.fecha_fin DESC
       `;
-      getDb().all(query, [articuloId], (err, rows) => {
-        if (err) return reject(err);
-        resolve(rows || []);
-      });
-    });
-  }
+            getDb().all(query, [articuloId], (err, rows) => {
+                if (err) return reject(err);
+                resolve(
+                    (rows || []).map((row) => ({
+                        ...row,
+                        estado: normalizarEstado(row),
+                    })),
+                );
+            });
+        });
+    }
 
-  getAlquileresEmpiezanFecha(fecha) {
-
-    return new Promise((resolve, reject) => {
-      const query = `
+    getAlquileresEmpiezanFecha(fecha) {
+        return new Promise((resolve, reject) => {
+            const query = `
         SELECT 
           a.id,
           c.nombre AS cliente,
@@ -217,20 +315,22 @@ class AlquilerRepository {
         ORDER BY a.id DESC
       `;
 
-      getDb().all(query, [fecha], (err, rows) => {
-        if (err) {
-          console.error("🔴 Error SQLite en getAlquileresEmpiezanFecha:", err.message);
-          return reject(err);
-        }
-        resolve(rows || []);
-      });
-    });
-  }
+            getDb().all(query, [fecha], (err, rows) => {
+                if (err) {
+                    console.error(
+                        '🔴 Error SQLite en getAlquileresEmpiezanFecha:',
+                        err.message,
+                    );
+                    return reject(err);
+                }
+                resolve(rows || []);
+            });
+        });
+    }
 
-  getAlquileresTerminanFecha(fecha) {
-
-    return new Promise((resolve, reject) => {
-      const query = `
+    getAlquileresTerminanFecha(fecha) {
+        return new Promise((resolve, reject) => {
+            const query = `
         SELECT 
           a.id,
           c.nombre AS cliente,
@@ -250,18 +350,18 @@ class AlquilerRepository {
         ORDER BY a.id DESC
       `;
 
-      getDb().all(query, [fecha], (err, rows) => {
-        if (err) {
-          console.error("🔴 Error SQLite en getAlquileresTerminanFecha:", err.message);
-          return reject(err);
-        }
-        resolve(rows || []);
-      });
-    });
-  }
-
-
-
+            getDb().all(query, [fecha], (err, rows) => {
+                if (err) {
+                    console.error(
+                        '🔴 Error SQLite en getAlquileresTerminanFecha:',
+                        err.message,
+                    );
+                    return reject(err);
+                }
+                resolve(rows || []);
+            });
+        });
+    }
 }
 
 module.exports = new AlquilerRepository();

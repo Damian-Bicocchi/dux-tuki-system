@@ -377,7 +377,7 @@ export default function NuevoAlquilerPage() {
             const itemsConError = items.filter((i) => i.error);
             if (itemsConError.length > 0) {
                 hasError = true;
-                newErrors.general = 'Revisá los problemas de stock señalados en color rojo.';
+                newErrors.general = 'No se pudo completar la accion, revisar los problemas notificados.';
             }
         }
 

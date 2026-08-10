@@ -9,6 +9,7 @@ import {
     Package,
     RefreshCw,
     Search,
+    Plus,
     User,
 } from 'lucide-react';
 
@@ -52,12 +53,29 @@ function formatMonto(monto: number) {
     }).format(monto || 0);
 }
 
-function getEstadoStyles(estado: EstadoAlquiler) {
+type EstadoListaVisible = EstadoAlquiler | 'vencido';
+
+function mapEstadoLista(
+    estado: EstadoAlquiler,
+    fechaFin: string,
+): EstadoListaVisible {
+    const hoy = new Date().toISOString().slice(0, 10);
+
+    if ((estado === 'pendiente' || estado === 'activo') && fechaFin < hoy) {
+        return 'vencido';
+    }
+
+    return estado;
+}
+
+function getEstadoStyles(estado: EstadoListaVisible) {
     switch (estado) {
         case 'pendiente':
             return 'bg-amber-100 text-amber-900 border-amber-300';
         case 'activo':
             return 'bg-green-100 text-green-800 border-green-300';
+        case 'vencido':
+            return 'bg-rose-100 text-rose-800 border-rose-300';
         case 'devuelto':
             return 'bg-slate-100 text-slate-800 border-slate-300';
         case 'cancelado':
@@ -92,7 +110,6 @@ export default function AlquileresPage() {
 
                 const data = (await response.json()) as AlquilerResumenApi[];
 
-                
                 if (isMounted) {
                     setAlquileres(data);
                 }
@@ -133,21 +150,28 @@ export default function AlquileresPage() {
         });
     }, [alquileres, searchTerm, filterEstado]);
 
-    
-
     return (
         <div className="px-5 py-6 pb-10 min-h-screen bg-gradient-to-b from-white via-[#f7fbfa] to-white">
-            <div className="mb-6">
-                <h1 className="text-3xl font-bold uppercase tracking-[0.24em] text-[#1b6f5c] mb-2">
-                    Gestión de alquileres
-                </h1>
-                <h2 className="text-xs font-black text-gray-900 leading-tight">
-                    Cada alquiler abre su propia ventana
-                </h2>
-                
-            </div>
+            <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                    <h1 className="text-3xl font-semibold font-sans text-gray-900 mb-2">
+                        Gestión de alquileres
+                    </h1>
+                    <h2 className="text-base font-medium font-sans text-gray-700 leading-tight">
+                        Cada alquiler abre su propia ventana
+                    </h2>
+                </div>
 
-            
+                <button
+                    type="button"
+                    onClick={() => navigate('/app/nuevo-alquiler')}
+                    className="inline-flex items-center gap-2 rounded-2xl bg-[#218a72] px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#1b6f5c] focus:outline-none focus:ring-4 focus:ring-[#218a72]/20"
+                    aria-label="Crear un nuevo alquiler"
+                >
+                    <Plus size={18} aria-hidden="true" />
+                    Crear alquiler
+                </button>
+            </div>
 
             <div className="space-y-3 mb-5">
                 <div className="relative">
@@ -215,88 +239,105 @@ export default function AlquileresPage() {
                 </div>
             ) : filteredAlquileres.length === 0 ? (
                 <div className="text-center py-16 bg-white border-2 border-dashed border-gray-200 rounded-3xl text-gray-500">
-                    No hay alquileres para los filtros actuales.
+                    <p className="mb-4">No hay alquileres para los filtros actuales.</p>
+                    <button
+                        type="button"
+                        onClick={() => navigate('/app/nuevo-alquiler')}
+                        className="inline-flex items-center gap-2 rounded-2xl bg-[#218a72] px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#1b6f5c] focus:outline-none focus:ring-4 focus:ring-[#218a72]/20"
+                    >
+                        <Plus size={18} aria-hidden="true" />
+                        Crear alquiler
+                    </button>
                 </div>
             ) : (
                 <div className="space-y-3">
-                    {filteredAlquileres.map((alquiler) => (
-                        <button
-                            key={alquiler.id}
-                            onClick={() =>
-                                navigate(`/app/alquileres/${alquiler.id}`)
-                            }
-                            className="w-full text-left bg-white border-2 border-gray-100 rounded-3xl p-5 shadow-sm hover:border-[#218a72] hover:shadow-md transition-all focus:outline-none focus:ring-4 focus:ring-[#218a72]/20"
-                        >
-                            <div className="flex items-start justify-between gap-3 mb-4">
-                                <div className="min-w-0">
-                                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-[#1b6f5c] mb-2">
-                                        <Package size={14} aria-hidden="true" />
-                                        #
-                                        {alquiler.id
-                                            .toString()
-                                            .padStart(4, '0')}
+                    {filteredAlquileres.map((alquiler) => {
+                        const estadoVista = mapEstadoLista(
+                            alquiler.estado,
+                            alquiler.fecha_fin,
+                        );
+
+                        return (
+                            <button
+                                key={alquiler.id}
+                                onClick={() =>
+                                    navigate(`/app/alquileres/${alquiler.id}`)
+                                }
+                                className="w-full text-left bg-white border-2 border-gray-100 rounded-3xl p-5 shadow-sm hover:border-[#218a72] hover:shadow-md transition-all focus:outline-none focus:ring-4 focus:ring-[#218a72]/20"
+                            >
+                                <div className="flex items-start justify-between gap-3 mb-4">
+                                    <div className="min-w-0">
+                                        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-[#1b6f5c] mb-2">
+                                            <Package
+                                                size={14}
+                                                aria-hidden="true"
+                                            />
+                                            #
+                                            {alquiler.id
+                                                .toString()
+                                                .padStart(4, '0')}
+                                        </div>
+                                        <h2 className="text-xl font-semibold font-sans text-gray-900 truncate">
+                                            {alquiler.cliente_nombre}
+                                        </h2>
+                                        <p className="text-sm text-gray-600 mt-1">
+                                            {alquiler.cantidad_items} ítem
+                                            {alquiler.cantidad_items !== 1
+                                                ? 's'
+                                                : ''}{' '}
+                                            ·{' '}
+                                            {formatMonto(alquiler.precio_total)}
+                                        </p>
                                     </div>
-                                    <h2 className="text-lg font-black text-gray-900 truncate">
-                                        {alquiler.cliente_nombre}
-                                    </h2>
-                                    <p className="text-sm text-gray-600 mt-1">
-                                        {alquiler.cantidad_items} ítem
-                                        {alquiler.cantidad_items !== 1
-                                            ? 's'
-                                            : ''}{' '}
-                                        · {formatMonto(alquiler.precio_total)}
-                                    </p>
+
+                                    <span
+                                        className={`px-3 py-1.5 rounded-full text-xs font-bold border-2 whitespace-nowrap ${getEstadoStyles(estadoVista)}`}
+                                    >
+                                        {estadoVista.charAt(0).toUpperCase() +
+                                            estadoVista.slice(1)}
+                                    </span>
                                 </div>
 
-                                <span
-                                    className={`px-3 py-1.5 rounded-full text-xs font-bold border-2 whitespace-nowrap ${getEstadoStyles(alquiler.estado)}`}
-                                >
-                                    {alquiler.estado.charAt(0).toUpperCase() +
-                                        alquiler.estado.slice(1)}
-                                </span>
-                            </div>
+                                <div className="grid grid-cols-2 gap-3 text-sm mb-4">
+                                    <InfoPill
+                                        icon={User}
+                                        label="Cliente"
+                                        value={alquiler.cliente_nombre}
+                                    />
+                                    <InfoPill
+                                        icon={Calendar}
+                                        label="Fechas"
+                                        value={`${formatFecha(alquiler.fecha_inicio)} → ${formatFecha(alquiler.fecha_fin)}`}
+                                    />
+                                </div>
 
-                            <div className="grid grid-cols-2 gap-3 text-sm mb-4">
-                                <InfoPill
-                                    icon={User}
-                                    label="Cliente"
-                                    value={alquiler.cliente_nombre}
-                                />
-                                <InfoPill
-                                    icon={Calendar}
-                                    label="Fechas"
-                                    value={`${formatFecha(alquiler.fecha_inicio)} → ${formatFecha(alquiler.fecha_fin)}`}
-                                />
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-3 text-sm">
-                                <InfoPill
-                                    icon={BadgeDollarSign}
-                                    label="Recargos"
-                                    value={formatMonto(
-                                        alquiler.cierre_total_recargos || 0,
-                                    )}
-                                />
-                                <InfoPill
-                                    icon={ChevronRight}
-                                    label = ""
-                                    value={
-                                        alquiler.cierre_estado_entrega
-                                            ? `Cierre ${alquiler.cierre_estado_entrega}`
-                                            : 'Cargar cierre'
-                                    }
-                                    alignRight
-                                />
-                            </div>
-                        </button>
-                    ))}
+                                <div className="grid grid-cols-2 gap-3 text-sm">
+                                    <InfoPill
+                                        icon={BadgeDollarSign}
+                                        label="Recargos"
+                                        value={formatMonto(
+                                            alquiler.cierre_total_recargos || 0,
+                                        )}
+                                    />
+                                    <InfoPill
+                                        icon={ChevronRight}
+                                        label=""
+                                        value={
+                                            alquiler.cierre_estado_entrega
+                                                ? `Cierre ${alquiler.cierre_estado_entrega}`
+                                                : 'Cargar cierre'
+                                        }
+                                        alignRight
+                                    />
+                                </div>
+                            </button>
+                        );
+                    })}
                 </div>
             )}
         </div>
     );
 }
-
-
 
 function InfoPill({
     icon: Icon,
@@ -313,10 +354,9 @@ function InfoPill({
             className={`rounded-2xl bg-gray-50 border border-gray-100 p-3 ${alignRight ? 'text-right' : ''}`}
         >
             <div
-                className={`flex items-center gap-2 text-[11px] font-bold uppercase tracking-wide text-gray-500 ${alignRight ? 'justify-end' : ''}`}
+                className={`flex items-center gap-2 text-[11px] font-semibold font-sans uppercase tracking-wide text-gray-500 ${alignRight ? 'justify-end' : ''}`}
             >
                 <Icon size={13} aria-hidden="true" />
-                
             </div>
             <div className="mt-1 text-sm font-semibold text-gray-800 break-words">
                 {value}
