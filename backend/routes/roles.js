@@ -1,11 +1,15 @@
 const express = require('express');
-const router = express.Router();
+
+const authenticate = require('../middlewares/auth');
+const checkPermission = require('../middlewares/checkPermission');
 
 const rolesController = require('../controllers/rolesController');
 const checkPermission = require('../middlewares/checkPermission');
 // Asumiendo que tienes un middleware para verificar JWT / sesión previa
 const authenticate = require('../middlewares/auth'); 
 
+const router = express.Router();
+router.use(authenticate);
 // -------------------------------------------------------------
 // RUTAS PARA GESTIONAR ROLES (Solo el Admin puede usarlas)
 // -------------------------------------------------------------

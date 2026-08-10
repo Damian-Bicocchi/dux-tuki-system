@@ -8,6 +8,7 @@ const authenticate = require('../middlewares/auth');
 const checkPermission = require('../middlewares/checkPermission');
 
 const router = express.Router();
+router.use(authenticate);
 
 // 2. PROTEGER TODAS LAS RUTAS DE ESTE ARCHIVO CON AUTHENTICATE
 // Cualquier petición a /api/alquileres primero verificará que el token JWT sea válido.

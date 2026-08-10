@@ -1,7 +1,12 @@
 const express = require('express');
 const db = require('../db/index'); 
 const { getDb } = require('../db'); // <-- Reclama tu instancia de DB directamente aquí
+
+const authenticate = require('../middlewares/auth');
+const checkPermission = require('../middlewares/checkPermission');
+
 const router = express.Router();
+router.use(authenticate);
 
 // GET /api/clientes — listar todos
 router.get('/', (req, res) => {

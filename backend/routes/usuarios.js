@@ -2,10 +2,12 @@ const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken'); // 1. IMPORTAR JWT
 const { getDb } = require('../db');
-
-const router = express.Router();
 const authenticate = require('../middlewares/auth');
 const checkPermission = require('../middlewares/checkPermission');
+
+const router = express.Router();
+
+
 // Clave secreta para firmar tokens (debería estar en tu archivo .env)
 const JWT_SECRET = process.env.JWT_SECRET || 'tu_clave_secreta_super_segura';
 
@@ -84,7 +86,7 @@ router.post('/login', (req, res) => {
 });
 
 // POST /api/usuarios/register — registro de usuario
-router.post('/register', (req, res) => {
+router.post('/register', authenticate, (req, res) => {
     const { username, password, role_id, is_admin } = req.body;
     const db = getDb();
 

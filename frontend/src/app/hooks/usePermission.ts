@@ -1,5 +1,6 @@
 import { useAuth } from './useAuth';
-import { PermissionKey } from '../config/permissions';
+import { PermissionKey } from '../../config/permissions';
+
 
 export const usePermission = () => {
   const { user } = useAuth();
