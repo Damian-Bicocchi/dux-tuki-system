@@ -1,4 +1,4 @@
-import { useAuth } from './useAuth';
+import { useAuth } from '../../app/context/AuthContext';
 import { PermissionKey } from '../../config/permissions';
 
 
