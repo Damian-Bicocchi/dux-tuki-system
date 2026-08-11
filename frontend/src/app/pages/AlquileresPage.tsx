@@ -240,7 +240,9 @@ export default function AlquileresPage() {
                 </div>
             ) : filteredAlquileres.length === 0 ? (
                 <div className="text-center py-16 bg-white border-2 border-dashed border-gray-200 rounded-3xl text-gray-500">
-                    <p className="mb-4">No hay alquileres para los filtros actuales.</p>
+                    <p className="mb-4">
+                        No hay alquileres para los filtros actuales.
+                    </p>
                     <button
                         type="button"
                         onClick={() => navigate('/app/nuevo-alquiler')}
