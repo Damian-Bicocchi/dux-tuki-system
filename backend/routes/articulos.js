@@ -16,4 +16,6 @@ router.post("/", validarNuevoArticulo, stockController.crearOSumarArticulo);
 // 👇 AGREGA ESTA RUTA NUEVA
 router.get("/:id", stockController.obtenerArticuloPorId);
 
+router.put("/:id", stockController.actualizarArticulo);
+
 module.exports = router;

@@ -682,7 +682,7 @@ export default function NuevoAlquilerPage() {
                         <button type="submit" disabled={submitting}
                             className="flex-1 bg-[#166b58] text-white py-4 px-6 rounded-xl font-bold hover:bg-[#125546] focus:bg-[#125546] transition-colors focus:outline-none focus:ring-4 focus:ring-[#166b58]/30 flex items-center justify-center gap-2 disabled:opacity-60">
                             {submitting ? <LoaderCircle size={20} className="animate-spin" aria-hidden="true" /> : <Save size={20} aria-hidden="true" />}
-                            {submitting ? 'Guardando...' : 'Guardar alquiler'}
+                            {submitting ? 'Guardando...' : 'Registrar alquiler'}
                         </button>
                         <button
                             type="button"

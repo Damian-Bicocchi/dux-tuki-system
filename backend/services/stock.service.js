@@ -94,6 +94,20 @@ class StockService {
     // El servicio simplemente le pide los datos limpios al repositorio
     return await stockRepository.findArticuloById(id);
   }
+  async actualizarArticulo(id, datos) {
+    try {
+      const articulo = await stockRepository.findArticuloById(id);
+      if (!articulo) {
+        return false;
+      }
+
+      const actualizado = await stockRepository.updateArticulo(id, datos);
+      return mapearAFrontend(actualizado);
+    } catch (error) {
+      console.error("Error en actualizarArticulo:", error);
+      throw error;
+    }
+  }
 }
 
 module.exports = new StockService();

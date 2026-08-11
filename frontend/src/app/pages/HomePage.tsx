@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
+import { getClientes } from '../data/clientesData';
+import {getAlquileres} from '../data/alquileresData';
 import {
     Plus,
     List,
@@ -23,26 +25,53 @@ interface HomePageProps {
 
 export default function HomePage({ userName }: HomePageProps) {
     const navigate = useNavigate();
+    
+    // 1. Inicializa el estado con valores por defecto (números, no promesas)
     const [stats, setStats] = useState<Stats>({
-        activos: 12,
-        vencidos: 3,
-        total_clientes: 48,
+        activos: 0,
+        vencidos: 0,
+        total_clientes: 0,
         ingresos_mes: 245000,
     });
     const [statsLoaded, setStatsLoaded] = useState(false);
 
+    // 2. Centraliza la obtención de datos en el useEffect
     useEffect(() => {
-        const timer = setTimeout(() => {
-            setStats({
-                activos: 12,
-                vencidos: 1,
-                total_clientes: 48,
-                ingresos_mes: 245000,
-            });
-            setStatsLoaded(true);
-        }, 500);
-        return () => clearTimeout(timer);
-    }, []);
+        let isMounted = true; // Para evitar actualizar estado si el componente se desmonta
+
+        const fetchDashboardData = async () => {
+            try {
+                // Si getAlquileres también es una promesa, usamos Promise.all para hacerlas en paralelo
+                // Si getAlquileres NO es promesa, quítale el 'await'
+                const [clientes, alquileres] = await Promise.all([
+                    getClientes(),
+                    getAlquileres() 
+                ]);
+
+                if (isMounted) {
+                    const activos = alquileres.filter((a) => a.estado === 'activo').length;
+                    const vencidos = alquileres.filter((a) => a.estado === 'vencido').length;
+
+                    setStats({
+                        activos,
+                        vencidos,
+                        total_clientes: clientes.length,
+                        ingresos_mes: 245000, // O calcularlo dinámicamente
+                    });
+                    setStatsLoaded(true);
+                }
+            } catch (error) {
+                console.error("Error cargando las estadísticas:", error);
+                // Aquí podrías manejar un estado de error
+            }
+        };
+
+        fetchDashboardData();
+
+        return () => {
+            isMounted = false; // Cleanup al desmontar
+        };
+    }, []); // El array vacío asegura que esto corra SOLO UNA VEZ al montar
 
     const formatMoney = (amount: number) => {
         return `$${amount.toLocaleString('es-AR')}`;

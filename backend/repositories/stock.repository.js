@@ -131,7 +131,7 @@ class StockRepository {
       WHERE a.id = ?
       GROUP BY a.id
     `;
-
+  
     getDb().get(query, [id], (err, row) => {
       if (err) {
         return reject(err); // El error de base de datos se propaga hacia arriba
@@ -139,7 +139,30 @@ class StockRepository {
       resolve(row); // Retorna la fila (o undefined si no existe)
     });
   });
-};
+}
+  updateArticulo(id, datos) {
+    return new Promise((resolve, reject) => {
+        const { nombre, categoria_id, stock_total, precio_por_dia, deposito_garantia } = datos;
+        const query = `
+          UPDATE articulos 
+          SET nombre = ?, categoria_id = ?, stock_total = ?, precio_por_dia = ?, deposito_garantia = ?
+          WHERE id = ?
+        `;
+
+        getDb().run(
+            query,
+            [nombre, categoria_id, stock_total, precio_por_dia, deposito_garantia, id],
+            function (err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve({ id, nombre, categoria_id, stock_total, precio_por_dia, deposito_garantia, changes: this.changes });
+                }
+            }
+        ); 
+    }); 
+}
+  
 }
 
 module.exports = new StockRepository();

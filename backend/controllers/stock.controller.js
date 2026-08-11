@@ -21,6 +21,35 @@ class StockController {
     }
   }
 
+  async actualizarArticulo(req, res) {
+    try {
+        // 1. Extraemos el ID de la URL (ej: /api/stock/5)
+        const id = req.params.id;
+        
+        // 2. Extraemos los datos que mandó el Frontend en el JSON
+        const datos = req.body;
+
+        // 3. Llamamos al SERVICE que me pasaste arriba
+        const resultado = await stockService.actualizarArticulo(id, datos);
+
+        // 4. Si el service devolvió false (no encontró el artículo)
+        if (!resultado) {
+            return res.status(404).json({ 
+                message: `El artículo con ID ${id} no existe.` 
+            });
+        }
+
+        // 5. Todo salió bien, respondemos con status 200 y el objeto actualizado
+        res.status(200).json(resultado);
+
+    } catch (error) {
+        console.error("Error en el controller actualizarArticulo:", error);
+        res.status(500).json({ 
+            message: "Error interno al actualizar el artículo",
+            error: error.message 
+        });
+    }
+}
   async crearOSumarArticulo(req, res, next) {
     try {
       const {
