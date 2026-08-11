@@ -17,7 +17,7 @@ import NuevoClientePage from "./pages/NuevoClientePage";
 import StockDetallePage from "./pages/StockDetallePage";
 import EstadisticasPage from "./pages/EstadisticasPage";
 import CalendarioPage from "./pages/CalendarioPage";
-import AdministracionPage from "./pages/AdministracionPage";
+import ConfiguracionesAvanzadasPage from "./pages/ConfiguracionesAvanzadasPage";
 
 export const router = createBrowserRouter([
   {
@@ -47,7 +47,7 @@ export const router = createBrowserRouter([
       { path: "clientes/nuevo", Component: NuevoClientePage },
       { path: "clientes/:id", Component: ClienteDetallePage },
       { path: "estadisticas", Component: EstadisticasPage },
-      { path: "sistema", Component: AdministracionPage },
+      { path: "sistema", Component: ConfiguracionesAvanzadasPage },
     ],
   },
 ]);
