@@ -1,7 +1,10 @@
 const express = require('express');
 const { getDb } = require('../db');
+const authenticate = require('../middlewares/auth');
+const checkPermission = require('../middlewares/checkPermission');
 
 const router = express.Router();
+router.use(authenticate);
 const db = new Proxy(
     {},
     {

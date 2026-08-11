@@ -1,7 +1,9 @@
 const express = require('express');
-
+const authenticate = require('../middlewares/auth');
+const checkPermission = require('../middlewares/checkPermission');
 module.exports = (db) => {
     const router = express.Router();
+    router.use(authenticate);
 
     // GET /api/costos?mes=2025-06 — listar costos (opcionalmente filtrar por mes)
     router.get('/', (req, res) => {

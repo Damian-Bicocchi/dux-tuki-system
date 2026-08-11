@@ -5,6 +5,7 @@ import { SuccessModal } from '../components/SuccessModal';
 import { getClientes } from '../data/clientesData';
 import { getStocks } from '../data/stockData';
 import { ItemRow } from '../components/ItemRow';
+import { getAuthHeaders } from '../../../../backend/utils/putHeaders';
 
 const API_URL = 'http://localhost:3001/api';
 
@@ -160,7 +161,8 @@ export default function NuevoAlquilerPage() {
 
                     try {
                         const res = await fetch(
-                            `${API_URL}/alquileres/disponibilidad?articulo_id=${item.articulo_id}&fecha_inicio=${fechaInicio}&fecha_fin=${fechaFin}`
+                            `${API_URL}/alquileres/disponibilidad?articulo_id=${item.articulo_id}&fecha_inicio=${fechaInicio}&fecha_fin=${fechaFin}`,
+                            {headers: getAuthHeaders()}
                         );
                         if (!res.ok) return { ...item, error: undefined };
 
@@ -411,7 +413,7 @@ export default function NuevoAlquilerPage() {
         try {
             const res = await fetch(`${API_URL}/alquileres`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: getAuthHeaders(),
                 body: JSON.stringify({
                     cliente_id: clienteSeleccionado!.id,
                     fecha_inicio: fechaInicio,

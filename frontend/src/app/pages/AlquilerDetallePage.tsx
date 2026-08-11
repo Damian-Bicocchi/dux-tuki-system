@@ -14,6 +14,9 @@ import {
   ClipboardCheck,
 } from "lucide-react";
 
+import { getAuthHeaders } from '../../../../backend/utils/putHeaders';
+import { Can } from "../components/ui/Can";
+
 type EstadoDetalle = "activo" | "vencido" | "finalizado";
 
 interface AlquilerItemApi {
@@ -146,7 +149,7 @@ export default function AlquilerDetallePage() {
       setError(null);
 
       try {
-        const response = await fetch(`${API_BASE_URL}/alquileres/${id}`);
+        const response = await fetch(`${API_BASE_URL}/alquileres/${id}`, {headers:getAuthHeaders()});
         if (!response.ok) {
           throw new Error("No se pudo cargar el detalle del alquiler");
         }
@@ -263,7 +266,7 @@ export default function AlquilerDetallePage() {
 
       const response = await fetch(`${API_BASE_URL}/alquileres/${id}/cierre`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         body: JSON.stringify(payload),
       });
 
@@ -400,8 +403,9 @@ export default function AlquilerDetallePage() {
                 <ClipboardCheck size={18} aria-hidden="true" />
                 <h2 id="form-devolucion-titulo" className="text-sm font-bold uppercase tracking-wider">Registrar Devolución</h2>
               </div>
-              
-              <form onSubmit={handleProcesarEntrega} className="p-4 space-y-4">
+              <Can do="permiso_para_modificar_alquileres">
+                
+                <form onSubmit={handleProcesarEntrega} className="p-4 space-y-4">
                 
                 {/* Tipo de entrega */}
                 <fieldset className="space-y-2">
@@ -613,6 +617,8 @@ export default function AlquilerDetallePage() {
                   {processingCierre ? "Procesando..." : "Procesar Cierre y Confirmar Recepción"}
                 </button>
               </form>
+            </Can>
+              
             </section>
           )}
         </div>

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Pencil, Check, X } from "lucide-react";
+import { getAuthHeaders } from "../../../../../../backend/utils/putHeaders";
 
 export interface Categoria {
   id: number;
@@ -36,7 +37,7 @@ export default function CategoriasList({
     try {
       const response = await fetch(`${API_URL}/${editando}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ nombre: nombre.trim() }), 
       });
 
