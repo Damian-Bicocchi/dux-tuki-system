@@ -6,5 +6,4 @@ module.exports = {
   ADMIN_PASSWORD: process.env.ADMIN_PASSWORD || 'Hola1234',
   DB_PATH: process.env.DB_PATH || path.resolve(__dirname, '../../BD/database.db'),
   SALT_ROUNDS: 10,
-  JWT_SECRET: process.env.JWT_SECRET || 'diseno-y-experiencia-de-usuario'
 };

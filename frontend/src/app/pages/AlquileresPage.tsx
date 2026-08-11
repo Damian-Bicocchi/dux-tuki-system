@@ -12,7 +12,6 @@ import {
     Plus,
     User,
 } from 'lucide-react';
-import { getAuthHeaders } from '../../../../backend/utils/putHeaders';
 
 type EstadoAlquiler = 'pendiente' | 'activo' | 'devuelto' | 'cancelado';
 
@@ -104,7 +103,7 @@ export default function AlquileresPage() {
             setError(null);
 
             try {
-                const response = await fetch(API_URL, {headers: getAuthHeaders()});
+                const response = await fetch(API_URL);
                 if (!response.ok) {
                     throw new Error('No se pudieron cargar los alquileres');
                 }

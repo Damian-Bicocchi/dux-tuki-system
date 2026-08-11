@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Plus } from "lucide-react";
 import { SuccessModal } from "../../../components/SuccessModal";
 import { FailureModal } from "../../../components/FailureModal";
-import { getAuthHeaders } from "../../../../../../backend/utils/putHeaders";
 
 // Definimos la interfaz para las props
 interface CategoriasFormProps {
@@ -34,7 +33,7 @@ export default function CategoriasForm({ onCategoriaCreada }: CategoriasFormProp
     try {
       const response = await fetch(API_URL, {
         method: "POST",
-        headers: getAuthHeaders(),
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ nombre: nombreCapitalizado }),
       });
 

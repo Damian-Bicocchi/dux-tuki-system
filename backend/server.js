@@ -1,4 +1,4 @@
-const { connect } = require('./db');
+const { connect, closeDb } = require('./db');
 const { initializeTables } = require('./db/init');
 const { createAdmin } = require('./seeders/admin.seeder');
 const { seedCategorias } = require("./seeders/categorias.seeder");
@@ -49,6 +49,7 @@ async function start() {
 // Manejo de cierre ordenado
 process.on('SIGINT', async () => {
   console.log('\n🛑 Señal SIGINT recibida, cerrando servidor...');
+  await closeDb();
   process.exit(0);
 });
 

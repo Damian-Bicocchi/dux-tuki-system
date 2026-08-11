@@ -3,7 +3,6 @@ import CategoriasForm from "../categoriasComponent/CategoriasForm";
 import CategoriasList, {
   type Categoria,
 } from "../categoriasComponent/CategoriasList";
-import { getAuthHeaders } from "../../../../../../backend/utils/putHeaders";
 
 export function CategoriasTab() {
   const [categorias, setCategorias] = useState<Categoria[]>([]);
@@ -12,7 +11,7 @@ export function CategoriasTab() {
   // Centralizamos la carga aquí
   async function cargarCategorias() {
     try {
-      const res = await fetch("http://localhost:3001/api/categorias", {headers:getAuthHeaders()});
+      const res = await fetch("http://localhost:3001/api/categorias");
       if (!res.ok) {
         throw new Error("Error al obtener categorías");
       }

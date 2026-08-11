@@ -1,3 +1,5 @@
+const STORAGE_KEY = 'tuki-stock-v1';
+
 export interface StockItem {
   id: number;
   nombre: string;
@@ -19,75 +21,22 @@ export interface AlquilerDeEquipo {
   precio: number;
 }
 
+
 export function calcularEstado(disponibles: number, total: number): 'disponible' | 'bajo' | 'agotado' {
   if (disponibles === 0) return 'agotado';
   if (disponibles <= total * 0.3) return 'bajo';
   return 'disponible';
 }
 
-const API_URL = 'http://localhost:3001/api/stock';
 
-import { getAuthHeaders } from '../../../../backend/utils/putHeaders';
-
+const API_URL = 'http://localhost:3001/api';
 export async function getStocks(): Promise<StockItem[]> {
-  try {
-    const response = await fetch(API_URL, {
-      method: 'GET',
-      headers: getAuthHeaders(),
-    });
-
-    // Validar respuesta del servidor (evita crash en React si responde 401 o 500)
+    const response = await fetch(`${API_URL}/stock`);
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `Error HTTP: ${response.status}`);
+        throw new Error('No se pudo cargar el stock');
     }
-
-    const data = await response.json();
-    return Array.isArray(data) ? data : [];
-  } catch (error) {
-    console.error('Error al obtener el stock del backend:', error);
-    return [];
-  }
+    return response.json();
 }
-
-// Crear nuevo artículo directamente en la BD
-export async function addStockItem(item: Omit<StockItem, 'id'>): Promise<StockItem> {
-  try {
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(item),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || 'Error al guardar el artículo en el stock');
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error('Error al agregar artículo al stock:', error);
-    throw error;
-  }
-}
-
-// Editar un artículo existente
-export async function updateStockItem(id: number, item: Partial<StockItem>): Promise<StockItem> {
-  try {
-    const response = await fetch(`${API_URL}/${id}`, {
-      method: 'PUT',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(item),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || 'Error al actualizar el artículo');
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error('Error al actualizar artículo:', error);
-    throw error;
-  }
+export function saveStockItems(items: StockItem[]): void {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
 }

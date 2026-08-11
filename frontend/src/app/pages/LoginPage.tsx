@@ -2,11 +2,9 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { HelpCircle, Eye, EyeOff } from 'lucide-react';
 import { FailureModal } from '../components/FailureModal';
-import { useAuth } from '../context/AuthContext'; // 1. IMPORTAR TU HOOK DE AUTENTICACIÓN
 
 export default function LoginPage() {
     const navigate = useNavigate();
-    const { login } = useAuth(); // 2. OBTENER LA FUNCIÓN LOGIN DEL CONTEXTO
     
     const [showPassword, setShowPassword] = useState(false);
     const [errorModal, setErrorModal] = useState({
@@ -47,16 +45,12 @@ export default function LoginPage() {
                 },
             );
 
-            const data = await response.json();
-
             if (!response.ok) {
-                throw new Error(data.error || 'Correo electrónico y/o contraseña incorrectos.');
+                throw new Error('Correo electrónico y/o contraseña incorrectos.');
             }
 
-            // 3. GUARDAR TOKEN Y DATOS DEL USUARIO EN EL ESTADO GLOBAL Y LOCALSTORAGE
-            login(data.token, data.user);
+            const data = await response.json();
 
-            // 4. NAVEGAR A LA APLICACIÓN
             navigate('/app/'); 
         } catch (error: any) {
             setErrorModal({
