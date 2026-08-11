@@ -239,7 +239,8 @@ export default function NuevoClientePage() {
                         countryCallingCodeEditable={false}
                         value={formData.telefono}
                         limitMaxLength={true}
-                        onChange={(value) =>
+                        maxLength={16}
+                        onChange={(value: any) =>
                             handleChange('telefono', value || '')
                         }
                         placeholder="Ej: 1145237890"

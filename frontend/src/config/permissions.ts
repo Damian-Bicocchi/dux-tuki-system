@@ -8,7 +8,8 @@ export type PermissionKey =
   | 'permiso_para_registrar_clientes'
   | 'permiso_para_gestionar_categorias'
   | 'permiso_para_ver_estadisticas'
-  | 'permiso_para_entrar_a_configuraciones_avanzadas';
+  | 'permiso_para_entrar_a_configuraciones_avanzadas'
+  | 'permiso_para_modificar_alquileres';
 
 export interface PermissionDefinition {
   key: PermissionKey;
@@ -22,6 +23,12 @@ export const ALL_PERMISSIONS: PermissionDefinition[] = [
   {
     key: 'permiso_para_registrar_alquileres',
     label: '¿Puede registrar nuevos alquileres?',
+    category: 'Alquileres',
+  },
+
+  {
+    key: 'permiso_para_modificar_alquileres',
+    label: '¿Puede modificar alquileres? (marcar como "Entregado" por ejemplo)',
     category: 'Alquileres',
   },
   
