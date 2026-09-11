@@ -2,6 +2,7 @@ import { createBrowserRouter } from 'react-router';
 
 import RootLayout from './layouts/RootLayout';
 import ErrorPage from './pages/ErrorPage';
+import { RequirePermission } from './components/RequirePermission';
 
 import LoginPage from "./pages/LoginPage";
 import AyudaPage from "./pages/AyudaPage";
@@ -36,18 +37,110 @@ export const router = createBrowserRouter([
     errorElement: <ErrorPage/>,
     children: [
       { index: true, Component: HomePage },
-      { path: "nuevo-alquiler", Component: NuevoAlquilerPage },
-      { path: "alquileres", Component: AlquileresPage },
-      { path: "alquileres/:id", Component: AlquilerDetallePage },
-      { path: "calendario", Component: CalendarioPage },
-      { path: "stock", Component: StockPage },
-      { path: "stock/nuevo", Component: NuevoStockPage },
-      { path: "stock/:id", Component: StockDetallePage },
-      { path: "clientes", Component: ClientesPage },
-      { path: "clientes/nuevo", Component: NuevoClientePage },
-      { path: "clientes/:id", Component: ClienteDetallePage },
-      { path: "estadisticas", Component: EstadisticasPage },
-      { path: "sistema", Component: ConfiguracionesAvanzadasPage },
+
+      // Alquileres
+      {
+        path: "nuevo-alquiler",
+        element: (
+          <RequirePermission permission="permiso_para_registrar_alquileres">
+            <NuevoAlquilerPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: "alquileres",
+        element: (
+          <RequirePermission permission="permiso_para_ver_alquileres">
+            <AlquileresPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: "alquileres/:id",
+        element: (
+          <RequirePermission permission="permiso_para_ver_alquileres">
+            <AlquilerDetallePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: "calendario",
+        element: (
+          <RequirePermission permission="permiso_para_ver_alquileres">
+            <CalendarioPage />
+          </RequirePermission>
+        ),
+      },
+
+      // Stock
+      {
+        path: "stock",
+        element: (
+          <RequirePermission permission="permiso_para_listar_stock">
+            <StockPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: "stock/nuevo",
+        element: (
+          <RequirePermission permission="permiso_para_crear_stock">
+            <NuevoStockPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: "stock/:id",
+        element: (
+          <RequirePermission permission="permiso_para_listar_stock">
+            <StockDetallePage />
+          </RequirePermission>
+        ),
+      },
+
+      // Clientes
+      {
+        path: "clientes",
+        element: (
+          <RequirePermission permission="permiso_para_listar_clientes">
+            <ClientesPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: "clientes/nuevo",
+        element: (
+          <RequirePermission permission="permiso_para_registrar_clientes">
+            <NuevoClientePage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: "clientes/:id",
+        element: (
+          <RequirePermission permission="permiso_para_listar_clientes">
+            <ClienteDetallePage />
+          </RequirePermission>
+        ),
+      },
+
+      // Estadísticas y sistema
+      {
+        path: "estadisticas",
+        element: (
+          <RequirePermission permission="permiso_para_ver_estadisticas">
+            <EstadisticasPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: "sistema",
+        element: (
+          <RequirePermission permission="permiso_para_entrar_a_configuraciones_avanzadas">
+            <ConfiguracionesAvanzadasPage />
+          </RequirePermission>
+        ),
+      },
     ],
   },
 ]);

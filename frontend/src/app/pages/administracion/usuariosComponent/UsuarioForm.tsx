@@ -1,78 +1,74 @@
 import { useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
-
-interface UsuarioFormData {
-  email: string;
-  password: string;
-  confirmPassword: string;
-  rol: string;
-}
+import { Eye, EyeOff, Loader2 } from "lucide-react";
+import type { Role } from "../../../data/rolesData";
+import type { CrearUsuarioInput } from "../../../data/usuariosData";
 
 interface UsuarioFormProps {
-  initialValues?: UsuarioFormData;
-  onSubmit: (data: UsuarioFormData) => void;
+  roles: Role[];
+  onSubmit: (data: CrearUsuarioInput) => Promise<void>;
   submitLabel?: string;
 }
 
+// Valor especial del <select>: el Administrador no es un rol de la tabla,
+// es la bandera `is_admin` del usuario.
+const VALOR_ADMIN = "admin";
+
 export function UsuarioForm({
-  initialValues,
+  roles,
   onSubmit,
   submitLabel = "Guardar",
 }: UsuarioFormProps) {
-  const [formData, setFormData] = useState<UsuarioFormData>(
-    initialValues ?? {
-      email: "",
-      password: "",
-      confirmPassword: "",
-      rol: "Administrador",
-    },
-  );
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [rolSeleccionado, setRolSeleccionado] = useState(VALOR_ADMIN);
 
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] =
-    useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-  ) => {
-    setFormData((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }));
-
-    if (error) {
-      setError("");
-    }
+  const resetForm = () => {
+    setUsername("");
+    setPassword("");
+    setConfirmPassword("");
+    setRolSeleccionado(VALOR_ADMIN);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // 1. Validaciones locales básicas
-    if (
-      !formData.email ||
-      !formData.password ||
-      !formData.confirmPassword
-    ) {
-      setError(
-        "Por favor, completá todos los campos obligatorios.",
-      );
+    if (!username.trim() || !password || !confirmPassword) {
+      setError("Por favor, completá todos los campos obligatorios.");
       return;
     }
 
-    if (formData.password !== formData.confirmPassword) {
+    if (password !== confirmPassword) {
       setError(
         "Las contraseñas no coinciden. Verificá los datos ingresados.",
       );
       return;
     }
 
-    // 2. Si todo está bien, limpiamos errores
-    setError("");
+    const esAdmin = rolSeleccionado === VALOR_ADMIN;
 
-    // 3. Ejecutamos la acción de guardar (comunicación con el backend/padre)
-    onSubmit(formData);
+    setError("");
+    setIsSubmitting(true);
+    try {
+      // 2. Ejecutamos la acción de guardar (comunicación con el backend)
+      await onSubmit({
+        username: username.trim(),
+        password,
+        is_admin: esAdmin,
+        role_id: esAdmin ? null : Number(rolSeleccionado),
+      });
+      resetForm();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo crear el usuario.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -111,8 +107,11 @@ export function UsuarioForm({
           type="email"
           id="email"
           name="email"
-          value={formData.email}
-          onChange={handleChange}
+          value={username}
+          onChange={(e) => {
+            setUsername(e.target.value);
+            if (error) setError("");
+          }}
           required
           aria-required="true"
           aria-invalid={error ? "true" : "false"}
@@ -141,8 +140,11 @@ export function UsuarioForm({
             type={showPassword ? "text" : "password"}
             id="password"
             name="password"
-            value={formData.password}
-            onChange={handleChange}
+            value={password}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              if (error) setError("");
+            }}
             required
             aria-required="true"
             aria-invalid={error ? "true" : "false"}
@@ -190,8 +192,11 @@ export function UsuarioForm({
             type={showConfirmPassword ? "text" : "password"}
             id="confirmPassword"
             name="confirmPassword"
-            value={formData.confirmPassword}
-            onChange={handleChange}
+            value={confirmPassword}
+            onChange={(e) => {
+              setConfirmPassword(e.target.value);
+              if (error) setError("");
+            }}
             required
             aria-required="true"
             aria-invalid={error ? "true" : "false"}
@@ -230,20 +235,28 @@ export function UsuarioForm({
         <select
           id="rol"
           name="rol"
-          value={formData.rol}
-          onChange={handleChange}
+          value={rolSeleccionado}
+          onChange={(e) => setRolSeleccionado(e.target.value)}
           aria-required="true"
           className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72]"
         >
-          <option value="Administrador">Administrador</option>
+          <option value={VALOR_ADMIN}>Administrador</option>
+          {roles.map((rol) => (
+            <option key={rol.id} value={rol.id}>
+              {rol.nombre}
+            </option>
+          ))}
         </select>
       </div>
 
       <button
         type="submit"
-        className="bg-[#218a72] text-white px-5 py-3 rounded-xl font-semibold hover:bg-[#1b6f5c] focus:outline-none focus:ring-4 focus:ring-[#218a72]/30 transition-colors"
+        disabled={isSubmitting}
+        aria-busy={isSubmitting}
+        className="inline-flex items-center gap-2 bg-[#218a72] text-white px-5 py-3 rounded-xl font-semibold hover:bg-[#1b6f5c] focus:outline-none focus:ring-4 focus:ring-[#218a72]/30 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
       >
-        {submitLabel}
+        {isSubmitting && <Loader2 size={18} className="animate-spin" aria-hidden="true" />}
+        <span>{isSubmitting ? "Creando..." : submitLabel}</span>
       </button>
     </form>
   );

@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { getClientes } from '../data/clientesData';
 import {getAlquileres} from '../data/alquileresData';
+import { usePermission } from '../hooks/usePermission';
+import { Can } from '../components/ui/Can';
+import type { PermissionKey } from '../../config/permissions';
 import {
     Plus,
     List,
@@ -25,7 +28,8 @@ interface HomePageProps {
 
 export default function HomePage({ userName }: HomePageProps) {
     const navigate = useNavigate();
-    
+    const { hasPermission } = usePermission();
+
     // 1. Inicializa el estado con valores por defecto (números, no promesas)
     const [stats, setStats] = useState<Stats>({
         activos: 0,
@@ -43,9 +47,10 @@ export default function HomePage({ userName }: HomePageProps) {
             try {
                 // Si getAlquileres también es una promesa, usamos Promise.all para hacerlas en paralelo
                 // Si getAlquileres NO es promesa, quítale el 'await'
+                // Sólo se consulta lo que el rol puede ver; el backend rechaza el resto
                 const [clientes, alquileres] = await Promise.all([
-                    getClientes(),
-                    getAlquileres() 
+                    hasPermission('permiso_para_listar_clientes') ? getClientes() : Promise.resolve([]),
+                    hasPermission('permiso_para_ver_alquileres') ? getAlquileres() : Promise.resolve([]),
                 ]);
 
                 if (isMounted) {
@@ -77,7 +82,16 @@ export default function HomePage({ userName }: HomePageProps) {
         return `$${amount.toLocaleString('es-AR')}`;
     };
 
-    const actions = [
+    // Cada acceso declara el permiso que necesita; se ocultan los que el rol no tiene
+    const allActions: {
+        icon: typeof Plus;
+        title: string;
+        subtitle: string;
+        color: string;
+        iconColor: string;
+        path: string;
+        permission: PermissionKey;
+    }[] = [
         {
             icon: Plus,
             title: 'Nuevo Alquiler',
@@ -85,6 +99,7 @@ export default function HomePage({ userName }: HomePageProps) {
             color: 'bg-emerald-50',
             iconColor: 'text-emerald-600',
             path: '/app/nuevo-alquiler',
+            permission: 'permiso_para_registrar_alquileres',
         },
         {
             icon: List,
@@ -94,6 +109,7 @@ export default function HomePage({ userName }: HomePageProps) {
             color: 'bg-blue-50',
             iconColor: 'text-blue-600',
             path: '/app/alquileres',
+            permission: 'permiso_para_ver_alquileres',
         },
         {
             icon: Calendar,
@@ -103,6 +119,7 @@ export default function HomePage({ userName }: HomePageProps) {
             color: 'bg-pink-50',
             iconColor: 'text-pink-600',
             path: '/app/calendario',
+            permission: 'permiso_para_ver_alquileres',
         },
         {
             icon: Package,
@@ -112,6 +129,7 @@ export default function HomePage({ userName }: HomePageProps) {
             color: 'bg-amber-50',
             iconColor: 'text-amber-600',
             path: '/app/stock',
+            permission: 'permiso_para_listar_stock',
         },
         {
             icon: Users,
@@ -121,6 +139,7 @@ export default function HomePage({ userName }: HomePageProps) {
             color: 'bg-purple-50',
             iconColor: 'text-purple-600',
             path: '/app/clientes',
+            permission: 'permiso_para_listar_clientes',
         },
         {
             icon: BarChart3,
@@ -129,6 +148,7 @@ export default function HomePage({ userName }: HomePageProps) {
             color: 'bg-green-50',
             iconColor: 'text-green-600',
             path: '/app/estadisticas',
+            permission: 'permiso_para_ver_estadisticas',
         },
         {
             icon: Users,
@@ -138,8 +158,11 @@ export default function HomePage({ userName }: HomePageProps) {
             color: 'bg-purple-50',
             iconColor: 'text-green-600',
             path: '/app/sistema',
+            permission: 'permiso_para_entrar_a_configuraciones_avanzadas',
         },
     ];
+
+    const actions = allActions.filter((action) => hasPermission(action.permission));
 
     return (
         <main role="main" aria-label="Contenido principal">
@@ -447,18 +470,20 @@ export default function HomePage({ userName }: HomePageProps) {
             </section>
 
             {/* CTA flotante */}
-            <button
-                onClick={() => navigate('/app/nuevo-alquiler')}
-                className="fixed bottom-8 right-6 bg-[#f5e663] text-[#1b6f5c] rounded-full shadow-xl flex items-center justify-center gap-2 px-6 py-4 hover:scale-105 focus:scale-105 active:scale-95 transition-transform z-30 border-2 border-white focus:outline-none focus:ring-4 focus:ring-[#f5e663]/50"
-                aria-label="Crear nuevo alquiler - Acceso rápido"
-                role="button"
-                title="Ir a formulario de nuevo alquiler"
-            >
-                <Plus size={24} strokeWidth={2.5} aria-hidden="true" />
-                <span className="font-bold text-base" aria-hidden="true">
-                    Nuevo alquiler
-                </span>
-            </button>
+            <Can do="permiso_para_registrar_alquileres">
+                <button
+                    onClick={() => navigate('/app/nuevo-alquiler')}
+                    className="fixed bottom-8 right-6 bg-[#f5e663] text-[#1b6f5c] rounded-full shadow-xl flex items-center justify-center gap-2 px-6 py-4 hover:scale-105 focus:scale-105 active:scale-95 transition-transform z-30 border-2 border-white focus:outline-none focus:ring-4 focus:ring-[#f5e663]/50"
+                    aria-label="Crear nuevo alquiler - Acceso rápido"
+                    role="button"
+                    title="Ir a formulario de nuevo alquiler"
+                >
+                    <Plus size={24} strokeWidth={2.5} aria-hidden="true" />
+                    <span className="font-bold text-base" aria-hidden="true">
+                        Nuevo alquiler
+                    </span>
+                </button>
+            </Can>
         </main>
     );
 }

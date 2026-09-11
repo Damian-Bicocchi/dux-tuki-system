@@ -2,6 +2,7 @@ const { connect } = require('./db');
 const { initializeTables } = require('./db/init');
 const { createAdmin } = require('./seeders/admin.seeder');
 const { seedCategorias } = require("./seeders/categorias.seeder");
+const { seedRoles } = require("./seeders/roles.seeder");
 const app = require('./app');
 const { PORT } = require('./config/env');
 
@@ -23,7 +24,10 @@ async function start() {
 
     currentStep = "4. Sembrar categorías default";
     await seedCategorias();
-    
+
+    currentStep = "5. Sembrar roles predefinidos (Encargado, Operador)";
+    await seedRoles();
+
     // 4. Arrancar el servidor HTTP
     currentStep = '5. Arrancar el servidor HTTP (app.listen)';
     app.listen(PORT, () => {

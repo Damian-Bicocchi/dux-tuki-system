@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { Search, Mail, IdCard, UserPlus, ChevronRight } from 'lucide-react';
 import { getClientes, type Cliente } from '../data/clientesData';
+import { Can } from '../components/ui/Can';
 
 export default function ClientesPage() {
   const navigate = useNavigate();
@@ -69,14 +70,16 @@ export default function ClientesPage() {
       </div>
 
       {/* Botón registrar nuevo cliente */}
-      <button
-        onClick={() => navigate('/app/clientes/nuevo')}
-        className="w-full flex items-center justify-center gap-2 py-3.5 mb-6 bg-[#218a72] hover:bg-[#1b6f5c] active:scale-[0.98] text-white rounded-xl font-bold transition-all focus:outline-none focus:ring-4 focus:ring-[#218a72]/30"
-        aria-label="Registrar nuevo cliente"
-      >
-        <UserPlus size={20} aria-hidden="true" />
-        <span>Registrar nuevo cliente</span>
-      </button>
+      <Can do="permiso_para_registrar_clientes">
+        <button
+          onClick={() => navigate('/app/clientes/nuevo')}
+          className="w-full flex items-center justify-center gap-2 py-3.5 mb-6 bg-[#218a72] hover:bg-[#1b6f5c] active:scale-[0.98] text-white rounded-xl font-bold transition-all focus:outline-none focus:ring-4 focus:ring-[#218a72]/30"
+          aria-label="Registrar nuevo cliente"
+        >
+          <UserPlus size={20} aria-hidden="true" />
+          <span>Registrar nuevo cliente</span>
+        </button>
+      </Can>
 
       {/* Lista de clientes */}
       <div

@@ -13,6 +13,7 @@ import {
     User,
 } from 'lucide-react';
 import { getAuthHeaders } from '../../../../backend/utils/putHeaders';
+import { Can } from '../components/ui/Can';
 
 type EstadoAlquiler = 'pendiente' | 'activo' | 'devuelto' | 'cancelado';
 
@@ -163,15 +164,17 @@ export default function AlquileresPage() {
                     </h2>
                 </div>
 
-                <button
-                    type="button"
-                    onClick={() => navigate('/app/nuevo-alquiler')}
-                    className="inline-flex items-center gap-2 rounded-2xl bg-[#218a72] px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#1b6f5c] focus:outline-none focus:ring-4 focus:ring-[#218a72]/20"
-                    aria-label="Crear un nuevo alquiler"
-                >
-                    <Plus size={18} aria-hidden="true" />
-                    Crear alquiler
-                </button>
+                <Can do="permiso_para_registrar_alquileres">
+                    <button
+                        type="button"
+                        onClick={() => navigate('/app/nuevo-alquiler')}
+                        className="inline-flex items-center gap-2 rounded-2xl bg-[#218a72] px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#1b6f5c] focus:outline-none focus:ring-4 focus:ring-[#218a72]/20"
+                        aria-label="Crear un nuevo alquiler"
+                    >
+                        <Plus size={18} aria-hidden="true" />
+                        Crear alquiler
+                    </button>
+                </Can>
             </div>
 
             <div className="space-y-3 mb-5">
@@ -243,14 +246,16 @@ export default function AlquileresPage() {
                     <p className="mb-4">
                         No hay alquileres para los filtros actuales.
                     </p>
-                    <button
-                        type="button"
-                        onClick={() => navigate('/app/nuevo-alquiler')}
-                        className="inline-flex items-center gap-2 rounded-2xl bg-[#218a72] px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#1b6f5c] focus:outline-none focus:ring-4 focus:ring-[#218a72]/20"
-                    >
-                        <Plus size={18} aria-hidden="true" />
-                        Crear alquiler
-                    </button>
+                    <Can do="permiso_para_registrar_alquileres">
+                        <button
+                            type="button"
+                            onClick={() => navigate('/app/nuevo-alquiler')}
+                            className="inline-flex items-center gap-2 rounded-2xl bg-[#218a72] px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#1b6f5c] focus:outline-none focus:ring-4 focus:ring-[#218a72]/20"
+                        >
+                            <Plus size={18} aria-hidden="true" />
+                            Crear alquiler
+                        </button>
+                    </Can>
                 </div>
             ) : (
                 <div className="space-y-3">

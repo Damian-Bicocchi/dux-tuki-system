@@ -1,40 +1,21 @@
 const express = require('express');
-
+const rolesController = require('../controllers/roles.controller');
 const authenticate = require('../middlewares/auth');
-const checkPermission = require('../middlewares/checkPermission');
-
-const rolesController = require('../controllers/rolesController');
-const checkPermission = require('../middlewares/checkPermission');
-// Asumiendo que tienes un middleware para verificar JWT / sesión previa
-const authenticate = require('../middlewares/auth'); 
+const requireAdmin = require('../middlewares/requireAdmin');
 
 const router = express.Router();
+
+// Todas las rutas de roles requieren un token válido
 router.use(authenticate);
-// -------------------------------------------------------------
-// RUTAS PARA GESTIONAR ROLES (Solo el Admin puede usarlas)
-// -------------------------------------------------------------
 
-// Crear un nuevo rol dinámico
-router.post(
-  '/', 
-  authenticate, 
-  checkPermission('users:assign_roles'), // O depende de isAdmin
-  rolesController.createRole
-);
+// Lectura: cualquier usuario autenticado (por ejemplo, para poblar selectores)
+router.get('/permisos', rolesController.getPermisos);
+router.get('/', rolesController.getAll);
+router.get('/:id', rolesController.getById);
 
-// Listar todos los roles
-router.get(
-  '/', 
-  authenticate, 
-  rolesController.getAllRoles
-);
-
-// Asignar rol a un usuario
-router.post(
-  '/assign', 
-  authenticate, 
-  checkPermission('users:assign_roles'), 
-  rolesController.assignRoleToUser
-);
+// Escritura: reservada a administradores
+router.post('/', requireAdmin, rolesController.create);
+router.put('/:id', requireAdmin, rolesController.update);
+router.delete('/:id', requireAdmin, rolesController.delete);
 
 module.exports = router;

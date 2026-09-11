@@ -4,6 +4,8 @@ const checkPermission = require('../middlewares/checkPermission');
 module.exports = (db) => {
     const router = express.Router();
     router.use(authenticate);
+    // Todas las operaciones sobre costos requieren el permiso correspondiente
+    router.use(checkPermission('permiso_para_gestionar_costos'));
 
     // GET /api/costos?mes=2025-06 — listar costos (opcionalmente filtrar por mes)
     router.get('/', (req, res) => {

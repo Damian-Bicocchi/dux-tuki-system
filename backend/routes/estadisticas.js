@@ -5,6 +5,8 @@ const checkPermission = require('../middlewares/checkPermission');
 
 const router = express.Router();
 router.use(authenticate);
+// Todas las estadísticas requieren el permiso correspondiente
+router.use(checkPermission('permiso_para_ver_estadisticas'));
 const db = new Proxy(
     {},
     {

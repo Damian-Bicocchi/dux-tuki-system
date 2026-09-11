@@ -230,10 +230,10 @@ router.get(
     alquilerController.obtenerAlquileresPorArticulo
 );
 
-// Consulta de disponibilidad
+// Consulta de disponibilidad (también la usa el formulario de nuevo alquiler)
 router.get(
     '/disponibilidad',
-    checkPermission('permiso_para_ver_alquileres'),
+    checkPermission(['permiso_para_ver_alquileres', 'permiso_para_registrar_alquileres']),
     async (req, res) => {
         const { articulo_id, fecha_inicio, fecha_fin, excluir_alquiler_id } = req.query;
         if (!articulo_id || !fecha_inicio || !fecha_fin) {

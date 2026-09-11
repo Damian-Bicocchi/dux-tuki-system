@@ -8,14 +8,14 @@ const router = Router();
 router.use(authenticate);
 
 // Accesible desde: GET http://localhost:3001/api/stock
-router.get("/", stockController.obtenerArticulos);
+router.get("/", checkPermission('permiso_para_listar_stock'), stockController.obtenerArticulos);
 
 // Accesible desde: POST http://localhost:3001/api/stock
-router.post("/", validarNuevoArticulo, stockController.crearOSumarArticulo);
+router.post("/", checkPermission('permiso_para_crear_stock'), validarNuevoArticulo, stockController.crearOSumarArticulo);
 
 // 👇 AGREGA ESTA RUTA NUEVA
-router.get("/:id", stockController.obtenerArticuloPorId);
+router.get("/:id", checkPermission('permiso_para_listar_stock'), stockController.obtenerArticuloPorId);
 
-router.put("/:id", stockController.actualizarArticulo);
+router.put("/:id", checkPermission('permiso_para_editar_stock'), stockController.actualizarArticulo);
 
 module.exports = router;

@@ -23,6 +23,7 @@ import {
 } from '../data/stockData';
 import { SuccessModal } from '../components/SuccessModal';
 import { getAuthHeaders } from '../../../../backend/utils/putHeaders';
+import { Can } from '../components/ui/Can';
 
 type SortDir = 'asc' | 'desc';
 type FiltroEstado = 'todos' | EstadoAlquilerStock;
@@ -395,7 +396,8 @@ export default function StockDetallePage() {
 
                 {/* Grid Principal: Se ajusta py-6 a pt-6 pb-2 para evitar empujar el pie de página */}
                 <div className="px-5 pt-6 pb-2 max-w-lg md:max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-                    {/* Formulario de edición */}
+                    {/* Formulario de edición (sólo con permiso para editar stock) */}
+                    <Can do="permiso_para_editar_stock">
                     <section aria-labelledby="editar-titulo" className="w-full">
                         <h2
                             id="editar-titulo"
@@ -631,6 +633,7 @@ export default function StockDetallePage() {
                             </button>
                         </form>
                     </section>
+                    </Can>
 
                     {/* Alquileres relacionados */}
                     <section

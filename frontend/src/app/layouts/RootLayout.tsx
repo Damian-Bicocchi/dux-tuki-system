@@ -20,6 +20,8 @@ import SettingsPanel, {
   AccessibilitySettings,
 } from "../components/SettingsPanel";
 import NotificationsPanel from "../components/NotificationsPanel";
+import { usePermission } from "../hooks/usePermission";
+import type { PermissionKey } from "../../config/permissions";
 
 const DEFAULT_SETTINGS: AccessibilitySettings = {
   fontSize: "normal",
@@ -174,36 +176,64 @@ export default function RootLayout() {
     setLiveMessage("Acción cancelada");
   };
 
-  const menuItems = [
+  const { hasPermission } = usePermission();
+
+  // Cada entrada del menú declara el permiso que necesita; las que el usuario
+  // no tiene se ocultan (el backend igual las rechaza si se accede por URL).
+  const allMenuItems: {
+    icon: typeof Home;
+    title: string;
+    path: string;
+    permission?: PermissionKey;
+  }[] = [
     { icon: Home, title: "Inicio", path: "/app/" },
     {
       icon: Plus,
       title: "Nuevo Alquiler",
       path: "/app/nuevo-alquiler",
+      permission: "permiso_para_registrar_alquileres",
     },
     {
       icon: List,
       title: "Ver Alquileres",
       path: "/app/alquileres",
+      permission: "permiso_para_ver_alquileres",
     },
     {
       icon: Calendar,
       title: "Alquileres del día",
       path: "/app/calendario",
+      permission: "permiso_para_ver_alquileres",
     },
-    { icon: Package, title: "Stock", path: "/app/stock" },
-    { icon: Users, title: "Clientes", path: "/app/clientes" },
+    {
+      icon: Package,
+      title: "Stock",
+      path: "/app/stock",
+      permission: "permiso_para_listar_stock",
+    },
+    {
+      icon: Users,
+      title: "Clientes",
+      path: "/app/clientes",
+      permission: "permiso_para_listar_clientes",
+    },
     {
       icon: BarChart3,
       title: "Estadísticas",
       path: "/app/estadisticas",
+      permission: "permiso_para_ver_estadisticas",
     },
     {
       icon: MonitorCog,
       title: "Configuraciones avanzadas",
-      path: "/app/sistema"
-    }
+      path: "/app/sistema",
+      permission: "permiso_para_entrar_a_configuraciones_avanzadas",
+    },
   ];
+
+  const menuItems = allMenuItems.filter(
+    (item) => !item.permission || hasPermission(item.permission),
+  );
 
   const currentPage =
     menuItems.find((item) => item.path === location.pathname) ??

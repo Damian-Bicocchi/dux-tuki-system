@@ -4,6 +4,7 @@ import { Search, Package, Plus, ChevronRight, Tags, Boxes } from "lucide-react";
 import { calcularEstado, type StockItem } from "../data/stockData";
 import { CategoriasTab } from "../pages/administracion/tabs/CategoriasTab";
 import { getAuthHeaders } from "../../../../backend/utils/putHeaders";
+import { Can } from "../components/ui/Can";
 
 interface Categoria {
   id: number;
@@ -116,27 +117,31 @@ export default function StockPage() {
             <span>Inventario de Equipos</span>
           </button>
 
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === "categorias"}
-            onClick={() => setActiveTab("categorias")}
-            className={`flex items-center gap-2 px-5 py-3 font-semibold rounded-t-xl transition-colors ${
-              activeTab === "categorias"
-                ? "bg-[#218a72] text-white"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            }`}
-          >
-            <Tags size={18} />
-            <span>Categorías</span>
-          </button>
+          <Can do="permiso_para_gestionar_categorias">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === "categorias"}
+              onClick={() => setActiveTab("categorias")}
+              className={`flex items-center gap-2 px-5 py-3 font-semibold rounded-t-xl transition-colors ${
+                activeTab === "categorias"
+                  ? "bg-[#218a72] text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              <Tags size={18} />
+              <span>Categorías</span>
+            </button>
+          </Can>
         </div>
       </div>
 
       {/* Contenido según la pestaña activa */}
       {activeTab === "categorias" ? (
         <section role="tabpanel" className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-          <CategoriasTab />
+          <Can do="permiso_para_gestionar_categorias">
+            <CategoriasTab />
+          </Can>
         </section>
       ) : (
         <section role="tabpanel">
@@ -170,13 +175,15 @@ export default function StockPage() {
             </div>
           </div>
 
-          <button
-            onClick={() => navigate("/app/stock/nuevo")}
-            className="w-full flex items-center justify-center gap-2 py-3.5 mb-5 bg-[#218a72] hover:bg-[#1b6f5c] active:scale-[0.98] text-white rounded-xl font-bold transition-all focus:outline-none focus:ring-4 focus:ring-[#218a72]/30"
-          >
-            <Plus size={20} />
-            <span>Agregar stock</span>
-          </button>
+          <Can do="permiso_para_crear_stock">
+            <button
+              onClick={() => navigate("/app/stock/nuevo")}
+              className="w-full flex items-center justify-center gap-2 py-3.5 mb-5 bg-[#218a72] hover:bg-[#1b6f5c] active:scale-[0.98] text-white rounded-xl font-bold transition-all focus:outline-none focus:ring-4 focus:ring-[#218a72]/30"
+            >
+              <Plus size={20} />
+              <span>Agregar stock</span>
+            </button>
+          </Can>
 
           {/* Lista de Items */}
           <div className="space-y-3">

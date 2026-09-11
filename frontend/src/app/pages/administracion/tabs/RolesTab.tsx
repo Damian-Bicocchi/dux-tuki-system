@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import {
   Shield,
   Plus,
@@ -11,152 +11,65 @@ import {
   Square,
   ShieldCheck,
   Users,
-  Search
+  Search,
+  Loader2,
+  RefreshCw,
 } from 'lucide-react';
 
-// ============================================================================
-// 1. Tipos y Constantes de Permisos
-// ============================================================================
-export type PermissionKey =
-  | 'permiso_para_registrar_alquileres'
-  | 'permiso_para_listar_stock'
-  | 'permiso_para_crear_stock'
-  | 'permiso_para_editar_stock'
-  | 'permiso_para_listar_clientes'
-  | 'permiso_para_registrar_clientes'
-  | 'permiso_para_gestionar_categorias'
-  | 'permiso_para_ver_estadisticas'
-  | 'permiso_para_entrar_a_configuraciones_avanzadas'
-  | 'permiso_para_modificar_alquileres';
+import {
+  ALL_PERMISSIONS,
+  type PermissionKey,
+  type PermissionDefinition,
+} from '../../../../config/permissions';
+import {
+  type Role,
+  getRoles,
+  createRole,
+  updateRole,
+  deleteRole,
+} from '../../../data/rolesData';
+import { SuccessModal } from '../../../components/SuccessModal';
+import { FailureModal } from '../../../components/FailureModal';
 
-export interface PermissionDefinition {
-  key: PermissionKey;
-  label: string;
-  category: string;
+// ============================================================================
+// Rol "Administrador": no vive en la base de datos, es la bandera `is_admin`
+// del usuario. Se muestra como tarjeta informativa y bloqueada porque, pase
+// lo que pase, un administrador tiene todos los permisos.
+// ============================================================================
+const ADMIN_ROLE: Role = {
+  id: 0,
+  nombre: 'Administrador',
+  descripcion: 'Acceso total y control ilimitado del sistema. No se puede editar ni eliminar.',
+  permisos: ALL_PERMISSIONS.map((p) => p.key),
+};
+
+interface ModalState {
+  title: string;
+  message?: string;
 }
 
-export const ALL_PERMISSIONS: PermissionDefinition[] = [
-  // Alquileres
-  {
-    key: 'permiso_para_registrar_alquileres',
-    label: '¿Puede registrar nuevos alquileres?',
-    category: 'Alquileres',
-  },
-  {
-    key: 'permiso_para_modificar_alquileres',
-    label: '¿Puede modificar alquileres? (ej. marcar como "Entregado")',
-    category: 'Alquileres',
-  },
-
-  // Stock
-  {
-    key: 'permiso_para_listar_stock',
-    label: '¿Puede ver el listado de stock?',
-    category: 'Stock',
-  },
-  {
-    key: 'permiso_para_crear_stock',
-    label: '¿Puede registrar nuevo stock?',
-    category: 'Stock',
-  },
-  {
-    key: 'permiso_para_editar_stock',
-    label: '¿Puede modificar el stock existente?',
-    category: 'Stock',
-  },
-
-  // Clientes
-  {
-    key: 'permiso_para_listar_clientes',
-    label: '¿Puede ver el listado de clientes?',
-    category: 'Clientes',
-  },
-  {
-    key: 'permiso_para_registrar_clientes',
-    label: '¿Puede registrar nuevos clientes?',
-    category: 'Clientes',
-  },
-
-  // Categorías
-  {
-    key: 'permiso_para_gestionar_categorias',
-    label: '¿Puede registrar y/o modificar categorías?',
-    category: 'Categorías',
-  },
-
-  // Reportes / Estadísticas
-  {
-    key: 'permiso_para_ver_estadisticas',
-    label: '¿Puede visualizar las estadísticas del sistema?',
-    category: 'Estadísticas',
-  },
-
-  // Sistema
-  {
-    key: 'permiso_para_entrar_a_configuraciones_avanzadas',
-    label: '¿Puede acceder a configuraciones avanzadas?',
-    category: 'Sistema',
-  },
-];
-
 // ============================================================================
-// 2. Modelo de Rol & Datos Mock
-// ============================================================================
-export interface Role {
-  id: string;
-  nombre: string;
-  descripcion: string;
-  permisos: PermissionKey[];
-  esPredeterminado?: boolean;
-}
-
-const ROLES_INICIALES: Role[] = [
-  {
-    id: '1',
-    nombre: 'Administrador',
-    descripcion: 'Acceso total y control ilimitado del sistema.',
-    permisos: ALL_PERMISSIONS.map((p) => p.key),
-    esPredeterminado: true,
-  },
-  {
-    id: '2',
-    nombre: 'Vendedor / Mostrador',
-    descripcion: 'Gestión diaria de alquileres y atención al cliente.',
-    permisos: [
-      'permiso_para_registrar_alquileres',
-      'permiso_para_modificar_alquileres',
-      'permiso_para_listar_stock',
-      'permiso_para_listar_clientes',
-      'permiso_para_registrar_clientes',
-    ],
-  },
-  {
-    id: '3',
-    nombre: 'Encargado de Depósito',
-    descripcion: 'Gestión y modificación del inventario de equipos.',
-    permisos: [
-      'permiso_para_listar_stock',
-      'permiso_para_crear_stock',
-      'permiso_para_editar_stock',
-      'permiso_para_gestionar_categorias',
-    ],
-  },
-];
-
-// ============================================================================
-// 3. Componente Principal Accesible RolesTab
+// Componente Principal Accesible RolesTab
 // ============================================================================
 export function RolesTab() {
-  const [roles, setRoles] = useState<Role[]>(ROLES_INICIALES);
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
 
   // Estados del Formulario
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingRoleId, setEditingRoleId] = useState<string | null>(null);
+  const [editingRoleId, setEditingRoleId] = useState<number | null>(null);
   const [formNombre, setFormNombre] = useState('');
   const [formDescripcion, setFormDescripcion] = useState('');
   const [selectedPermissions, setSelectedPermissions] = useState<PermissionKey[]>([]);
   const [formError, setFormError] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [deletingRoleId, setDeletingRoleId] = useState<number | null>(null);
+
+  // Feedback al usuario
+  const [successModal, setSuccessModal] = useState<ModalState | null>(null);
+  const [failureModal, setFailureModal] = useState<ModalState | null>(null);
 
   // Ref para gestión de foco accesible
   const firstInputRef = useRef<HTMLInputElement>(null);
@@ -166,6 +79,26 @@ export function RolesTab() {
       firstInputRef.current.focus();
     }
   }, [isFormOpen]);
+
+  // ---------------------------------------------------------------------------
+  // Carga de roles desde el backend
+  // ---------------------------------------------------------------------------
+  const cargarRoles = useCallback(async () => {
+    setIsLoading(true);
+    setLoadError('');
+    try {
+      const data = await getRoles();
+      setRoles(data);
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : 'No se pudieron cargar los roles.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    cargarRoles();
+  }, [cargarRoles]);
 
   // Agrupar los permisos disponibles por categoría
   const groupedPermissions = useMemo(() => {
@@ -177,12 +110,19 @@ export function RolesTab() {
     return groups;
   }, []);
 
-  const handleOpenCreate = () => {
+  // ---------------------------------------------------------------------------
+  // Handlers del formulario
+  // ---------------------------------------------------------------------------
+  const resetForm = () => {
     setEditingRoleId(null);
     setFormNombre('');
     setFormDescripcion('');
     setSelectedPermissions([]);
     setFormError('');
+  };
+
+  const handleOpenCreate = () => {
+    resetForm();
     setIsFormOpen(true);
   };
 
@@ -197,11 +137,7 @@ export function RolesTab() {
 
   const handleCloseForm = () => {
     setIsFormOpen(false);
-    setEditingRoleId(null);
-    setFormNombre('');
-    setFormDescripcion('');
-    setSelectedPermissions([]);
-    setFormError('');
+    resetForm();
   };
 
   const togglePermission = (key: PermissionKey) => {
@@ -228,59 +164,93 @@ export function RolesTab() {
     }
   };
 
-  const handleSaveRole = (e: React.FormEvent) => {
+  const handleSaveRole = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formNombre.trim()) {
+    const nombre = formNombre.trim();
+    if (!nombre) {
       setFormError('El nombre del rol es obligatorio.');
       return;
     }
 
-    if (editingRoleId) {
-      setRoles((prev) =>
-        prev.map((r) =>
-          r.id === editingRoleId
-            ? {
-                ...r,
-                nombre: formNombre.trim(),
-                descripcion: formDescripcion.trim(),
-                permisos: selectedPermissions,
-              }
-            : r
-        )
-      );
-    } else {
-      const newRole: Role = {
-        id: Date.now().toString(),
-        nombre: formNombre.trim(),
-        descripcion: formDescripcion.trim(),
-        permisos: selectedPermissions,
-      };
-      setRoles((prev) => [...prev, newRole]);
+    if (nombre.toLowerCase() === ADMIN_ROLE.nombre.toLowerCase()) {
+      setFormError('El nombre "Administrador" está reservado para el administrador del sistema.');
+      return;
     }
 
-    handleCloseForm();
+    const input = {
+      nombre,
+      descripcion: formDescripcion.trim(),
+      permisos: selectedPermissions,
+    };
+
+    setIsSaving(true);
+    setFormError('');
+    try {
+      if (editingRoleId !== null) {
+        const actualizado = await updateRole(editingRoleId, input);
+        setRoles((prev) => prev.map((r) => (r.id === actualizado.id ? actualizado : r)));
+        setSuccessModal({
+          title: '¡Cambios guardados!',
+          message: `El rol "${actualizado.nombre}" fue actualizado correctamente.`,
+        });
+      } else {
+        const creado = await createRole(input);
+        setRoles((prev) => [...prev, creado]);
+        setSuccessModal({
+          title: '¡Rol creado con éxito!',
+          message: `El rol "${creado.nombre}" ya está disponible para asignar a usuarios.`,
+        });
+      }
+      handleCloseForm();
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : 'No se pudo guardar el rol.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleDeleteRole = (role: Role) => {
-    if (confirm(`¿Estás seguro de que querés eliminar el rol "${role.nombre}"?`)) {
+  const handleDeleteRole = async (role: Role) => {
+    if (!confirm(`¿Estás seguro de que querés eliminar el rol "${role.nombre}"?`)) return;
+
+    setDeletingRoleId(role.id);
+    try {
+      await deleteRole(role.id);
       setRoles((prev) => prev.filter((r) => r.id !== role.id));
+      if (editingRoleId === role.id) handleCloseForm();
+      setSuccessModal({
+        title: 'Rol eliminado',
+        message: `El rol "${role.nombre}" fue eliminado correctamente.`,
+      });
+    } catch (err) {
+      setFailureModal({
+        title: 'No se pudo eliminar el rol',
+        message: err instanceof Error ? err.message : 'Ocurrió un error inesperado.',
+      });
+    } finally {
+      setDeletingRoleId(null);
     }
   };
 
-  const filteredRoles = roles.filter(
+  // ---------------------------------------------------------------------------
+  // Listado: el Administrador siempre primero, luego los roles de la BD
+  // ---------------------------------------------------------------------------
+  const term = searchTerm.toLowerCase();
+  const filteredRoles = [ADMIN_ROLE, ...roles].filter(
     (r) =>
-      r.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      r.descripcion.toLowerCase().includes(searchTerm.toLowerCase())
+      r.nombre.toLowerCase().includes(term) ||
+      (r.descripcion ?? '').toLowerCase().includes(term)
   );
 
   return (
     <div className="space-y-6">
       {/* Región de anuncios para Lectores de Pantalla */}
       <div className="sr-only" aria-live="polite" aria-atomic="true">
-        {filteredRoles.length === 1
-          ? 'Se encontró 1 rol.'
-          : `Se encontraron ${filteredRoles.length} roles.`}
+        {isLoading
+          ? 'Cargando roles.'
+          : filteredRoles.length === 1
+            ? 'Se encontró 1 rol.'
+            : `Se encontraron ${filteredRoles.length} roles.`}
       </div>
 
       {/* Encabezado Principal */}
@@ -319,7 +289,7 @@ export function RolesTab() {
             <div className="flex items-center justify-between border-b border-gray-100 pb-4">
               <h3 id="form-role-title" className="text-lg font-bold text-gray-900 flex items-center gap-2">
                 <ShieldCheck className="text-[#218a72]" size={22} aria-hidden="true" />
-                {editingRoleId ? 'Editar Rol' : 'Crear Nuevo Rol'}
+                {editingRoleId !== null ? 'Editar Rol' : 'Crear Nuevo Rol'}
               </h3>
               <button
                 type="button"
@@ -353,6 +323,7 @@ export function RolesTab() {
                   id="role-name-input"
                   type="text"
                   required
+                  maxLength={50}
                   aria-required="true"
                   aria-invalid={!!formError}
                   aria-describedby={formError ? 'form-error-msg' : undefined}
@@ -370,6 +341,7 @@ export function RolesTab() {
                 <input
                   id="role-desc-input"
                   type="text"
+                  maxLength={200}
                   value={formDescripcion}
                   onChange={(e) => setFormDescripcion(e.target.value)}
                   placeholder="Breve explicación de las responsabilidades"
@@ -436,7 +408,7 @@ export function RolesTab() {
                         </button>
                       </div>
 
-                      {/* Lista de Checkboxes */}
+                      {/* Lista de Checkboxes: cada permiso es una pregunta Sí / No */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                         {permList.map((perm) => {
                           const isChecked = selectedPermissions.includes(perm.key);
@@ -469,8 +441,16 @@ export function RolesTab() {
                               >
                                 {isChecked && <Check size={14} strokeWidth={3} />}
                               </div>
-                              <span className="text-xs font-medium leading-tight">
+                              <span className="text-xs font-medium leading-tight flex-1">
                                 {perm.label}
+                              </span>
+                              <span
+                                aria-hidden="true"
+                                className={`text-[11px] font-bold uppercase flex-shrink-0 ${
+                                  isChecked ? 'text-[#218a72]' : 'text-gray-400'
+                                }`}
+                              >
+                                {isChecked ? 'Sí' : 'No'}
                               </span>
                             </label>
                           );
@@ -487,16 +467,29 @@ export function RolesTab() {
               <button
                 type="button"
                 onClick={handleCloseForm}
-                className="px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-100 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 transition-colors"
+                disabled={isSaving}
+                className="px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-100 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 transition-colors disabled:opacity-60"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
-                className="flex items-center gap-2 px-6 py-2.5 bg-[#218a72] hover:bg-[#1b6f5c] text-white font-bold text-sm rounded-xl focus:outline-none focus-visible:ring-4 focus-visible:ring-[#218a72]/30 transition-all shadow-sm active:scale-[0.98]"
+                disabled={isSaving}
+                aria-busy={isSaving}
+                className="flex items-center gap-2 px-6 py-2.5 bg-[#218a72] hover:bg-[#1b6f5c] text-white font-bold text-sm rounded-xl focus:outline-none focus-visible:ring-4 focus-visible:ring-[#218a72]/30 transition-all shadow-sm active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                <Check size={18} aria-hidden="true" />
-                <span>{editingRoleId ? 'Guardar Cambios' : 'Crear Rol'}</span>
+                {isSaving ? (
+                  <Loader2 size={18} className="animate-spin" aria-hidden="true" />
+                ) : (
+                  <Check size={18} aria-hidden="true" />
+                )}
+                <span>
+                  {isSaving
+                    ? 'Guardando...'
+                    : editingRoleId !== null
+                      ? 'Guardar Cambios'
+                      : 'Crear Rol'}
+                </span>
               </button>
             </div>
           </form>
@@ -527,110 +520,164 @@ export function RolesTab() {
           />
         </div>
 
+        {/* Error de carga */}
+        {loadError && (
+          <div
+            role="alert"
+            className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-red-50 border border-red-200 text-red-800 text-sm font-medium rounded-xl"
+          >
+            <span>{loadError}</span>
+            <button
+              type="button"
+              onClick={cargarRoles}
+              className="flex items-center gap-1.5 self-start sm:self-auto px-3 py-1.5 text-xs font-bold text-red-800 bg-white border border-red-300 rounded-lg hover:bg-red-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-600"
+            >
+              <RefreshCw size={14} aria-hidden="true" />
+              Reintentar
+            </button>
+          </div>
+        )}
+
+        {/* Estado de carga */}
+        {isLoading && (
+          <div className="flex items-center gap-2 text-gray-600 text-sm py-8 justify-center">
+            <Loader2 size={20} className="animate-spin text-[#218a72]" aria-hidden="true" />
+            Cargando roles...
+          </div>
+        )}
+
         {/* Grilla de Tarjetas */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredRoles.map((role) => {
-            const numPerms = role.permisos.length;
-            const totalPerms = ALL_PERMISSIONS.length;
-            const pct = Math.round((numPerms / totalPerms) * 100);
+        {!isLoading && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredRoles.map((role) => {
+              const esAdmin = role.id === ADMIN_ROLE.id;
+              const numPerms = role.permisos.length;
+              const totalPerms = ALL_PERMISSIONS.length;
+              const pct = Math.round((numPerms / totalPerms) * 100);
+              const isDeleting = deletingRoleId === role.id;
 
-            return (
-              <article
-                key={role.id}
-                className="bg-white border-2 border-gray-100 rounded-2xl p-5 hover:border-[#218a72]/50 hover:shadow-md transition-all flex flex-col justify-between"
-              >
-                <div>
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <div className="flex items-center gap-2">
-                      <div className="w-9 h-9 bg-[#218a72]/10 rounded-xl flex items-center justify-center text-[#218a72] flex-shrink-0">
-                        {role.esPredeterminado ? (
-                          <Lock size={18} aria-label="Rol protegido de sistema" />
-                        ) : (
-                          <Users size={18} aria-hidden="true" />
-                        )}
+              return (
+                <article
+                  key={role.id}
+                  className="bg-white border-2 border-gray-100 rounded-2xl p-5 hover:border-[#218a72]/50 hover:shadow-md transition-all flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-9 h-9 bg-[#218a72]/10 rounded-xl flex items-center justify-center text-[#218a72] flex-shrink-0">
+                          {esAdmin ? (
+                            <Lock size={18} aria-label="Rol protegido de sistema" />
+                          ) : (
+                            <Users size={18} aria-hidden="true" />
+                          )}
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-gray-900 leading-snug">
+                            {role.nombre}
+                          </h4>
+                          {esAdmin && (
+                            <span className="inline-block px-2 py-0.5 text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300 rounded-md">
+                              Sistema
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <div>
-                        <h4 className="font-bold text-gray-900 leading-snug">
-                          {role.nombre}
-                        </h4>
-                        {role.esPredeterminado && (
-                          <span className="inline-block px-2 py-0.5 text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300 rounded-md">
-                            Sistema
-                          </span>
-                        )}
-                      </div>
-                    </div>
 
-                    {/* Acciones por tarjeta */}
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => handleOpenEdit(role)}
-                        aria-label={`Editar rol ${role.nombre}`}
-                        className="p-1.5 text-gray-600 hover:text-[#218a72] hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#218a72] rounded-lg transition-colors"
-                      >
-                        <Edit3 size={16} aria-hidden="true" />
-                      </button>
-                      {!role.esPredeterminado && (
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteRole(role)}
-                          aria-label={`Eliminar rol ${role.nombre}`}
-                          className="p-1.5 text-gray-600 hover:text-red-700 hover:bg-red-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-600 rounded-lg transition-colors"
-                        >
-                          <Trash2 size={16} aria-hidden="true" />
-                        </button>
+                      {/* Acciones por tarjeta (el Administrador no se edita ni se elimina) */}
+                      {!esAdmin && (
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEdit(role)}
+                            disabled={isDeleting}
+                            aria-label={`Editar rol ${role.nombre}`}
+                            className="p-1.5 text-gray-600 hover:text-[#218a72] hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#218a72] rounded-lg transition-colors disabled:opacity-50"
+                          >
+                            <Edit3 size={16} aria-hidden="true" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteRole(role)}
+                            disabled={isDeleting}
+                            aria-busy={isDeleting}
+                            aria-label={`Eliminar rol ${role.nombre}`}
+                            className="p-1.5 text-gray-600 hover:text-red-700 hover:bg-red-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-600 rounded-lg transition-colors disabled:opacity-50"
+                          >
+                            {isDeleting ? (
+                              <Loader2 size={16} className="animate-spin" aria-hidden="true" />
+                            ) : (
+                              <Trash2 size={16} aria-hidden="true" />
+                            )}
+                          </button>
+                        </div>
                       )}
                     </div>
+
+                    <p className="text-xs text-gray-600 mb-4 min-h-[32px] line-clamp-2">
+                      {role.descripcion || 'Sin descripción asignada.'}
+                    </p>
+
+                    {/* Cobertura de permisos */}
+                    <div className="space-y-1.5 mb-4" aria-label={`Cobertura de permisos: ${numPerms} de ${totalPerms}`}>
+                      <div className="flex justify-between text-xs font-semibold">
+                        <span className="text-gray-700">Permisos asignados:</span>
+                        <span className="text-[#218a72]">{numPerms} de {totalPerms} ({pct}%)</span>
+                      </div>
+                      <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden" aria-hidden="true">
+                        <div
+                          className="bg-[#218a72] h-full transition-all duration-300"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </div>
                   </div>
 
-                  <p className="text-xs text-gray-600 mb-4 min-h-[32px] line-clamp-2">
-                    {role.descripcion || 'Sin descripción asignada.'}
-                  </p>
+                  {/* Resumen por Categorías */}
+                  <div className="pt-3 border-t border-gray-100 flex flex-wrap gap-1" aria-label="Resumen por categoría">
+                    {Object.keys(groupedPermissions).map((category) => {
+                      const catKeys = groupedPermissions[category].map((p) => p.key);
+                      const activeCount = catKeys.filter((k) => role.permisos.includes(k)).length;
+                      if (activeCount === 0) return null;
 
-                  {/* Cobertura de permisos */}
-                  <div className="space-y-1.5 mb-4" aria-label={`Cobertura de permisos: ${numPerms} de ${totalPerms}`}>
-                    <div className="flex justify-between text-xs font-semibold">
-                      <span className="text-gray-700">Permisos asignados:</span>
-                      <span className="text-[#218a72]">{numPerms} de {totalPerms} ({pct}%)</span>
-                    </div>
-                    <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden" aria-hidden="true">
-                      <div
-                        className="bg-[#218a72] h-full transition-all duration-300"
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
+                      return (
+                        <span
+                          key={category}
+                          className="px-2 py-0.5 bg-gray-100 text-gray-800 text-[11px] font-medium rounded-md"
+                        >
+                          {category}: {activeCount}
+                        </span>
+                      );
+                    })}
+                    {numPerms === 0 && (
+                      <span className="text-[11px] text-gray-500 italic">Sin permisos asignados</span>
+                    )}
                   </div>
-                </div>
+                </article>
+              );
+            })}
 
-                {/* Resumen por Categorías */}
-                <div className="pt-3 border-t border-gray-100 flex flex-wrap gap-1" aria-label="Resumen por categoría">
-                  {Object.keys(groupedPermissions).map((category) => {
-                    const catKeys = groupedPermissions[category].map((p) => p.key);
-                    const activeCount = catKeys.filter((k) => role.permisos.includes(k)).length;
-                    if (activeCount === 0) return null;
-
-                    return (
-                      <span
-                        key={category}
-                        className="px-2 py-0.5 bg-gray-100 text-gray-800 text-[11px] font-medium rounded-md"
-                      >
-                        {category}: {activeCount}
-                      </span>
-                    );
-                  })}
-                </div>
-              </article>
-            );
-          })}
-
-          {filteredRoles.length === 0 && (
-            <div className="col-span-full py-12 text-center text-gray-600 font-medium bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
-              No se encontraron roles que coincidan con la búsqueda.
-            </div>
-          )}
-        </div>
+            {filteredRoles.length === 0 && (
+              <div className="col-span-full py-12 text-center text-gray-600 font-medium bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
+                No se encontraron roles que coincidan con la búsqueda.
+              </div>
+            )}
+          </div>
+        )}
       </section>
+
+      <SuccessModal
+        isOpen={!!successModal}
+        title={successModal?.title ?? ''}
+        message={successModal?.message}
+        onClose={() => setSuccessModal(null)}
+      />
+
+      <FailureModal
+        isOpen={!!failureModal}
+        title={failureModal?.title ?? ''}
+        message={failureModal?.message}
+        onClose={() => setFailureModal(null)}
+      />
     </div>
   );
 }
