@@ -6,6 +6,7 @@ import { getClientes } from '../data/clientesData';
 import { getStocks } from '../data/stockData';
 import { ItemRow } from '../components/ItemRow';
 import { getAuthHeaders } from '../../../../backend/utils/putHeaders';
+import { Can } from '../components/ui/Can';
 
 const API_URL = 'http://localhost:3001/api';
 
@@ -468,14 +469,16 @@ export default function NuevoAlquilerPage() {
                             <label htmlFor="cliente-search" className="block text-sm font-bold text-gray-700">
                                 Cliente <span className="text-xs text-red-600 font-semibold ml-0.5">(obligatorio)</span>
                             </label>
-                            <button
-                                type="button"
-                                onClick={() => navigate('/app/clientes/nuevo')}
-                                className="text-xs bg-[#218a72]/10 text-[#218a72] hover:bg-[#218a72]/20 px-3 py-1.5 rounded-lg font-bold flex items-center gap-1 transition-colors focus:outline-none focus:ring-2 focus:ring-[#218a72] whitespace-nowrap"
-                                aria-label="Crear nuevo cliente"
-                            >
-                                <Plus size={14} aria-hidden="true" /> Registrar nuevo cliente
-                            </button>
+                            <Can do="permiso_para_registrar_clientes">
+                                <button
+                                    type="button"
+                                    onClick={() => navigate('/app/clientes/nuevo')}
+                                    className="text-xs bg-[#218a72]/10 text-[#218a72] hover:bg-[#218a72]/20 px-3 py-1.5 rounded-lg font-bold flex items-center gap-1 transition-colors focus:outline-none focus:ring-2 focus:ring-[#218a72] whitespace-nowrap"
+                                    aria-label="Crear nuevo cliente"
+                                >
+                                    <Plus size={14} aria-hidden="true" /> Registrar nuevo cliente
+                                </button>
+                            </Can>
                         </div>
                         <div className="relative">
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-800" size={18} aria-hidden="true" />

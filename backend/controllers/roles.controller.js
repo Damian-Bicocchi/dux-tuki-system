@@ -1,68 +1,62 @@
-// Nota: Importa tu servicio, repositorio o modelo según la base de datos que uses.
-// Ejemplo: const rolesRepository = require('../repositories/rolesRepository');
+const rolesService = require('../services/roles.service');
 
-const rolesController = {
-  // GET /api/roles - Listar todos los roles creados
-  async getAllRoles(req, res) {
-    try {
-      // Reemplazar con la llamada a tu BD/Repository (ej: await rolesRepository.findAll())
-      const roles = [
-        { id: '1', name: 'Supervisor', permissions: ['permiso_para_crear_stock'] }
-      ]; 
+// GET /api/roles/permisos - Lista de permisos disponibles para armar el formulario
+exports.getPermisos = (req, res) => {
+  res.json(rolesService.getPermisosDisponibles());
+};
 
-      return res.status(200).json(roles);
-    } catch (error) {
-      return res.status(500).json({ message: 'Error al obtener los roles', error: error.message });
-    }
-  },
-
-  // POST /api/roles - Crear un nuevo rol dinámico
-  async createRole(req, res) {
-    try {
-      const { name, permissions } = req.body;
-
-      // Validaciones básicas
-      if (!name || !Array.isArray(permissions)) {
-        return res.status(400).json({ 
-          message: 'El nombre del rol y el arreglo de permisos son obligatorios.' 
-        });
-      }
-
-      // Guardar en la base de datos a través de tu Repository/Service
-      const newRole = {
-        id: Date.now().toString(), // Generación de id simulada
-        name,
-        permissions // Guarda el array de strings: ['permiso_a', 'permiso_b']
-      };
-
-      // await rolesRepository.create(newRole);
-
-      return res.status(201).json({
-        message: 'Rol creado exitosamente',
-        role: newRole
-      });
-    } catch (error) {
-      return res.status(500).json({ message: 'Error al crear el rol', error: error.message });
-    }
-  },
-
-  // POST /api/roles/assign - Asignar un rol a un usuario
-  async assignRoleToUser(req, res) {
-    try {
-      const { userId, roleId } = req.body;
-
-      if (!userId || !roleId) {
-        return res.status(400).json({ message: 'userId y roleId son requeridos.' });
-      }
-
-      // Lógica para actualizar el usuario en la BD asignándole el roleId
-      // await userRepository.updateRole(userId, roleId);
-
-      return res.status(200).json({ message: 'Rol asignado al usuario correctamente.' });
-    } catch (error) {
-      return res.status(500).json({ message: 'Error al asignar el rol', error: error.message });
-    }
+// GET /api/roles - Listar todos los roles
+exports.getAll = async (req, res, next) => {
+  try {
+    const roles = await rolesService.getAll();
+    res.json(roles);
+  } catch (err) {
+    next(err);
   }
 };
 
-module.exports = rolesController;
+// GET /api/roles/:id - Obtener un rol
+exports.getById = async (req, res, next) => {
+  try {
+    const rol = await rolesService.getById(parseInt(req.params.id, 10));
+    res.json(rol);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// POST /api/roles - Crear un rol dinámico
+exports.create = async (req, res, next) => {
+  try {
+    const { nombre, descripcion, permisos } = req.body;
+    const nuevoRol = await rolesService.create({ nombre, descripcion, permisos });
+    res.status(201).json(nuevoRol);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// PUT /api/roles/:id - Editar nombre/descripcion/permisos de un rol
+exports.update = async (req, res, next) => {
+  try {
+    const { nombre, descripcion, permisos } = req.body;
+    const rolActualizado = await rolesService.update(parseInt(req.params.id, 10), {
+      nombre,
+      descripcion,
+      permisos,
+    });
+    res.json(rolActualizado);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// DELETE /api/roles/:id - Eliminar un rol (sólo si ningún usuario lo tiene asignado)
+exports.delete = async (req, res, next) => {
+  try {
+    const resultado = await rolesService.delete(parseInt(req.params.id, 10));
+    res.json(resultado);
+  } catch (err) {
+    next(err);
+  }
+};

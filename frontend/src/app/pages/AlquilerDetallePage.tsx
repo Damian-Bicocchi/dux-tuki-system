@@ -403,7 +403,7 @@ export default function AlquilerDetallePage() {
                 <ClipboardCheck size={18} aria-hidden="true" />
                 <h2 id="form-devolucion-titulo" className="text-sm font-bold uppercase tracking-wider">Registrar Devolución</h2>
               </div>
-              <Can do="permiso_para_modificar_alquileres">
+              <Can do="permiso_para_cerrar_alquileres">
                 
                 <form onSubmit={handleProcesarEntrega} className="p-4 space-y-4">
                 

@@ -80,6 +80,15 @@ function initializeTables() {
             )
         `);
 
+        // Migración idempotente para roles (descripcion)
+        db.all(`PRAGMA table_info(roles)`, (err, columns = []) => {
+            if (err) return console.error('Error al leer columnas de roles:', err.message);
+            const hasDescripcion = columns.some((col) => col.name === 'descripcion');
+            if (!hasDescripcion) {
+                db.run(`ALTER TABLE roles ADD COLUMN descripcion TEXT`);
+            }
+        });
+
         // 6. Usuarios
         db.run(`
             CREATE TABLE IF NOT EXISTS usuarios (

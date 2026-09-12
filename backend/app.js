@@ -20,6 +20,7 @@ app.use('/api/alquileres', require('./routes/alquileres'));
 app.use('/api/costos', require('./routes/costos'));
 app.use('/api/estadisticas', require('./routes/estadisticas'));
 app.use('/api/usuarios', require('./routes/usuarios'));
+app.use('/api/roles', require('./routes/roles'));
 
 // Ruta raíz
 app.get('/', (req, res) => {
@@ -34,6 +35,7 @@ app.get('/', (req, res) => {
       '/api/costos',
       '/api/estadisticas',
       '/api/usuarios',
+      '/api/roles',
     ],
   });
 });

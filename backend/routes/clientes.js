@@ -9,7 +9,7 @@ const router = express.Router();
 router.use(authenticate);
 
 // GET /api/clientes — listar todos
-router.get('/', (req, res) => {
+router.get('/', checkPermission('permiso_para_listar_clientes'), (req, res) => {
     const db = getDb();
     const { search } = req.query;
     let query = 'SELECT * FROM clientes';
@@ -30,7 +30,7 @@ router.get('/', (req, res) => {
 });
 
 // GET /api/clientes/:id — obtener uno con su historial de alquileres
-router.get('/:id', (req, res) => {
+router.get('/:id', checkPermission('permiso_para_listar_clientes'), (req, res) => {
     const db = getDb();
     db.get('SELECT * FROM clientes WHERE id = ?', [req.params.id], (err, cliente) => {
         if (err) return res.status(500).json({ error: err.message });
@@ -54,7 +54,7 @@ router.get('/:id', (req, res) => {
 });
 
 // POST /api/clientes — crear
-router.post('/', (req, res) => {
+router.post('/', checkPermission('permiso_para_registrar_clientes'), (req, res) => {
     const db = getDb();
     const { nombre, email, dni, telefono, notas } = req.body;
     if (!nombre) return res.status(400).json({ error: 'El nombre es obligatorio' });
@@ -77,7 +77,7 @@ router.post('/', (req, res) => {
 });
 
 // PUT /api/clientes/:id — actualizar
-router.put('/:id', (req, res) => {
+router.put('/:id', checkPermission('permiso_para_editar_clientes'), (req, res) => {
     const db = getDb();
     const { nombre, email, dni, telefono, notas } = req.body;
     if (!nombre) return res.status(400).json({ error: 'El nombre es obligatorio' });
@@ -101,7 +101,7 @@ router.put('/:id', (req, res) => {
 });
 
 // DELETE /api/clientes/:id — eliminar (solo si no tiene alquileres activos)
-router.delete('/:id', (req, res) => {
+router.delete('/:id', checkPermission('permiso_para_editar_clientes'), (req, res) => {
     const db = getDb();
     db.get(
         `SELECT COUNT(*) as total FROM alquileres
