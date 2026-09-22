@@ -18,12 +18,9 @@ export type PermissionKey =
   | 'permiso_para_editar_clientes'
   // Categorías
   | 'permiso_para_gestionar_categorias'
-  // Costos
-  | 'permiso_para_gestionar_costos'
   // Estadísticas
   | 'permiso_para_ver_estadisticas'
-  // Sistema
-  | 'permiso_para_entrar_a_configuraciones_avanzadas';
+
 
 export interface PermissionDefinition {
   key: PermissionKey;
@@ -101,12 +98,6 @@ export const ALL_PERMISSIONS: PermissionDefinition[] = [
     category: 'Categorías',
   },
 
-  // Costos
-  {
-    key: 'permiso_para_gestionar_costos',
-    label: '¿Puede ver y registrar costos?',
-    category: 'Costos',
-  },
 
   // Reportes / Estadísticas
   {
@@ -115,10 +106,4 @@ export const ALL_PERMISSIONS: PermissionDefinition[] = [
     category: 'Estadísticas',
   },
 
-  // Sistema
-  {
-    key: 'permiso_para_entrar_a_configuraciones_avanzadas',
-    label: '¿Puede acceder a configuraciones avanzadas?',
-    category: 'Sistema',
-  },
 ];

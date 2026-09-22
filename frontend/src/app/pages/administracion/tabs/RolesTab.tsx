@@ -429,6 +429,12 @@ export function RolesTab() {
                                 type="checkbox"
                                 checked={isChecked}
                                 onChange={() => togglePermission(perm.key)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault(); // Evita que se envíe el formulario
+                                    togglePermission(perm.key); // Alterna el estado del permiso
+                                  }
+                                }}
                                 className="sr-only"
                               />
                               <div
