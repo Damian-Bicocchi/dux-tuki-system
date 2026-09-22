@@ -51,7 +51,16 @@ export default function ClientesPage() {
 
   return (
     <div className="px-5 py-6 pb-10">
-      {/* Estadísticas */}
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+            <h1 className="text-3xl font-semibold font-sans text-gray-900 mb-2">
+                Gestión de clientes
+            </h1>
+            <h2 className="text-base font-medium font-sans text-gray-700 leading-tight">
+                Apriete en cada cliente para obtener su información
+            </h2>
+        </div>
+    </div>
       
 
       {/* Buscador */}

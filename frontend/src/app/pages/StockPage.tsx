@@ -81,22 +81,15 @@ export default function StockPage() {
   return (
     <div className="px-5 py-6 pb-10 min-h-screen bg-gradient-to-b from-white via-[#f7fbfa] to-white">
       {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-12 h-12 bg-[#218a72]/10 rounded-2xl flex items-center justify-center flex-shrink-0" aria-hidden="true">
-            <Package size={28} className="text-[#218a72]" />
-          </div>
-          <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#1b6f5c]">
-            Gestión de stock
-          </p>
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+            <h1 className="text-3xl font-semibold font-sans text-gray-900 mb-2">
+                Gestión de Stock
+            </h1>
+            <h2 className="text-base font-medium font-sans text-gray-700 leading-tight">
+                Apriete en cada elemento para obtener su información
+            </h2>
         </div>
-
-        <h1 className="text-4xl sm:text-5xl font-black text-gray-900 leading-tight">
-          Gestión de stock
-        </h1>
-        <p className="mt-3 text-base text-gray-600 max-w-2xl">
-          Gestioná el inventario de equipos y administrá las categorías del sistema en un solo lugar.
-        </p>
       </div>
 
       {/* Navegación por pestañas */}
