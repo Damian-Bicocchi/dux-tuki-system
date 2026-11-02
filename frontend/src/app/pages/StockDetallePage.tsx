@@ -333,6 +333,7 @@ export default function StockDetallePage() {
         </header>
 
         <div className="px-5 py-6 max-w-lg md:max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+          <Can do="permiso_para_editar_stock">
           <section aria-labelledby="editar-titulo" className="w-full">
             <h2 id="editar-titulo" className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-3">
               Modificar especificaciones del equipo

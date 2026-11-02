@@ -54,8 +54,16 @@ export default function HomePage({ userName }: HomePageProps) {
                 ]);
 
                 if (isMounted) {
-                    const activos = alquileres.filter((a) => a.estado === 'activo').length;
-                    const vencidos = alquileres.filter((a) => a.estado === 'vencido').length;
+                    const hoy = new Date().toISOString().slice(0, 10);
+                    const activos = alquileres.filter(
+                        (a) => a.estado === 'activo' && a.fecha_fin >= hoy,
+                    ).length;
+                    const vencidos = alquileres.filter(
+                        (a) =>
+                            a.estado === 'vencido' ||
+                            (['activo', 'pendiente'].includes(a.estado) &&
+                                a.fecha_fin < hoy),
+                    ).length;
 
                     setStats({
                         activos,

@@ -13,6 +13,7 @@ import {
   AlertTriangle,
   ClipboardCheck,
 } from "lucide-react";
+import { Can } from "../components/ui/Can";
 
 type EstadoDetalle = "activo" | "vencido" | "finalizado";
 
@@ -394,7 +395,8 @@ export default function AlquilerDetallePage() {
                 <ClipboardCheck size={18} aria-hidden="true" />
                 <h2 id="form-devolucion-titulo" className="text-sm font-bold uppercase tracking-wider">Registrar Devolución</h2>
               </div>
-              
+
+              <Can do="permiso_para_cerrar_alquileres">
               <form onSubmit={handleProcesarEntrega} className="p-5 space-y-5">
                 <fieldset className="space-y-2">
                   <legend className="text-xs font-bold text-gray-700 uppercase tracking-wider block">
