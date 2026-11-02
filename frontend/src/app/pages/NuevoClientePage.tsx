@@ -5,6 +5,7 @@ import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input';
 import es from "react-phone-number-input/locale/es";
 import 'react-phone-number-input/style.css';
 import { SuccessModal } from '../components/SuccessModal';
+import { useUnsavedChangesWarning } from '../hooks/useUnsavedChangesWarning';
 import { getAuthHeaders } from '../../../../backend/utils/putHeaders';
 
 export default function NuevoClientePage() {
@@ -23,6 +24,11 @@ export default function NuevoClientePage() {
     /* Nuevos estados para manejar errores de servidor y carga */
     const [apiError, setApiError] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const isDirty =
+        !showSuccess &&
+        Object.values(formData).some((value) => value.trim() !== '');
+    const { allowNavigation } = useUnsavedChangesWarning(isDirty);
 
     function validate() {
         const errs: Partial<typeof formData> = {};
@@ -279,7 +285,10 @@ export default function NuevoClientePage() {
                     </button>
                     <button
                         type="button"
-                        onClick={() => navigate('/app/clientes')}
+                        onClick={() => {
+                            allowNavigation();
+                            navigate('/app/clientes');
+                        }}
                         className="w-full py-2.5 border-2 border-gray-300 bg-white text-gray-700 rounded-xl font-bold hover:bg-gray-100 hover:border-gray-400 active:scale-[0.98] transition-all focus:outline-none focus:ring-4 focus:ring-gray-300 text-sm"
                     >
                         Cancelar

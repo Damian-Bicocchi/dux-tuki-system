@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Plus } from "lucide-react";
 import { SuccessModal } from "../../../components/SuccessModal";
 import { FailureModal } from "../../../components/FailureModal";
+import { useUnsavedChangesWarning } from "../../../hooks/useUnsavedChangesWarning";
 import { getAuthHeaders } from "../../../../../../backend/utils/putHeaders";
 
 // Definimos la interfaz para las props
@@ -17,6 +18,8 @@ export default function CategoriasForm({ onCategoriaCreada }: CategoriasFormProp
   const [showSuccess, setShowSuccess] = useState(false);
   const [showFailure, setShowFailure] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+
+  useUnsavedChangesWarning(!showSuccess && nombre.trim() !== "");
 
   const handleSubmit = async (e: React.FormEvent) => { // Corregido React.SubmitEvent a React.FormEvent
     e.preventDefault();

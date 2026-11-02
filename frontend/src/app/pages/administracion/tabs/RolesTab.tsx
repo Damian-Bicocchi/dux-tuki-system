@@ -30,6 +30,7 @@ import {
 } from '../../../data/rolesData';
 import { SuccessModal } from '../../../components/SuccessModal';
 import { FailureModal } from '../../../components/FailureModal';
+import { useUnsavedChangesWarning } from '../../../hooks/useUnsavedChangesWarning';
 
 // ============================================================================
 // Rol "Administrador": no vive en la base de datos, es la bandera `is_admin`
@@ -66,6 +67,21 @@ export function RolesTab() {
   const [formError, setFormError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [deletingRoleId, setDeletingRoleId] = useState<number | null>(null);
+
+  const editingRole = roles.find((role) => role.id === editingRoleId);
+  const isDirty =
+    isFormOpen &&
+    (editingRole
+      ? formNombre !== editingRole.nombre ||
+        formDescripcion !== editingRole.descripcion ||
+        selectedPermissions.length !== editingRole.permisos.length ||
+        selectedPermissions.some(
+          (permission) => !editingRole.permisos.includes(permission),
+        )
+      : formNombre.trim() !== '' ||
+        formDescripcion.trim() !== '' ||
+        selectedPermissions.length > 0);
+  useUnsavedChangesWarning(isDirty);
 
   // Feedback al usuario
   const [successModal, setSuccessModal] = useState<ModalState | null>(null);

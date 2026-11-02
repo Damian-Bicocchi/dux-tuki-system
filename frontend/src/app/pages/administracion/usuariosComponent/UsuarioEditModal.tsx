@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import type { Role } from '../../../data/rolesData';
 import type { AsignarRolInput, Usuario } from '../../../data/usuariosData';
+import { useUnsavedChangesWarning } from '../../../hooks/useUnsavedChangesWarning';
 
 interface UsuarioEditModalProps {
   usuario: Usuario;
@@ -27,6 +28,11 @@ export function UsuarioEditModal({
   );
   const [error, setError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+
+  const valorInicial = usuario.is_admin
+    ? VALOR_ADMIN
+    : String(usuario.role_id ?? '');
+  useUnsavedChangesWarning(rolSeleccionado !== valorInicial);
 
   if (!isOpen) {
     return null;

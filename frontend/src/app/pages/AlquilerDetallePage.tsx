@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { Can } from "../components/ui/Can";
 import { SuccessModal } from "../components/SuccessModal";
+import { useUnsavedChangesWarning } from "../hooks/useUnsavedChangesWarning";
 import { getAuthHeaders } from '../../../../backend/utils/putHeaders';
 
 type EstadoDetalle =
@@ -174,16 +175,18 @@ export default function AlquilerDetallePage() {
   const [entregaParcial, setEntregaParcial] = useState(false);
   const [detalleParcial, setDetalleParcial] = useState("");
   const [tieneDanos, setTieneDanos] = useState(false);
-  const [cobroDanos, setCobroDanos] = useState(0);
+  const [cobroDanos, setCobroDanos] = useState<number | "">("");
   const [detalleDanos, setDetalleDanos] = useState("");
   const [fueraTermino, setFueraTermino] = useState(false);
-  const [cobroPenalizacion, setCobroPenalizacion] = useState(0);
+  const [cobroPenalizacion, setCobroPenalizacion] = useState<number | "">("");
   const [notasEntrega, setNotasEntrega] = useState("");
   const [processingCierre, setProcessingCierre] = useState(false);
-  const [cantidadesDevueltas, setCantidadesDevueltas] = useState<Record<number, number>>({});
+  const [cantidadesDevueltas, setCantidadesDevueltas] = useState<
+    Record<number, number | "">
+  >({});
 
   const [motivoCancelacion, setMotivoCancelacion] = useState("");
-  const [recargoCancelacion, setRecargoCancelacion] = useState(0);
+  const [recargoCancelacion, setRecargoCancelacion] = useState<number | "">("");
   const [processingCancelacion, setProcessingCancelacion] = useState(false);
   const [cancelacionError, setCancelacionError] = useState<string | null>(null);
   const [showCancelSuccess, setShowCancelSuccess] = useState(false);
@@ -247,6 +250,53 @@ export default function AlquilerDetallePage() {
     setCantidadesDevueltas(initialCantidades);
   }, [itemsAlquilados]);
 
+  const hoy = new Date().toISOString().slice(0, 10);
+  const estadoVistaParaDirty = alquiler
+    ? mapEstadoDetalle(
+        alquiler.estado,
+        alquiler.fecha_inicio,
+        alquiler.fecha_fin,
+      )
+    : null;
+  const puedeCancelar = Boolean(
+    alquiler &&
+      ["pendiente", "activo"].includes(alquiler.estado) &&
+      alquiler.fecha_inicio > hoy,
+  );
+  const puedeIniciar = Boolean(
+    alquiler &&
+      alquiler.estado === "pendiente" &&
+      alquiler.fecha_inicio <= hoy,
+  );
+  const puedeRegistrarDevolucion = Boolean(
+    alquiler &&
+      estadoVistaParaDirty &&
+      alquiler.fecha_inicio <= hoy &&
+      ["activo", "vencido"].includes(estadoVistaParaDirty),
+  );
+  const cantidadesModificadas = itemsAlquilados.some(
+    (item) =>
+      Number(cantidadesDevueltas[item.id] ?? item.cantidad) !== item.cantidad,
+  );
+  const devolucionDirty =
+    puedeRegistrarDevolucion &&
+    (entregaParcial ||
+      detalleParcial.trim() !== "" ||
+      tieneDanos ||
+      cobroDanos !== "" ||
+      detalleDanos.trim() !== "" ||
+      fueraTermino ||
+      cobroPenalizacion !== "" ||
+      notasEntrega.trim() !== "" ||
+      cantidadesModificadas);
+  const cancelacionDirty =
+    puedeCancelar &&
+    (motivoCancelacion.trim() !== "" || recargoCancelacion !== "");
+
+  const { allowNavigation } = useUnsavedChangesWarning(
+    !loading && (devolucionDirty || cancelacionDirty),
+  );
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] px-6 text-center">
@@ -269,27 +319,16 @@ export default function AlquilerDetallePage() {
     );
   }
 
-  const estadoVista = mapEstadoDetalle(
-    alquiler.estado,
-    alquiler.fecha_inicio,
-    alquiler.fecha_fin,
-  );
+  const estadoVista = estadoVistaParaDirty as EstadoDetalle;
   const meta = ESTADO_META[estadoVista];
   const EstadoIcon = meta.icon;
   const dias = calcularDias(alquiler.fecha_inicio, alquiler.fecha_fin);
-  const hoy = new Date().toISOString().slice(0, 10);
-  const puedeCancelar =
-    ["pendiente", "activo"].includes(alquiler.estado) &&
-    alquiler.fecha_inicio > hoy;
-  const puedeIniciar =
-    alquiler.estado === "pendiente" && alquiler.fecha_inicio <= hoy;
-  const puedeRegistrarDevolucion =
-    alquiler.fecha_inicio <= hoy &&
-    ["activo", "vencido"].includes(estadoVista);
-  
+
   const subtotal = itemsAlquilados.reduce((acc: number, item: any) => acc + (item.precio * item.cantidad * dias), 0);
   const totalOriginal = subtotal + Number(alquiler.deposito_garantia || 0);
-  const cargosAdicionales = (tieneDanos ? cobroDanos : 0) + (fueraTermino ? cobroPenalizacion : 0);
+  const cargosAdicionales =
+    (tieneDanos ? Number(cobroDanos) || 0 : 0) +
+    (fueraTermino ? Number(cobroPenalizacion) || 0 : 0);
   const balanceFinal = totalOriginal + cargosAdicionales;
   const totalPendiente = itemsAlquilados.reduce((acc, item) => {
     const devuelta = entregaParcial ? Number(cantidadesDevueltas[item.id] ?? item.cantidad) : item.cantidad;
@@ -340,6 +379,7 @@ export default function AlquilerDetallePage() {
         throw new Error(body.error || "No se pudo registrar la devolución");
       }
 
+      allowNavigation();
       navigate("/app/alquileres");
     } catch (err) {
       alert(err instanceof Error ? err.message : "Error inesperado al cerrar el alquiler");
@@ -635,11 +675,12 @@ export default function AlquilerDetallePage() {
                       min="0"
                       step="0.01"
                       value={recargoCancelacion}
-                      onChange={(e) =>
+                      onChange={(e) => {
+                        const raw = e.target.value;
                         setRecargoCancelacion(
-                          Math.max(0, Number(e.target.value) || 0),
-                        )
-                      }
+                          raw === "" ? "" : Math.max(0, Number(raw)),
+                        );
+                      }}
                       className="w-full text-sm p-2.5 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-red-500/20 focus:border-red-500"
                     />
                   </div>
@@ -756,9 +797,21 @@ export default function AlquilerDetallePage() {
                               min={0}
                               max={item.cantidad}
                               step={1}
-                              value={cantidadesDevueltas[item.id] ?? 0}
+                              value={
+                                cantidadesDevueltas[item.id] ?? item.cantidad
+                              }
                               onChange={(e) => {
-                                const value = Number(e.target.value);
+                                const raw = e.target.value;
+
+                                if (raw === "") {
+                                  setCantidadesDevueltas((prev) => ({
+                                    ...prev,
+                                    [item.id]: "",
+                                  }));
+                                  return;
+                                }
+
+                                const value = Number(raw);
                                 const safeValue = Number.isFinite(value)
                                   ? Math.min(item.cantidad, Math.max(0, value))
                                   : 0;
@@ -804,8 +857,13 @@ export default function AlquilerDetallePage() {
                           id="monto-danos"
                           type="number"
                           min="0"
-                          value={cobroDanos || ""}
-                          onChange={(e) => setCobroDanos(Number(e.target.value))}
+                          value={cobroDanos}
+                          onChange={(e) => {
+                            const raw = e.target.value;
+                            setCobroDanos(
+                              raw === "" ? "" : Math.max(0, Number(raw)),
+                            );
+                          }}
                           placeholder="0"
                           className="w-full text-sm p-2 border border-rose-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500 font-bold bg-white"
                           required={tieneDanos}
@@ -851,8 +909,13 @@ export default function AlquilerDetallePage() {
                           id="monto-penalizacion"
                           type="number"
                           min="0"
-                          value={cobroPenalizacion || ""}
-                          onChange={(e) => setCobroPenalizacion(Number(e.target.value))}
+                          value={cobroPenalizacion}
+                          onChange={(e) => {
+                            const raw = e.target.value;
+                            setCobroPenalizacion(
+                              raw === "" ? "" : Math.max(0, Number(raw)),
+                            );
+                          }}
                           placeholder="Monto"
                           className="w-full text-sm p-2 border border-orange-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 font-bold bg-white"
                           required={fueraTermino}
@@ -915,8 +978,8 @@ export default function AlquilerDetallePage() {
               {cargosAdicionales > 0 && (
                 <div className="bg-rose-50/70 p-2.5 rounded-lg border border-rose-100 my-2 space-y-1 text-sm">
                   <span className="font-bold text-rose-900 block text-xs uppercase">Recargos aplicados:</span>
-                  {tieneDanos && <div className="flex justify-between text-rose-800"><span>• Daños:</span> <span className="font-semibold">{formatMonto(cobroDanos)}</span></div>}
-                  {fueraTermino && <div className="flex justify-between text-rose-800"><span>• Retraso:</span> <span className="font-semibold">{formatMonto(cobroPenalizacion)}</span></div>}
+                  {tieneDanos && <div className="flex justify-between text-rose-800"><span>• Daños:</span> <span className="font-semibold">{formatMonto(Number(cobroDanos) || 0)}</span></div>}
+                  {fueraTermino && <div className="flex justify-between text-rose-800"><span>• Retraso:</span> <span className="font-semibold">{formatMonto(Number(cobroPenalizacion) || 0)}</span></div>}
                 </div>
               )}
             </div>

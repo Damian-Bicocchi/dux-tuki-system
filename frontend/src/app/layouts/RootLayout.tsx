@@ -19,6 +19,7 @@ import SettingsPanel, {
   AccessibilitySettings,
 } from "../components/SettingsPanel";
 import NotificationsPanel from "../components/NotificationsPanel";
+import { UnsavedChangesProvider } from "../hooks/useUnsavedChangesWarning";
 import { usePermission } from "../hooks/usePermission";
 import type { PermissionKey } from "../../config/permissions";
 
@@ -373,7 +374,9 @@ export default function RootLayout() {
 
       {/* Main content */}
       <main id="main-content">
-        <Outlet />
+        <UnsavedChangesProvider>
+          <Outlet />
+        </UnsavedChangesProvider>
       </main>
 
       {/* Panel de configuración */}

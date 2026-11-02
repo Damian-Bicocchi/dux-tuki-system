@@ -22,6 +22,7 @@ import {
     type EstadoAlquilerStock,
 } from '../data/stockData';
 import { SuccessModal } from '../components/SuccessModal';
+import { useUnsavedChangesWarning } from '../hooks/useUnsavedChangesWarning';
 import { getAuthHeaders } from '../../../../backend/utils/putHeaders';
 import { Can } from '../components/ui/Can';
 
@@ -96,9 +97,24 @@ export default function StockDetallePage() {
     nombre: "",
     categoria_id: "",
     disponibles: 0,
+    precio_por_dia: 0,
+    deposito_garantia: 0,
   });
   
   const [showSuccess, setShowSuccess] = useState(false);
+  const [disponiblesInput, setDisponiblesInput] = useState("");
+
+  const categoriaSeleccionada = categorias.find(
+    (categoria) => String(categoria.id) === form.categoria_id,
+  );
+  const isDirty =
+    Boolean(item) &&
+    (form.nombre !== item!.nombre ||
+      form.disponibles !== item!.disponibles ||
+      Number(form.precio_por_dia) !== Number(item!.precio_por_dia) ||
+      Number(form.deposito_garantia) !== Number(item!.deposito_garantia) ||
+      (categoriaSeleccionada?.nombre || "Otros") !== item!.categoria);
+  useUnsavedChangesWarning(isDirty);
 
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [filtroEstado, setFiltroEstado] = useState<FiltroEstado>("todos");
@@ -166,6 +182,7 @@ export default function StockDetallePage() {
                         articuloData.deposito_garantia || 0,
                     ),
                 });
+                setDisponiblesInput(String(itemMapeado.disponibles));
 
         const resAlquileres = await fetch(
           `${API_BASE_URL}/alquileres/articulo/${id}`,
@@ -248,6 +265,7 @@ export default function StockDetallePage() {
             };
 
             setItem(updated);
+            setForm((prev) => ({ ...prev, nombre: updated.nombre }));
             setShowSuccess(true);
         } catch (err: any) {
             alert(err.message || 'Ocurrió un error al intentar guardar.');
@@ -393,13 +411,23 @@ export default function StockDetallePage() {
                     min="0"
                     required
                     aria-describedby={ayudaDisponiblesId}
-                    value={form.disponibles}
-                    onChange={(e) =>
+                    value={disponiblesInput}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      setDisponiblesInput(raw);
                       setForm((p) => ({
                         ...p,
-                        disponibles: Math.max(0, parseInt(e.target.value) || 0),
-                      }))
-                    }
+                        disponibles:
+                          raw === ""
+                            ? 0
+                            : Math.max(0, parseInt(raw, 10) || 0),
+                      }));
+                    }}
+                    onBlur={() => {
+                      if (disponiblesInput === "") {
+                        setDisponiblesInput("0");
+                      }
+                    }}
                     className="w-32 px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#165a4b] transition-colors text-sm text-gray-900 font-medium"
                   />
                   <span className={`px-2.5 py-1.5 rounded-lg text-xs font-bold border ${estadoStyle}`} role="status">
