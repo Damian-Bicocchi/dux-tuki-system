@@ -56,17 +56,29 @@ function initializeTables() {
                 precio_total      REAL    NOT NULL DEFAULT 0,
                 deposito_garantia REAL    NOT NULL DEFAULT 0,
                 notas             TEXT,
+                cancelacion_motivo  TEXT,
+                cancelacion_recargo REAL  NOT NULL DEFAULT 0,
+                cancelacion_fecha   TEXT,
                 created_at        TEXT    DEFAULT (datetime('now','localtime')),
                 FOREIGN KEY (cliente_id) REFERENCES clientes(id)
             )
         `);
 
-        // Migración idempotente para alquileres (deposito_garantia)
+        // Migraciones idempotentes para alquileres
         db.all(`PRAGMA table_info(alquileres)`, (err, columns = []) => {
             if (err) return console.error('Error al leer columnas de alquileres:', err.message);
-            const hasDeposito = columns.some((col) => col.name === 'deposito_garantia');
-            if (!hasDeposito) {
+
+            if (!columns.some((col) => col.name === 'deposito_garantia')) {
                 db.run(`ALTER TABLE alquileres ADD COLUMN deposito_garantia REAL NOT NULL DEFAULT 0`);
+            }
+            if (!columns.some((col) => col.name === 'cancelacion_motivo')) {
+                db.run(`ALTER TABLE alquileres ADD COLUMN cancelacion_motivo TEXT`);
+            }
+            if (!columns.some((col) => col.name === 'cancelacion_recargo')) {
+                db.run(`ALTER TABLE alquileres ADD COLUMN cancelacion_recargo REAL NOT NULL DEFAULT 0`);
+            }
+            if (!columns.some((col) => col.name === 'cancelacion_fecha')) {
+                db.run(`ALTER TABLE alquileres ADD COLUMN cancelacion_fecha TEXT`);
             }
         });
 
