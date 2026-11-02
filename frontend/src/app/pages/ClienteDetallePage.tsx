@@ -76,6 +76,7 @@ export default function ClienteDetallePage() {
     
     fetchCliente();
   }, [id, navigate]);
+
   if (!cliente) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -113,25 +114,20 @@ export default function ClienteDetallePage() {
   }
 
   return (
-    <div className="pb-10">
-      {/* Encabezado del cliente */}
-      <div className="bg-gradient-to-br from-[#29a285] via-[#218a72] to-[#1b6f5c] px-5 pt-4 pb-6 text-white">
+    <div className="pb-12 bg-gray-50 min-h-screen">
+      {/* Encabezado Homogéneo */}
+      <header className="bg-gradient-to-br from-[#1b6f5c] via-[#165a4b] to-[#0f3d33] px-5 pt-5 pb-8 text-white shadow-md">
         <button
           onClick={() => navigate('/app/clientes')}
-          className="flex items-center gap-1.5 text-white/80 hover:text-white mb-4 focus:outline-none focus:ring-2 focus:ring-white rounded-lg px-1 py-0.5 transition-colors"
-          aria-label="Volver a clientes"
+          className="flex items-center gap-2 text-white/90 hover:text-white mb-5 focus:outline-none focus:ring-2 focus:ring-white rounded-lg px-3 py-1.5 transition-colors bg-white/10 text-xs font-semibold w-fit"
+          aria-label="Volver a Clientes"
         >
-          <ArrowLeft size={18} aria-hidden="true" />
-          <span className="text-sm font-medium">Clientes</span>
+          <ArrowLeft size={16} aria-hidden="true" />
+          <span>Volver a Clientes</span>
         </button>
 
-        <div className="flex items-center gap-4">
-          <div
-            className="w-16 h-16 rounded-full bg-white/20 text-white flex items-center justify-center font-extrabold text-2xl flex-shrink-0 border-2 border-white/30"
-            aria-hidden="true"
-          >
-            {cliente.nombre.charAt(0)}
-          </div>
+        <div className="flex items-center gap-4 max-w-4xl mx-auto">
+          
           <div>
             <h1 className="text-xl font-extrabold leading-tight">{cliente.nombre}</h1>
             <p className="text-white/70 text-sm mt-0.5">
@@ -139,7 +135,7 @@ export default function ClienteDetallePage() {
             </p>
           </div>
         </div>
-      </div>
+      </header>
 
       {/* Tabs */}
       <div className="flex border-b-2 border-gray-200 bg-white sticky top-0 z-10" role="tablist" aria-label="Secciones del cliente">
@@ -173,15 +169,14 @@ export default function ClienteDetallePage() {
 
       {/* Panel Datos */}
       {tab === 'datos' && (
-        <div id="panel-datos" role="tabpanel" aria-label="Datos del cliente" className="px-5 py-6 space-y-4">
-          <div className="bg-white border-2 border-gray-100 rounded-2xl divide-y-2 divide-gray-100">
+        <div id="panel-datos" role="tabpanel" aria-label="Datos del cliente" className="px-5 py-6 space-y-4 max-w-4xl mx-auto">
+          <div className="bg-white border-2 border-gray-100 rounded-2xl divide-y-2 divide-gray-100 shadow-sm">
             <InfoRow icon={IdCard} label="DNI" value={cliente.dni} />
             <InfoRow icon={Mail} label="Correo" value={cliente.email} isEmail />
             {cliente.telefono && <InfoRow icon={Phone} label="Teléfono" value={cliente.telefono} />}
             <InfoRow icon={Package} label="Total alquileres" value={String(cliente.alquileres.length)} />
           </div>
 
-          {/* Resumen por estado */}
           <div>
             <h2 className="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide">Resumen de alquileres</h2>
             <div className="grid grid-cols-2 gap-2">
@@ -209,8 +204,7 @@ export default function ClienteDetallePage() {
 
       {/* Panel Alquileres */}
       {tab === 'alquileres' && (
-        <div id="panel-alquileres" role="tabpanel" aria-label="Alquileres del cliente" className="px-5 py-4 space-y-4">
-          {/* Filtro por estado */}
+        <div id="panel-alquileres" role="tabpanel" aria-label="Alquileres del cliente" className="px-5 py-4 space-y-4 max-w-4xl mx-auto">
           <div>
             <div className="flex items-center gap-2 mb-2">
               <SlidersHorizontal size={15} className="text-gray-500" aria-hidden="true" />
@@ -234,7 +228,6 @@ export default function ClienteDetallePage() {
             </div>
           </div>
 
-          {/* Controles de ordenamiento */}
           <div>
             <div className="flex items-center gap-2 mb-2">
               <ArrowUpDown size={15} className="text-gray-500" aria-hidden="true" />
@@ -268,7 +261,6 @@ export default function ClienteDetallePage() {
             </div>
           </div>
 
-          {/* Lista de alquileres */}
           {alquileresFiltrados.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
               No hay alquileres con el filtro seleccionado
@@ -324,7 +316,7 @@ function AlquilerCard({ alquiler }: { alquiler: Alquiler }) {
 
   return (
     <article
-      className="bg-white border-2 border-gray-100 rounded-2xl p-4"
+      className="bg-white border-2 border-gray-100 rounded-2xl p-4 shadow-sm"
       role="listitem"
       aria-label={`${alquiler.equipo}, estado: ${meta.label}`}
     >

@@ -14,9 +14,6 @@ import {
   ClipboardCheck,
 } from "lucide-react";
 
-import { getAuthHeaders } from '../../../../backend/utils/putHeaders';
-import { Can } from "../components/ui/Can";
-
 type EstadoDetalle = "activo" | "vencido" | "finalizado";
 
 interface AlquilerItemApi {
@@ -108,9 +105,9 @@ function InfoRow({
   highlight?: boolean;
 }) {
   return (
-    <div className="flex items-start gap-3 py-2 border-b border-gray-100 last:border-0">
-      <div className="w-7 h-7 rounded-lg bg-[#218a72]/10 flex items-center justify-center flex-shrink-0 mt-0.5" aria-hidden="true">
-        <Icon size={15} className="text-[#218a72]" />
+    <div className="flex items-start gap-4 py-3 border-b border-gray-100 last:border-0">
+      <div className="w-8 h-8 rounded-lg bg-[#218a72]/10 flex items-center justify-center flex-shrink-0 mt-0.5" aria-hidden="true">
+        <Icon size={16} className="text-[#218a72]" />
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-0.5">{label}</p>
@@ -284,13 +281,13 @@ export default function AlquilerDetallePage() {
   };
 
   return (
-    <div className="pb-6 bg-gray-50 min-h-screen font-sans w-full max-w-full overflow-x-hidden">
-      {/* Header */}
-      <header className="bg-gradient-to-br from-[#1b6f5c] via-[#165a4b] to-[#0f3d33] px-4 py-4 text-white shadow-md w-full">
+    <div className="pb-12 bg-gray-50 min-h-screen font-sans">
+      {/* Encabezado Homogéneo */}
+      <header className="bg-gradient-to-br from-[#1b6f5c] via-[#165a4b] to-[#0f3d33] px-5 pt-5 pb-8 text-white shadow-md">
         <button
           onClick={() => navigate("/app/alquileres")}
-          className="flex items-center gap-1.5 text-white/90 hover:text-white mb-2 focus:outline-none focus:ring-2 focus:ring-white rounded-lg px-2.5 py-1.5 transition-colors bg-white/10 text-sm font-semibold"
-          aria-label="Volver a la lista general de alquileres"
+          className="flex items-center gap-2 text-white/90 hover:text-white mb-5 focus:outline-none focus:ring-2 focus:ring-white rounded-lg px-3 py-1.5 transition-colors bg-white/10 text-xs font-semibold w-fit"
+          aria-label="Volver a Alquileres"
         >
           <ArrowLeft size={16} aria-hidden="true" />
           <span>Volver a Alquileres</span>
@@ -303,11 +300,9 @@ export default function AlquilerDetallePage() {
         </div>
       </header>
 
-      {/* Main Layout */}
-      <main className="px-3 sm:px-4 mt-4 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-4 w-full">
-        
-        {/* Bloque de Estado */}
-        <section
+      {/* Contenido Principal */}
+      <main className="px-4 -mt-4 max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
+        <section 
           aria-labelledby="estado-contrato-titulo"
           className={`lg:col-span-3 bg-white rounded-xl border ${meta.border} p-4 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3`}
         >
@@ -328,14 +323,11 @@ export default function AlquilerDetallePage() {
           </div>
         </section>
 
-        {/* Columna Izquierda: Equipos + Formulario */}
-        <div className="lg:col-span-2 space-y-4 min-w-0">
-          
-          {/* Tabla de equipos */}
-          <section aria-labelledby="inventario-titulo" className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-              <h2 id="inventario-titulo" className="text-xs sm:text-sm font-bold text-gray-600 uppercase tracking-wider flex items-center gap-2">
-                <Package size={16} className="text-[#218a72]" aria-hidden="true" /> Inventario Alquilado
+        <div className="md:col-span-2 space-y-6">
+          <section aria-labelledby="inventario-titulo" className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className="px-5 pt-4 pb-3 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+              <h2 id="inventario-titulo" className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                <Package size={14} className="text-[#218a72]" aria-hidden="true" /> Detalle del Inventario Alquilado
               </h2>
               <span className="bg-gray-200 text-gray-700 text-xs font-bold px-2.5 py-0.5 rounded-full">
                 {itemsAlquilados.length} {itemsAlquilados.length === 1 ? 'Ítem' : 'Ítems'}
@@ -396,18 +388,14 @@ export default function AlquilerDetallePage() {
 </div>
           </section>
 
-          {/* Formulario de devolución */}
           {estadoVista !== "finalizado" && (
             <section aria-labelledby="form-devolucion-titulo" className="bg-white rounded-xl border-2 border-[#218a72]/30 shadow-md overflow-hidden">
               <div className="bg-gradient-to-r from-[#218a72] to-[#165a4b] px-4 py-2.5 text-white flex items-center gap-2">
                 <ClipboardCheck size={18} aria-hidden="true" />
                 <h2 id="form-devolucion-titulo" className="text-sm font-bold uppercase tracking-wider">Registrar Devolución</h2>
               </div>
-              <Can do="permiso_para_cerrar_alquileres">
-                
-                <form onSubmit={handleProcesarEntrega} className="p-4 space-y-4">
-                
-                {/* Tipo de entrega */}
+              
+              <form onSubmit={handleProcesarEntrega} className="p-5 space-y-5">
                 <fieldset className="space-y-2">
                   <legend className="text-xs font-bold text-gray-700 uppercase tracking-wider block">
                     Tipo de entrega
@@ -514,9 +502,8 @@ export default function AlquilerDetallePage() {
 
                 <hr className="border-gray-100" aria-hidden="true" />
 
-                {/* Daños */}
-                <div className="space-y-2">
-                  <label htmlFor="input-danos" className="flex items-center gap-2 cursor-pointer select-none">
+                <div className="space-y-3">
+                  <label htmlFor="input-danos" className="flex items-center gap-2.5 cursor-pointer select-none">
                     <input
                       id="input-danos"
                       type="checkbox"
@@ -562,9 +549,8 @@ export default function AlquilerDetallePage() {
 
                 <hr className="border-gray-100" aria-hidden="true" />
 
-                {/* Retraso */}
-                <div className="space-y-2">
-                  <label htmlFor="input-retraso" className="flex items-center gap-2 cursor-pointer select-none">
+                <div className="space-y-3">
+                  <label htmlFor="input-retraso" className="flex items-center gap-2.5 cursor-pointer select-none">
                     <input
                       id="input-retraso"
                       type="checkbox"
@@ -596,7 +582,6 @@ export default function AlquilerDetallePage() {
                   )}
                 </div>
 
-                {/* Notas */}
                 <div className="space-y-1">
                   <label htmlFor="notas-recepcion" className="text-xs font-bold text-gray-500 uppercase tracking-wider block">Observaciones</label>
                   <textarea
@@ -623,12 +608,10 @@ export default function AlquilerDetallePage() {
           )}
         </div>
 
-        {/* Columna Derecha: Resumen y fechas */}
-        <div className="space-y-4 min-w-0">
-          {/* Período */}
-          <section aria-labelledby="cronograma-titulo" className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            <h2 id="cronograma-titulo" className="text-xs font-bold text-gray-500 uppercase tracking-wider px-4 pt-3 pb-1">
-              Cronograma
+        <div className="space-y-6">
+          <section aria-labelledby="cronograma-titulo" className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+            <h2 id="cronograma-titulo" className="text-xs font-bold text-gray-500 uppercase tracking-wider px-5 pt-4 pb-1">
+              Cronograma contractual
             </h2>
             <div className="px-4 pb-3">
               <InfoRow icon={CalendarDays} label="Fecha de emisión" value={formatFecha(alquiler.fecha_inicio)} />
@@ -637,10 +620,9 @@ export default function AlquilerDetallePage() {
             </div>
           </section>
 
-          {/* Liquidación */}
-          <section aria-labelledby="liquidacion-titulo" className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            <h2 id="liquidacion-titulo" className="text-xs font-bold text-gray-500 uppercase tracking-wider px-4 pt-3 pb-1">
-              Liquidación
+          <section aria-labelledby="liquidacion-titulo" className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+            <h2 id="liquidacion-titulo" className="text-xs font-bold text-gray-500 uppercase tracking-wider px-5 pt-4 pb-1">
+              Liquidación Comercial
             </h2>
             <div className="px-4 pb-1">
               <InfoRow icon={Banknote} label="Subtotal Neto" value={formatMonto(subtotal)} />
@@ -659,8 +641,8 @@ export default function AlquilerDetallePage() {
               )}
             </div>
 
-            <div
-              className="mx-4 mb-3 mt-2 rounded-lg bg-slate-900 text-white px-3.5 py-3 flex items-center justify-between shadow-inner"
+            <div 
+              className="mx-4 mb-4 mt-1 rounded-xl bg-slate-900 text-white px-4 py-3.5 flex items-center justify-between shadow-inner"
               aria-live="polite"
               aria-atomic="true"
             >
@@ -673,7 +655,6 @@ export default function AlquilerDetallePage() {
             </div>
           </section>
 
-          {/* Notas originales */}
           {alquiler.notas && (
             <section aria-labelledby="notas-iniciales-titulo" className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
               <h2 id="notas-iniciales-titulo" className="text-xs font-bold text-gray-500 uppercase tracking-wider px-4 pt-3 pb-1">
@@ -688,7 +669,6 @@ export default function AlquilerDetallePage() {
             </section>
           )}
         </div>
-
       </main>
     </div>
   );
