@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import { Link } from 'react-router';
 import { Calendar, RotateCcw, Package, User, ArrowRight, LogIn, LogOut, Loader2 } from 'lucide-react';
 import { getAuthHeaders } from '../../../../backend/utils/putHeaders';
 
@@ -256,30 +257,31 @@ function Section({
         ) : (
           <ul className="divide-y-2 divide-gray-50" role="list">
             {alquileres.map((a) => (
-              <li
-                key={a.id}
-                className={`px-5 py-4 border-l-4 ${tk.cardBorder} focus-visible:bg-gray-50 outline-none`}
-                tabIndex={0}
-                aria-label={`Equipo: ${a.equipo}. Cliente: ${a.cliente}.`}
-              >
-                <div aria-hidden="true">
-                  <div className="flex items-start gap-3 mb-2.5">
-                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${tk.iconBg}`}>
-                      <Package size={17} className={tk.iconColor} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-bold text-gray-900 text-sm leading-snug">{a.equipo}</p>
-                      <div className="flex items-center gap-1.5 mt-1">
-                        <User size={12} className="text-gray-400 flex-shrink-0" />
-                        <p className="text-xs text-gray-500 truncate">{a.cliente}</p>
+              <li key={a.id} className={`border-l-4 ${tk.cardBorder}`}>
+                <Link
+                  to={`/app/alquileres/${a.id}`}
+                  className="block px-5 py-4 hover:bg-gray-50 focus:outline-none focus-visible:bg-gray-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#218a72] transition-colors"
+                  aria-label={`Ver detalle del alquiler ${a.id}. Equipo: ${a.equipo}. Cliente: ${a.cliente}.`}
+                >
+                  <div aria-hidden="true">
+                    <div className="flex items-start gap-3 mb-2.5">
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${tk.iconBg}`}>
+                        <Package size={17} className={tk.iconColor} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-gray-900 text-sm leading-snug">{a.equipo}</p>
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <User size={12} className="text-gray-400 flex-shrink-0" />
+                          <p className="text-xs text-gray-500 truncate">{a.cliente}</p>
+                        </div>
                       </div>
                     </div>
+                    <div className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold ${tk.badgeBg} ${tk.badgeText}`}>
+                      <ArrowRight size={11} />
+                      {renderExtra(a)}
+                    </div>
                   </div>
-                  <div className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold ${tk.badgeBg} ${tk.badgeText}`}>
-                    <ArrowRight size={11} />
-                    {renderExtra(a)}
-                  </div>
-                </div>
+                </Link>
               </li>
             ))}
           </ul>
