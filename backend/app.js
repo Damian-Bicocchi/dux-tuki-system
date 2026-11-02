@@ -7,7 +7,7 @@ const app = express();
 // Middlewares globales
 app.use(cors({
     origin: '*', // En producción pon la URL exacta de tu frontend (ej: 'http://localhost:5173')
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());

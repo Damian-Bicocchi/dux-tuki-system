@@ -877,6 +877,137 @@ router.put(
     }
 );
 
+// Iniciar un alquiler pendiente cuya fecha de inicio ya llegó
+router.patch(
+    '/:id/iniciar',
+    checkPermission('permiso_para_editar_alquileres'),
+    async (req, res) => {
+        const alquilerId = req.params.id;
+
+        try {
+            const alquiler = await getAsync(
+                'SELECT id, estado, fecha_inicio FROM alquileres WHERE id = ?',
+                [alquilerId],
+            );
+
+            if (!alquiler) {
+                return res.status(404).json({ error: 'Alquiler no encontrado' });
+            }
+
+            if (alquiler.estado === 'activo') {
+                return res
+                    .status(409)
+                    .json({ error: 'El alquiler ya está activo' });
+            }
+
+            if (alquiler.estado !== 'pendiente') {
+                return res.status(409).json({
+                    error: 'Solo se pueden iniciar alquileres pendientes',
+                });
+            }
+
+            const hoy = new Date().toISOString().slice(0, 10);
+            if (alquiler.fecha_inicio > hoy) {
+                return res.status(409).json({
+                    error: 'Todavía no llegó la fecha de inicio del alquiler',
+                });
+            }
+
+            await runAsync(
+                `UPDATE alquileres SET estado = 'activo' WHERE id = ?`,
+                [alquilerId],
+            );
+
+            getAlquilerCompleto(alquilerId, (err, alquilerActualizado) => {
+                if (err) return res.status(500).json({ error: err.message });
+                res.json(alquilerActualizado);
+            });
+        } catch (err) {
+            return res.status(500).json({ error: err.message });
+        }
+    },
+);
+
+// Cancelar un alquiler que todavía no comenzó
+router.patch(
+    '/:id/cancelar',
+    checkPermission('permiso_para_editar_alquileres'),
+    async (req, res) => {
+        const alquilerId = req.params.id;
+        const { motivo, recargo } = req.body;
+
+        if (typeof motivo !== 'string' || motivo.trim() === '') {
+            return res.status(400).json({
+                error: 'El motivo de cancelación es obligatorio',
+            });
+        }
+
+        const recargoCancelacion =
+            recargo === undefined || recargo === null || recargo === ''
+                ? 0
+                : Number(recargo);
+
+        if (!Number.isFinite(recargoCancelacion) || recargoCancelacion < 0) {
+            return res.status(400).json({
+                error: 'El recargo de cancelación debe ser un número mayor o igual a 0',
+            });
+        }
+
+        try {
+            const alquiler = await getAsync(
+                'SELECT id, estado, fecha_inicio FROM alquileres WHERE id = ?',
+                [alquilerId],
+            );
+
+            if (!alquiler) {
+                return res.status(404).json({ error: 'Alquiler no encontrado' });
+            }
+
+            if (alquiler.estado === 'cancelado') {
+                return res
+                    .status(409)
+                    .json({ error: 'El alquiler ya está cancelado' });
+            }
+
+            if (alquiler.estado === 'devuelto') {
+                return res.status(409).json({
+                    error: 'No se puede cancelar un alquiler ya devuelto',
+                });
+            }
+
+            if (!['pendiente', 'activo'].includes(alquiler.estado)) {
+                return res.status(409).json({
+                    error: 'Solo se pueden cancelar alquileres pendientes o activos',
+                });
+            }
+
+            const hoy = new Date().toISOString().slice(0, 10);
+            if (alquiler.fecha_inicio <= hoy) {
+                return res.status(409).json({
+                    error: 'Solo se pueden cancelar alquileres que todavía no comenzaron',
+                });
+            }
+
+            await runAsync(
+                `UPDATE alquileres
+                 SET estado = 'cancelado',
+                     cancelacion_motivo = ?,
+                     cancelacion_recargo = ?,
+                     cancelacion_fecha = datetime('now','localtime')
+                 WHERE id = ?`,
+                [motivo.trim(), recargoCancelacion, alquilerId],
+            );
+
+            getAlquilerCompleto(alquilerId, (err, alquilerActualizado) => {
+                if (err) return res.status(500).json({ error: err.message });
+                res.json(alquilerActualizado);
+            });
+        } catch (err) {
+            return res.status(500).json({ error: err.message });
+        }
+    },
+);
+
 // Cambiar estado del alquiler
 router.patch(
     '/:id/estado',
@@ -888,8 +1019,12 @@ router.patch(
             'activo',
             'vencido',
             'devuelto',
-            'cancelado',
         ];
+        if (estado === 'cancelado') {
+            return res.status(400).json({
+                error: 'Para cancelar un alquiler usá el endpoint /cancelar con motivo y recargo',
+            });
+        }
         if (!estadosValidos.includes(estado)) {
             return res.status(400).json({
                 error: `Estado inválido. Opciones: ${estadosValidos.join(', ')}`,

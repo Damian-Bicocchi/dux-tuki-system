@@ -12,11 +12,19 @@ import {
   ShieldCheck,
   AlertTriangle,
   ClipboardCheck,
+  PlayCircle,
+  XCircle,
 } from "lucide-react";
 import { Can } from "../components/ui/Can";
+import { SuccessModal } from "../components/SuccessModal";
 import { getAuthHeaders } from '../../../../backend/utils/putHeaders';
 
-type EstadoDetalle = "activo" | "vencido" | "finalizado";
+type EstadoDetalle =
+  | "pendiente"
+  | "activo"
+  | "vencido"
+  | "finalizado"
+  | "cancelado";
 
 interface AlquilerItemApi {
   id: number;
@@ -30,9 +38,12 @@ interface AlquilerApi {
   cliente_nombre: string;
   fecha_inicio: string;
   fecha_fin: string;
-  estado: "pendiente" | "activo" | "devuelto" | "cancelado";
+  estado: "pendiente" | "activo" | "vencido" | "devuelto" | "cancelado";
   deposito_garantia: number;
   notas?: string;
+  cancelacion_motivo?: string | null;
+  cancelacion_recargo?: number | null;
+  cancelacion_fecha?: string | null;
   items: AlquilerItemApi[];
 }
 
@@ -46,7 +57,10 @@ function calcularDias(fechaInicio: string, fechaFin: string): number {
 }
 
 function formatFecha(fecha: string): string {
-  const [y, m, d] = fecha.split("-");
+  if (!fecha) return "—";
+  const [soloFecha] = fecha.split(" ");
+  const [y, m, d] = soloFecha.split("-");
+  if (!y || !m || !d) return fecha;
   return `${d}/${m}/${y}`;
 }
 
@@ -58,9 +72,22 @@ function formatMonto(monto: number): string {
   }).format(monto);
 }
 
-function mapEstadoDetalle(estado: AlquilerApi["estado"], fechaFin: string): EstadoDetalle {
-  if (estado === "devuelto" || estado === "cancelado") return "finalizado";
+function mapEstadoDetalle(
+  estado: AlquilerApi["estado"],
+  fechaInicio: string,
+  fechaFin: string,
+): EstadoDetalle {
+  if (estado === "cancelado") return "cancelado";
+  if (estado === "devuelto") return "finalizado";
+  if (estado === "vencido") return "vencido";
+
   const hoy = new Date().toISOString().slice(0, 10);
+
+  if (estado === "pendiente") {
+    if (fechaFin < hoy) return "vencido";
+    return "pendiente";
+  }
+
   if (estado === "activo" && fechaFin < hoy) return "vencido";
   return "activo";
 }
@@ -69,6 +96,14 @@ const ESTADO_META: Record<
   EstadoDetalle,
   { label: string; bg: string; text: string; border: string; icon: React.ElementType; desc: string }
 > = {
+  pendiente: {
+    label: "Pendiente",
+    bg: "bg-amber-50",
+    text: "text-amber-800",
+    border: "border-amber-200",
+    icon: Clock,
+    desc: "El alquiler está registrado y todavía no comenzó.",
+  },
   activo: {
     label: "Activo / En Curso",
     bg: "bg-emerald-50",
@@ -92,6 +127,14 @@ const ESTADO_META: Record<
     border: "border-slate-300",
     icon: CheckCircle2,
     desc: "El proceso de alquiler ha concluido y el inventario fue procesado.",
+  },
+  cancelado: {
+    label: "Cancelado",
+    bg: "bg-red-50",
+    text: "text-red-800",
+    border: "border-red-200",
+    icon: XCircle,
+    desc: "El alquiler fue cancelado antes de su fecha de inicio.",
   },
 };
 
@@ -138,6 +181,16 @@ export default function AlquilerDetallePage() {
   const [notasEntrega, setNotasEntrega] = useState("");
   const [processingCierre, setProcessingCierre] = useState(false);
   const [cantidadesDevueltas, setCantidadesDevueltas] = useState<Record<number, number>>({});
+
+  const [motivoCancelacion, setMotivoCancelacion] = useState("");
+  const [recargoCancelacion, setRecargoCancelacion] = useState(0);
+  const [processingCancelacion, setProcessingCancelacion] = useState(false);
+  const [cancelacionError, setCancelacionError] = useState<string | null>(null);
+  const [showCancelSuccess, setShowCancelSuccess] = useState(false);
+
+  const [processingInicio, setProcessingInicio] = useState(false);
+  const [inicioError, setInicioError] = useState<string | null>(null);
+  const [showInicioSuccess, setShowInicioSuccess] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -216,10 +269,23 @@ export default function AlquilerDetallePage() {
     );
   }
 
-  const estadoVista = mapEstadoDetalle(alquiler.estado, alquiler.fecha_fin);
+  const estadoVista = mapEstadoDetalle(
+    alquiler.estado,
+    alquiler.fecha_inicio,
+    alquiler.fecha_fin,
+  );
   const meta = ESTADO_META[estadoVista];
   const EstadoIcon = meta.icon;
   const dias = calcularDias(alquiler.fecha_inicio, alquiler.fecha_fin);
+  const hoy = new Date().toISOString().slice(0, 10);
+  const puedeCancelar =
+    ["pendiente", "activo"].includes(alquiler.estado) &&
+    alquiler.fecha_inicio > hoy;
+  const puedeIniciar =
+    alquiler.estado === "pendiente" && alquiler.fecha_inicio <= hoy;
+  const puedeRegistrarDevolucion =
+    alquiler.fecha_inicio <= hoy &&
+    ["activo", "vencido"].includes(estadoVista);
   
   const subtotal = itemsAlquilados.reduce((acc: number, item: any) => acc + (item.precio * item.cantidad * dias), 0);
   const totalOriginal = subtotal + Number(alquiler.deposito_garantia || 0);
@@ -282,8 +348,100 @@ export default function AlquilerDetallePage() {
     }
   };
 
+  const handleIniciar = async () => {
+    if (!id) return;
+
+    try {
+      setProcessingInicio(true);
+      setInicioError(null);
+
+      const response = await fetch(
+        `${API_BASE_URL}/alquileres/${id}/iniciar`,
+        {
+          method: "PATCH",
+          headers: getAuthHeaders(),
+        },
+      );
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data.error || "No se pudo iniciar el alquiler.");
+      }
+
+      setAlquiler(data as AlquilerApi);
+      setShowInicioSuccess(true);
+    } catch (err) {
+      setInicioError(
+        err instanceof Error
+          ? err.message
+          : "Error inesperado al iniciar el alquiler.",
+      );
+    } finally {
+      setProcessingInicio(false);
+    }
+  };
+
+  const handleCancelar = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!id) return;
+
+    if (!motivoCancelacion.trim()) {
+      setCancelacionError("El motivo de cancelación es obligatorio.");
+      return;
+    }
+
+    try {
+      setProcessingCancelacion(true);
+      setCancelacionError(null);
+
+      const response = await fetch(
+        `${API_BASE_URL}/alquileres/${id}/cancelar`,
+        {
+          method: "PATCH",
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            motivo: motivoCancelacion.trim(),
+            recargo: Number(recargoCancelacion) || 0,
+          }),
+        },
+      );
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data.error || "No se pudo cancelar el alquiler.");
+      }
+
+      setAlquiler(data as AlquilerApi);
+      setShowCancelSuccess(true);
+    } catch (err) {
+      setCancelacionError(
+        err instanceof Error
+          ? err.message
+          : "Error inesperado al cancelar el alquiler.",
+      );
+    } finally {
+      setProcessingCancelacion(false);
+    }
+  };
+
   return (
     <div className="pb-12 bg-gray-50 min-h-screen font-sans">
+      <SuccessModal
+        isOpen={showCancelSuccess}
+        title="Alquiler cancelado"
+        message="El alquiler fue cancelado correctamente y el stock quedó liberado."
+        onClose={() => setShowCancelSuccess(false)}
+      />
+      <SuccessModal
+        isOpen={showInicioSuccess}
+        title="Alquiler iniciado"
+        message="El alquiler ahora está activo."
+        onClose={() => setShowInicioSuccess(false)}
+      />
+
       {/* Encabezado Homogéneo */}
       <header className="bg-gradient-to-br from-[#1b6f5c] via-[#165a4b] to-[#0f3d33] px-5 pt-5 pb-8 text-white shadow-md">
         <button
@@ -323,6 +481,30 @@ export default function AlquilerDetallePage() {
               <p className="text-xs sm:text-sm text-gray-600 mt-0.5">{meta.desc}</p>
             </div>
           </div>
+
+          {puedeIniciar && (
+            <Can do="permiso_para_editar_alquileres">
+              <div className="flex flex-col items-stretch gap-2 w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={handleIniciar}
+                  disabled={processingInicio}
+                  className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#218a72] hover:bg-[#1b6f5c] disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold text-sm transition-colors focus:outline-none focus:ring-4 focus:ring-[#218a72]/30"
+                >
+                  <PlayCircle size={18} aria-hidden="true" />
+                  {processingInicio ? "Iniciando..." : "Iniciar alquiler"}
+                </button>
+                {inicioError && (
+                  <p
+                    role="alert"
+                    className="text-xs font-semibold text-red-700"
+                  >
+                    {inicioError}
+                  </p>
+                )}
+              </div>
+            </Can>
+          )}
         </section>
 
         <div className="md:col-span-2 space-y-6">
@@ -390,7 +572,102 @@ export default function AlquilerDetallePage() {
 </div>
           </section>
 
-          {estadoVista !== "finalizado" && (
+          <Can do="permiso_para_editar_alquileres">
+            {puedeCancelar && (
+              <section
+                aria-labelledby="cancelacion-titulo"
+                className="bg-white rounded-xl border-2 border-red-200 shadow-md overflow-hidden"
+              >
+                <div className="bg-gradient-to-r from-red-700 to-rose-900 px-4 py-2.5 text-white flex items-center gap-2">
+                  <XCircle size={18} aria-hidden="true" />
+                  <h2
+                    id="cancelacion-titulo"
+                    className="text-sm font-bold uppercase tracking-wider"
+                  >
+                    Cancelar alquiler
+                  </h2>
+                </div>
+
+                <form onSubmit={handleCancelar} className="p-5 space-y-4">
+                  <p className="text-xs text-gray-600 leading-relaxed">
+                    Solo podés cancelar antes de la fecha de inicio (
+                    {formatFecha(alquiler.fecha_inicio)}). El alquiler quedará
+                    cancelado y el stock se liberará.
+                  </p>
+
+                  <div>
+                    <label
+                      htmlFor="cancelacion-motivo"
+                      className="block text-sm font-bold text-gray-800 mb-2"
+                    >
+                      Motivo de cancelación{" "}
+                      <span className="text-xs text-red-600 font-semibold">
+                        (obligatorio)
+                      </span>
+                    </label>
+                    <textarea
+                      id="cancelacion-motivo"
+                      rows={3}
+                      required
+                      value={motivoCancelacion}
+                      onChange={(e) => {
+                        setMotivoCancelacion(e.target.value);
+                        if (cancelacionError) setCancelacionError(null);
+                      }}
+                      placeholder="Explicá por qué se cancela el alquiler..."
+                      className="w-full text-sm p-2.5 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-red-500/20 focus:border-red-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="cancelacion-recargo"
+                      className="block text-sm font-bold text-gray-800 mb-2"
+                    >
+                      Recargo por cancelación ($){" "}
+                      <span className="text-xs text-gray-500 font-medium">
+                        (opcional)
+                      </span>
+                    </label>
+                    <input
+                      id="cancelacion-recargo"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={recargoCancelacion}
+                      onChange={(e) =>
+                        setRecargoCancelacion(
+                          Math.max(0, Number(e.target.value) || 0),
+                        )
+                      }
+                      className="w-full text-sm p-2.5 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-red-500/20 focus:border-red-500"
+                    />
+                  </div>
+
+                  {cancelacionError && (
+                    <div
+                      role="alert"
+                      className="p-3 rounded-xl border border-red-200 bg-red-50 text-sm text-red-700 font-medium"
+                    >
+                      {cancelacionError}
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={processingCancelacion}
+                    className="w-full py-3 bg-red-700 hover:bg-red-800 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-colors focus:outline-none focus:ring-4 focus:ring-red-300"
+                  >
+                    {processingCancelacion
+                      ? "Cancelando..."
+                      : "Confirmar cancelación"}
+                  </button>
+                </form>
+              </section>
+            )}
+          </Can>
+
+          {puedeRegistrarDevolucion && (
             <section aria-labelledby="form-devolucion-titulo" className="bg-white rounded-xl border-2 border-[#218a72]/30 shadow-md overflow-hidden">
               <div className="bg-gradient-to-r from-[#218a72] to-[#165a4b] px-4 py-2.5 text-white flex items-center gap-2">
                 <ClipboardCheck size={18} aria-hidden="true" />
@@ -657,6 +934,37 @@ export default function AlquilerDetallePage() {
               </span>
             </div>
           </section>
+
+          {alquiler.estado === "cancelado" && (
+            <section
+              aria-labelledby="cancelacion-info-titulo"
+              className="bg-white rounded-xl border border-red-200 shadow-sm overflow-hidden"
+            >
+              <h2
+                id="cancelacion-info-titulo"
+                className="text-xs font-bold text-red-700 uppercase tracking-wider px-4 pt-3 pb-1"
+              >
+                Datos de la cancelación
+              </h2>
+              <div className="px-4 pb-3">
+                <InfoRow
+                  icon={XCircle}
+                  label="Motivo"
+                  value={alquiler.cancelacion_motivo || "Sin motivo registrado"}
+                />
+                <InfoRow
+                  icon={Banknote}
+                  label="Recargo"
+                  value={formatMonto(Number(alquiler.cancelacion_recargo || 0))}
+                />
+                <InfoRow
+                  icon={CalendarDays}
+                  label="Fecha"
+                  value={formatFecha(alquiler.cancelacion_fecha || "")}
+                />
+              </div>
+            </section>
+          )}
 
           {alquiler.notas && (
             <section aria-labelledby="notas-iniciales-titulo" className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
