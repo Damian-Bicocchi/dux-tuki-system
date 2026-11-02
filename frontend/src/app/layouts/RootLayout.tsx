@@ -5,7 +5,6 @@ import {
   X,
   Plus,
   Settings,
-  Bell,
   Search,
   Home,
   List,
@@ -310,35 +309,6 @@ export default function RootLayout() {
                 <Settings size={20} className="sm:w-[22px] sm:h-[22px]" aria-hidden="true" />
                 <span className="hidden sm:inline text-[10px] sm:text-[11px] font-medium opacity-90 leading-none mt-1">
                   Accesibilidad
-                </span>
-              </button>
-
-              {/* Notificaciones */}
-              <button
-                onClick={() => setNotificationsOpen(true)}
-                className="flex flex-col items-center justify-center p-2 sm:px-2.5 sm:py-1.5 hover:bg-white/10 rounded-xl transition-colors relative focus:outline-none focus:ring-2 focus:ring-white"
-                aria-label={
-                  unreadCount > 0
-                    ? `Notificaciones, ${unreadCount} sin leer`
-                    : "Notificaciones, sin notificaciones nuevas"
-                }
-                aria-haspopup="dialog"
-              >
-                <span className="relative">
-                  <Bell size={20} className="sm:w-[22px] sm:h-[22px]" aria-hidden="true" />
-                  {unreadCount > 0 && (
-                    <span
-                      className="absolute -top-1 -right-1 min-w-[15px] h-[15px] bg-[#f5e663] text-[#1b6f5c] rounded-full flex items-center justify-center px-0.5 border-2 border-[#218a72]"
-                      aria-hidden="true"
-                    >
-                      <span className="text-[8px] sm:text-[9px] font-extrabold leading-none">
-                        {unreadCount > 9 ? "9+" : unreadCount}
-                      </span>
-                    </span>
-                  )}
-                </span>
-                <span className="hidden sm:inline text-[10px] sm:text-[11px] font-medium opacity-90 leading-none mt-1">
-                  Notificaciones
                 </span>
               </button>
 
