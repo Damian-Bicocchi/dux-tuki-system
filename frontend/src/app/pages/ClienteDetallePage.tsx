@@ -127,12 +127,7 @@ export default function ClienteDetallePage() {
         </button>
 
         <div className="flex items-center gap-4 max-w-4xl mx-auto">
-          <div
-            className="w-16 h-16 rounded-full bg-white/20 text-white flex items-center justify-center font-extrabold text-2xl flex-shrink-0 border-2 border-white/30"
-            aria-hidden="true"
-          >
-            {cliente.nombre.charAt(0)}
-          </div>
+          
           <div>
             <h1 className="text-xl font-extrabold leading-tight">{cliente.nombre}</h1>
             <p className="text-white/70 text-sm mt-0.5">
