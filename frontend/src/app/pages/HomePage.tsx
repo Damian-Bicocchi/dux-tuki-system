@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { getClientes } from '../data/clientesData';
 import {getAlquileres} from '../data/alquileresData';
+import { getAuthHeaders } from '../../../../backend/utils/putHeaders';
 import { usePermission } from '../hooks/usePermission';
 import { useAuth } from '../context/AuthContext';
 import { Can } from '../components/ui/Can';
@@ -23,6 +24,12 @@ interface Stats {
     ingresos_mes: number;
 }
 
+interface ResumenEstadisticasApi {
+    ingresos_brutos: number;
+}
+
+const API_URL = 'http://localhost:3001/api';
+
 interface HomePageProps {
     userName?: string;
 }
@@ -31,13 +38,14 @@ export default function HomePage({ userName }: HomePageProps) {
     const navigate = useNavigate();
     const { hasPermission } = usePermission();
     const { user } = useAuth();
+    const puedeVerEstadisticas = hasPermission('permiso_para_ver_estadisticas');
 
     // 1. Inicializa el estado con valores por defecto (números, no promesas)
     const [stats, setStats] = useState<Stats>({
         activos: 0,
         vencidos: 0,
         total_clientes: 0,
-        ingresos_mes: 245000,
+        ingresos_mes: 0,
     });
     const [statsLoaded, setStatsLoaded] = useState(false);
 
@@ -57,9 +65,20 @@ export default function HomePage({ userName }: HomePageProps) {
                 // Si getAlquileres también es una promesa, usamos Promise.all para hacerlas en paralelo
                 // Si getAlquileres NO es promesa, quítale el 'await'
                 // Sólo se consulta lo que el rol puede ver; el backend rechaza el resto
-                const [clientes, alquileres] = await Promise.all([
+                const [clientes, alquileres, resumen] = await Promise.all([
                     hasPermission('permiso_para_listar_clientes') ? getClientes() : Promise.resolve([]),
                     hasPermission('permiso_para_ver_alquileres') ? getAlquileres() : Promise.resolve([]),
+                    puedeVerEstadisticas
+                        ? fetch(`${API_URL}/estadisticas/resumen`, {
+                              headers: getAuthHeaders(),
+                          })
+                              .then((response) =>
+                                  response.ok
+                                      ? (response.json() as Promise<ResumenEstadisticasApi>)
+                                      : null,
+                              )
+                              .catch(() => null)
+                        : Promise.resolve(null),
                 ]);
 
                 if (isMounted) {
@@ -78,7 +97,7 @@ export default function HomePage({ userName }: HomePageProps) {
                         activos,
                         vencidos,
                         total_clientes: clientes.length,
-                        ingresos_mes: 245000, // O calcularlo dinámicamente
+                        ingresos_mes: Number(resumen?.ingresos_brutos ?? 0),
                     });
                     setStatsLoaded(true);
                 }
@@ -93,7 +112,7 @@ export default function HomePage({ userName }: HomePageProps) {
         return () => {
             isMounted = false; // Cleanup al desmontar
         };
-    }, [user]);
+    }, [user, puedeVerEstadisticas]);
 
     const formatMoney = (amount: number) => {
         return `$${amount.toLocaleString('es-AR')}`;
@@ -315,35 +334,37 @@ export default function HomePage({ userName }: HomePageProps) {
                         </div>
                     </article>
 
-                    {/* Ingresos del mes */}
-                    <article
-                        className="bg-white rounded-2xl shadow-sm p-4 border-2 border-gray-100 overflow-hidden"
-                        role="listitem"
-                        aria-label={`Ingresos del mes: ${formatMoney(stats.ingresos_mes)} pesos argentinos`}
-                    >
-                        <div className="flex items-center gap-2 mb-2">
-                            <div
-                                className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center text-amber-700 font-bold flex-shrink-0 text-base"
-                                aria-hidden="true"
-                            >
-                                $
-                            </div>
-                            <div
-                                className="text-xs font-bold text-gray-600 uppercase tracking-wider break-words leading-tight"
-                                id="ingresos-label"
-                                aria-hidden="true"
-                            >
-                                Ingresos del mes
-                            </div>
-                        </div>
-                        <div
-                            className="kpi-number-large font-extrabold text-gray-900 truncate"
-                            aria-hidden="true"
-                            title={formatMoney(stats.ingresos_mes)}
+                    {/* Ingresos del mes (mismo origen que Estadísticas) */}
+                    {puedeVerEstadisticas && (
+                        <article
+                            className="bg-white rounded-2xl shadow-sm p-4 border-2 border-gray-100 overflow-hidden"
+                            role="listitem"
+                            aria-label={`Ingresos del mes: ${formatMoney(stats.ingresos_mes)} pesos argentinos`}
                         >
-                            {formatMoney(stats.ingresos_mes)}
-                        </div>
-                    </article>
+                            <div className="flex items-center gap-2 mb-2">
+                                <div
+                                    className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center text-amber-700 font-bold flex-shrink-0 text-base"
+                                    aria-hidden="true"
+                                >
+                                    $
+                                </div>
+                                <div
+                                    className="text-xs font-bold text-gray-600 uppercase tracking-wider break-words leading-tight"
+                                    id="ingresos-label"
+                                    aria-hidden="true"
+                                >
+                                    Ingresos del mes
+                                </div>
+                            </div>
+                            <div
+                                className="kpi-number-large font-extrabold text-gray-900 truncate"
+                                aria-hidden="true"
+                                title={formatMoney(stats.ingresos_mes)}
+                            >
+                                {formatMoney(stats.ingresos_mes)}
+                            </div>
+                        </article>
+                    )}
                 </div>
             </section>
 
