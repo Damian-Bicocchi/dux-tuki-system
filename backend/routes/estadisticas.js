@@ -19,8 +19,8 @@ const db = new Proxy(
 );
 
     // ── GET /api/estadisticas/resumen?mes=2025-06 ──────────────────────────────
-    // Devuelve: ingresos brutos, costos, ganancia neta, ROI, total alquileres
-    // Si no se pasa ?mes, calcula el mes actual
+    // Devuelve ingresos brutos, ROI, totales y conteo por estado.
+    // Si no se pasa ?mes, calcula el mes actual.
     router.get('/resumen', (req, res) => {
         const mes = req.query.mes || new Date().toISOString().slice(0, 7); // "YYYY-MM"
 
@@ -32,49 +32,66 @@ const db = new Proxy(
               AND strftime('%Y-%m', fecha_inicio) = ?
         `;
 
-        const queryCostos = `
-            SELECT COALESCE(SUM(monto), 0) AS total_costos
-            FROM costos
-            WHERE strftime('%Y-%m', fecha) = ?
-        `;
-
-        // Inversión total: suma del costo de adquisición de artículos
-        // (precio_por_dia * stock * 30 días como referencia de valor del inventario)
-        // Alternativamente podés guardar un campo "costo_adquisicion" en articulos
+        // Inversión total: suma del valor estimado del inventario activo.
         const queryInversion = `
             SELECT COALESCE(SUM(precio_por_dia * stock_total * 30), 0) AS inversion_estimada
             FROM articulos
             WHERE activo = 1
         `;
 
+        // Totales históricos y conteo por estado efectivo (igual criterio que
+        // GET /api/alquileres: pendiente/activo con fecha_fin pasada = vencido).
+        const queryExtras = `
+            SELECT
+                (SELECT COUNT(*) FROM clientes) AS total_clientes,
+                (SELECT COUNT(*) FROM alquileres) AS total_alquileres_historicos,
+                (SELECT COUNT(*) FROM alquileres
+                    WHERE estado = 'activo'
+                      AND date(fecha_fin) >= date('now','localtime')) AS activos,
+                (SELECT COUNT(*) FROM alquileres
+                    WHERE estado = 'pendiente'
+                      AND date(fecha_fin) >= date('now','localtime')) AS pendientes,
+                (SELECT COUNT(*) FROM alquileres
+                    WHERE estado = 'vencido'
+                       OR (estado IN ('activo','pendiente')
+                           AND date(fecha_fin) < date('now','localtime'))) AS vencidos,
+                (SELECT COUNT(*) FROM alquileres WHERE estado = 'devuelto') AS devueltos,
+                (SELECT COUNT(*) FROM alquileres WHERE estado = 'cancelado') AS cancelados,
+                (SELECT COUNT(*) FROM alquiler_cierres WHERE total_recargos > 0) AS con_recargos
+        `;
+
         db.get(queryIngresos, [mes], (err, ingresosRow) => {
             if (err) return res.status(500).json({ error: err.message });
 
-            db.get(queryCostos, [mes], (err, costosRow) => {
+            db.get(queryInversion, [], (err, inversionRow) => {
                 if (err) return res.status(500).json({ error: err.message });
 
-                db.get(queryInversion, [], (err, inversionRow) => {
+                db.get(queryExtras, [], (err, extrasRow) => {
                     if (err) return res.status(500).json({ error: err.message });
 
-                    const ingresos_brutos   = ingresosRow.ingresos_brutos;
-                    const total_costos      = costosRow.total_costos;
-                    const ganancia_neta     = ingresos_brutos - total_costos;
-                    const inversion         = inversionRow.inversion_estimada;
-                    const roi_mensual       = inversion > 0
-                        ? ((ganancia_neta / inversion) * 100).toFixed(2)
+                    const ingresos_brutos = ingresosRow.ingresos_brutos;
+                    const inversion = inversionRow.inversion_estimada;
+                    const roi_mensual = inversion > 0
+                        ? ((ingresos_brutos / inversion) * 100).toFixed(2)
                         : null;
-                    const ganancia_anual_proyectada = ganancia_neta * 12;
 
                     res.json({
                         mes,
                         ingresos_brutos,
-                        costos_operativos: total_costos,
-                        ganancia_neta_mensual: ganancia_neta,
-                        ganancia_neta_anual_proyectada: ganancia_anual_proyectada,
                         roi_mensual_porcentaje: roi_mensual ? parseFloat(roi_mensual) : null,
                         roi_anual_porcentaje: roi_mensual ? parseFloat((roi_mensual * 12).toFixed(2)) : null,
                         inversion_estimada: inversion,
                         total_alquileres: ingresosRow.total_alquileres,
+                        total_clientes: extrasRow.total_clientes,
+                        alquileres_por_estado: {
+                            total: extrasRow.total_alquileres_historicos,
+                            activos: extrasRow.activos,
+                            pendientes: extrasRow.pendientes,
+                            vencidos: extrasRow.vencidos,
+                            devueltos: extrasRow.devueltos,
+                            cancelados: extrasRow.cancelados,
+                            con_recargos: extrasRow.con_recargos,
+                        },
                     });
                 });
             });
