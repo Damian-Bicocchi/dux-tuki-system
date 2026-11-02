@@ -110,11 +110,15 @@ export default function StockDetallePage() {
         setLoading(true);
         setError(null);
 
-        const resCategorias = await fetch(`${API_BASE_URL}/categorias`);
+        const resCategorias = await fetch(`${API_BASE_URL}/categorias`, {
+          headers: getAuthHeaders(),
+        });
         const dataCategorias = resCategorias.ok ? await resCategorias.json() : [];
         setCategorias(dataCategorias);
 
-        const resArticulo = await fetch(`${API_BASE_URL}/stock/${id}`);
+        const resArticulo = await fetch(`${API_BASE_URL}/stock/${id}`, {
+          headers: getAuthHeaders(),
+        });
 
                 if (!resArticulo.ok) {
                     let mensajeError =
@@ -163,7 +167,10 @@ export default function StockDetallePage() {
                     ),
                 });
 
-        const resAlquileres = await fetch(`${API_BASE_URL}/alquileres/articulo/${id}`);
+        const resAlquileres = await fetch(
+          `${API_BASE_URL}/alquileres/articulo/${id}`,
+          { headers: getAuthHeaders() },
+        );
         if (resAlquileres.ok) {
           const alquileresData = await resAlquileres.json();
           setAlquileresBase(alquileresData);
@@ -212,7 +219,7 @@ export default function StockDetallePage() {
     try {
       const response = await fetch(`${API_BASE_URL}/stock/${item.id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           nombre: form.nombre.trim(),
           categoria_id: form.categoria_id ? Number(form.categoria_id) : null,
@@ -333,6 +340,7 @@ export default function StockDetallePage() {
         </header>
 
         <div className="px-5 py-6 max-w-lg md:max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+          <Can do="permiso_para_editar_stock">
           <section aria-labelledby="editar-titulo" className="w-full">
             <h2 id="editar-titulo" className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-3">
               Modificar especificaciones del equipo

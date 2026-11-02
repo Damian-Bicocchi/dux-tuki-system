@@ -415,15 +415,29 @@ router.post(
         const dias = calcularDias(fecha_inicio, fecha_fin);
 
         try {
+            const cantidadesPorArticulo = new Map();
+
             for (const item of items) {
                 if (!item.articulo_id || !item.cantidad || item.cantidad < 1) {
                     return res.status(400).json({
                         error: 'Cada item debe tener articulo_id y cantidad >= 1',
                     });
                 }
+
+                const articuloId = Number(item.articulo_id);
+                const cantidad = Number(item.cantidad);
+                cantidadesPorArticulo.set(
+                    articuloId,
+                    (cantidadesPorArticulo.get(articuloId) || 0) + cantidad,
+                );
+            }
+
+            // Validar el total solicitado por artículo, no cada fila por separado:
+            // así dos filas del mismo equipo se suman antes de comparar con el stock.
+            for (const [articuloId, cantidadTotal] of cantidadesPorArticulo) {
                 await verificarDisponibilidad(
-                    item.articulo_id,
-                    item.cantidad,
+                    articuloId,
+                    cantidadTotal,
                     fecha_inicio,
                     fecha_fin,
                 );
@@ -532,15 +546,28 @@ router.put(
         const dias = calcularDias(fecha_inicio, fecha_fin);
 
         try {
+            const cantidadesPorArticulo = new Map();
+
             for (const item of items) {
                 if (!item.articulo_id || !item.cantidad || item.cantidad < 1) {
                     return res.status(400).json({
                         error: 'Cada item debe tener articulo_id y cantidad >= 1',
                     });
                 }
+
+                const articuloId = Number(item.articulo_id);
+                const cantidad = Number(item.cantidad);
+                cantidadesPorArticulo.set(
+                    articuloId,
+                    (cantidadesPorArticulo.get(articuloId) || 0) + cantidad,
+                );
+            }
+
+            // Igual que al crear: sumar las filas repetidas del mismo artículo.
+            for (const [articuloId, cantidadTotal] of cantidadesPorArticulo) {
                 await verificarDisponibilidad(
-                    item.articulo_id,
-                    item.cantidad,
+                    articuloId,
+                    cantidadTotal,
                     fecha_inicio,
                     fecha_fin,
                     alquiler_id,
