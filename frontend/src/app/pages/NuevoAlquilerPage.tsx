@@ -149,51 +149,111 @@ export default function NuevoAlquilerPage() {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    // Verificar stock
+    // Verificar stock sumando las filas repetidas del mismo artículo
     useEffect(() => {
+        let cancelled = false;
+
         async function verificarStockItems() {
-            if (!fechaInicio || !fechaFin) return;
-
-            const itemsActualizados = await Promise.all(
-                items.map(async (item) => {
-                    if (!item.articulo_id || !item.cantidad || Number(item.cantidad) < 1) {
-                        return { ...item, error: undefined };
-                    }
-
-                    try {
-                        const res = await fetch(
-                            `${API_URL}/alquileres/disponibilidad?articulo_id=${item.articulo_id}&fecha_inicio=${fechaInicio}&fecha_fin=${fechaFin}`,
-                            {headers: getAuthHeaders()}
-                        );
-                        if (!res.ok) return { ...item, error: undefined };
-
-                        const data = await res.json();
-                        const cantidadSolicitada = Number(item.cantidad);
-
-                        if (data.disponibles < cantidadSolicitada) {
-                            const errorMsg = data.disponibles <= 0
-                                ? `No hay stock disponible para las fechas seleccionadas.`
-                                : `Solo hay stock de ${data.disponibles} unidad(es) disponible(s) para la fecha.`;
-                            return { ...item, error: errorMsg };
-                        }
-
-                        return { ...item, error: undefined };
-                    } catch {
-                        return { ...item, error: undefined };
-                    }
-                })
-            );
-
-            const cambioDetectado = itemsActualizados.some(
-                (it, idx) => it.error !== items[idx]?.error
-            );
-
-            if (cambioDetectado) {
-                setItems(itemsActualizados);
+            if (!fechaInicio || !fechaFin) {
+                setItems((prev) => {
+                    const hayErrores = prev.some((item) => item.error);
+                    return hayErrores
+                        ? prev.map((item) => ({ ...item, error: undefined }))
+                        : prev;
+                });
+                return;
             }
+
+            const cantidadesPorArticulo = new Map<number, number>();
+
+            for (const item of items) {
+                if (
+                    !item.articulo_id ||
+                    !item.cantidad ||
+                    Number(item.cantidad) < 1
+                ) {
+                    continue;
+                }
+
+                const articuloId = Number(item.articulo_id);
+                cantidadesPorArticulo.set(
+                    articuloId,
+                    (cantidadesPorArticulo.get(articuloId) || 0) +
+                        Number(item.cantidad),
+                );
+            }
+
+            const disponiblesPorArticulo = new Map<number, number>();
+
+            await Promise.all(
+                Array.from(cantidadesPorArticulo.keys()).map(
+                    async (articuloId) => {
+                        try {
+                            const res = await fetch(
+                                `${API_URL}/alquileres/disponibilidad?articulo_id=${articuloId}&fecha_inicio=${fechaInicio}&fecha_fin=${fechaFin}`,
+                                { headers: getAuthHeaders() },
+                            );
+                            if (!res.ok) return;
+
+                            const data = await res.json();
+                            disponiblesPorArticulo.set(
+                                articuloId,
+                                Number(data.disponibles),
+                            );
+                        } catch {
+                            // Si falla la consulta se deja sin error; el backend valida al guardar
+                        }
+                    },
+                ),
+            );
+
+            if (cancelled) return;
+
+            const itemsActualizados = items.map((item) => {
+                if (
+                    !item.articulo_id ||
+                    !item.cantidad ||
+                    Number(item.cantidad) < 1
+                ) {
+                    return { ...item, error: undefined };
+                }
+
+                const articuloId = Number(item.articulo_id);
+                const disponibles = disponiblesPorArticulo.get(articuloId);
+
+                if (disponibles === undefined) {
+                    return { ...item, error: undefined };
+                }
+
+                const totalSolicitado =
+                    cantidadesPorArticulo.get(articuloId) || 0;
+
+                if (disponibles < totalSolicitado) {
+                    const errorMsg =
+                        disponibles <= 0
+                            ? 'No hay stock disponible para las fechas seleccionadas.'
+                            : `Solo hay ${disponibles} unidad(es) disponible(s) y el total solicitado de este equipo es ${totalSolicitado}.`;
+
+                    return { ...item, error: errorMsg };
+                }
+
+                return { ...item, error: undefined };
+            });
+
+            setItems((prev) => {
+                const cambioDetectado = itemsActualizados.some(
+                    (it, idx) => it.error !== prev[idx]?.error,
+                );
+
+                return cambioDetectado ? itemsActualizados : prev;
+            });
         }
 
         verificarStockItems();
+
+        return () => {
+            cancelled = true;
+        };
     }, [fechaInicio, fechaFin, items]);
 
     // Teclado autocomplete

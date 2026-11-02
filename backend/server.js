@@ -3,6 +3,8 @@ const { initializeTables } = require('./db/init');
 const { createAdmin } = require('./seeders/admin.seeder');
 const { seedCategorias } = require("./seeders/categorias.seeder");
 const { seedRoles } = require("./seeders/roles.seeder");
+const { seedStock } = require("./seeders/stock.seeder");
+const { seedClientes } = require("./seeders/clientes.seeder");
 const app = require('./app');
 const { PORT } = require('./config/env');
 
@@ -28,8 +30,14 @@ async function start() {
     currentStep = "5. Sembrar roles predefinidos (Encargado, Operador)";
     await seedRoles();
 
-    // 4. Arrancar el servidor HTTP
-    currentStep = '5. Arrancar el servidor HTTP (app.listen)';
+    currentStep = "6. Sembrar stock de ejemplo (2 cámaras)";
+    await seedStock();
+
+    currentStep = "7. Sembrar cliente de ejemplo";
+    await seedClientes();
+
+    // 8. Arrancar el servidor HTTP
+    currentStep = '8. Arrancar el servidor HTTP (app.listen)';
     app.listen(PORT, () => {
       console.log(`\n==================================================`);
       console.log(`🚀 Servidor iniciado con éxito`);

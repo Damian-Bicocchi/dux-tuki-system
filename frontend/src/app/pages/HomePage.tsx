@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router';
 import { getClientes } from '../data/clientesData';
 import {getAlquileres} from '../data/alquileresData';
 import { usePermission } from '../hooks/usePermission';
+import { useAuth } from '../context/AuthContext';
 import { Can } from '../components/ui/Can';
 import type { PermissionKey } from '../../config/permissions';
 import {
@@ -29,6 +30,7 @@ interface HomePageProps {
 export default function HomePage({ userName }: HomePageProps) {
     const navigate = useNavigate();
     const { hasPermission } = usePermission();
+    const { user } = useAuth();
 
     // 1. Inicializa el estado con valores por defecto (números, no promesas)
     const [stats, setStats] = useState<Stats>({
@@ -41,6 +43,13 @@ export default function HomePage({ userName }: HomePageProps) {
 
     // 2. Centraliza la obtención de datos en el useEffect
     useEffect(() => {
+        // Esperar a que AuthContext haya restaurado la sesión; sin usuario no
+        // se pueden resolver los permisos y las métricas quedarían en cero.
+        if (!user) {
+            setStatsLoaded(false);
+            return;
+        }
+
         let isMounted = true; // Para evitar actualizar estado si el componente se desmonta
 
         const fetchDashboardData = async () => {
@@ -84,7 +93,7 @@ export default function HomePage({ userName }: HomePageProps) {
         return () => {
             isMounted = false; // Cleanup al desmontar
         };
-    }, []); // El array vacío asegura que esto corra SOLO UNA VEZ al montar
+    }, [user]);
 
     const formatMoney = (amount: number) => {
         return `$${amount.toLocaleString('es-AR')}`;

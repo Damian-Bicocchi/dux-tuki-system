@@ -14,6 +14,7 @@ import {
   ClipboardCheck,
 } from "lucide-react";
 import { Can } from "../components/ui/Can";
+import { getAuthHeaders } from '../../../../backend/utils/putHeaders';
 
 type EstadoDetalle = "activo" | "vencido" | "finalizado";
 

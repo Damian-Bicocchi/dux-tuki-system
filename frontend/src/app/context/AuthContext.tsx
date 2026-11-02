@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 
 // Tipos
 export interface Role {
@@ -23,18 +23,25 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+function readStoredUser(): User | null {
+  const storedToken = localStorage.getItem('token');
+  const storedUser = localStorage.getItem('user');
+
+  if (!storedToken || !storedUser) return null;
+
+  try {
+    return JSON.parse(storedUser) as User;
+  } catch {
+    return null;
+  }
+}
+
 // Provider que envuelve la App
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
-
-  useEffect(() => {
-    // Al cargar la app, intentar recuperar el usuario de localStorage
-    const storedUser = localStorage.getItem('user');
-    if (storedUser && token) {
-      setUser(JSON.parse(storedUser));
-    }
-  }, [token]);
+  // Se restauran de forma síncrona para que el primer render ya conozca al
+  // usuario y los permisos (necesario al recargar la página).
+  const [user, setUser] = useState<User | null>(readStoredUser);
+  const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'));
 
   const login = (newToken: string, newUser: User) => {
     localStorage.setItem('token', newToken);

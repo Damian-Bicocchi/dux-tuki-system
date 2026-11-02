@@ -36,6 +36,28 @@ class AlquilerService {
         );
     }
 
+    _agruparCantidadesPorArticulo(items) {
+        const cantidades = new Map();
+
+        for (const item of items) {
+            const articuloId = Number(item.articulo_id);
+            const cantidad = Number(item.cantidad);
+
+            if (!articuloId || !Number.isInteger(cantidad) || cantidad < 1) {
+                throw new Error(
+                    'Cada item debe tener articulo_id y cantidad >= 1',
+                );
+            }
+
+            cantidades.set(
+                articuloId,
+                (cantidades.get(articuloId) || 0) + cantidad,
+            );
+        }
+
+        return cantidades;
+    }
+
     async _verificarDisponibilidad(
         articulo_id,
         cantidad,
@@ -95,11 +117,11 @@ class AlquilerService {
             data;
         const dias = this._calcularDias(fecha_inicio, fecha_fin);
 
-        // 1. Verificar stock
-        for (const item of items) {
+        // 1. Verificar stock sumando las filas repetidas del mismo artículo
+        for (const [articuloId, cantidadTotal] of this._agruparCantidadesPorArticulo(items)) {
             await this._verificarDisponibilidad(
-                item.articulo_id,
-                item.cantidad,
+                articuloId,
+                cantidadTotal,
                 fecha_inicio,
                 fecha_fin,
             );
@@ -147,11 +169,12 @@ class AlquilerService {
             data;
         const dias = this._calcularDias(fecha_inicio, fecha_fin);
 
-        // 1. Verificar disponibilidad excluyendo el alquiler actual
-        for (const item of items) {
+        // 1. Verificar disponibilidad excluyendo el alquiler actual y sumando
+        //    las filas repetidas del mismo artículo
+        for (const [articuloId, cantidadTotal] of this._agruparCantidadesPorArticulo(items)) {
             await this._verificarDisponibilidad(
-                item.articulo_id,
-                item.cantidad,
+                articuloId,
+                cantidadTotal,
                 fecha_inicio,
                 fecha_fin,
                 alquiler_id,

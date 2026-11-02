@@ -110,11 +110,15 @@ export default function StockDetallePage() {
         setLoading(true);
         setError(null);
 
-        const resCategorias = await fetch(`${API_BASE_URL}/categorias`);
+        const resCategorias = await fetch(`${API_BASE_URL}/categorias`, {
+          headers: getAuthHeaders(),
+        });
         const dataCategorias = resCategorias.ok ? await resCategorias.json() : [];
         setCategorias(dataCategorias);
 
-        const resArticulo = await fetch(`${API_BASE_URL}/stock/${id}`);
+        const resArticulo = await fetch(`${API_BASE_URL}/stock/${id}`, {
+          headers: getAuthHeaders(),
+        });
 
                 if (!resArticulo.ok) {
                     let mensajeError =
@@ -163,7 +167,10 @@ export default function StockDetallePage() {
                     ),
                 });
 
-        const resAlquileres = await fetch(`${API_BASE_URL}/alquileres/articulo/${id}`);
+        const resAlquileres = await fetch(
+          `${API_BASE_URL}/alquileres/articulo/${id}`,
+          { headers: getAuthHeaders() },
+        );
         if (resAlquileres.ok) {
           const alquileresData = await resAlquileres.json();
           setAlquileresBase(alquileresData);
@@ -212,7 +219,7 @@ export default function StockDetallePage() {
     try {
       const response = await fetch(`${API_BASE_URL}/stock/${item.id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           nombre: form.nombre.trim(),
           categoria_id: form.categoria_id ? Number(form.categoria_id) : null,
