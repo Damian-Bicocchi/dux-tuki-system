@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Pencil, Check, X } from "lucide-react";
+import { useUnsavedChangesWarning } from "../../../hooks/useUnsavedChangesWarning";
 import { getAuthHeaders } from "../../../../../../backend/utils/putHeaders";
 
 export interface Categoria {
@@ -24,6 +25,15 @@ export default function CategoriasList({
   const [editando, setEditando] = useState<number | null>(null);
   const [nombre, setNombre] = useState("");
   const [guardando, setGuardando] = useState(false);
+
+  const categoriaEnEdicion = listaCategorias.find(
+    (categoria) => categoria.id === editando,
+  );
+  useUnsavedChangesWarning(
+    editando !== null &&
+      categoriaEnEdicion !== undefined &&
+      nombre !== categoriaEnEdicion.nombre,
+  );
 
   const comenzarEdicion = (categoria: Categoria) => {
     setEditando(categoria.id);

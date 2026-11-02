@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import type { Role } from "../../../data/rolesData";
 import type { CrearUsuarioInput } from "../../../data/usuariosData";
+import { useUnsavedChangesWarning } from "../../../hooks/useUnsavedChangesWarning";
 
 interface UsuarioFormProps {
   roles: Role[];
@@ -27,6 +28,13 @@ export function UsuarioForm({
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useUnsavedChangesWarning(
+    username.trim() !== "" ||
+      password !== "" ||
+      confirmPassword !== "" ||
+      rolSeleccionado !== VALOR_ADMIN,
+  );
 
   const resetForm = () => {
     setUsername("");

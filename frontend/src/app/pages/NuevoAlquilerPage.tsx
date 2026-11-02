@@ -5,6 +5,7 @@ import { SuccessModal } from '../components/SuccessModal';
 import { getClientes } from '../data/clientesData';
 import { getStocks } from '../data/stockData';
 import { ItemRow } from '../components/ItemRow';
+import { useUnsavedChangesWarning } from '../hooks/useUnsavedChangesWarning';
 import { getAuthHeaders } from '../../../../backend/utils/putHeaders';
 import { Can } from '../components/ui/Can';
 
@@ -94,6 +95,22 @@ export default function NuevoAlquilerPage() {
     const [showSuccess, setShowSuccess] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
+
+    const isDirty =
+        !showSuccess &&
+        (Boolean(clienteSeleccionado) ||
+            buscarCliente.trim() !== '' ||
+            Boolean(fechaInicio) ||
+            Boolean(fechaFin) ||
+            items.length > 1 ||
+            items.some(
+                (item) =>
+                    item.articulo_id !== '' ||
+                    Number(item.cantidad) !== 1 ||
+                    item.precio_unitario_dia !== '' ||
+                    Number(item.deposito_garantia) !== 0,
+            ));
+    const { allowNavigation } = useUnsavedChangesWarning(isDirty);
 
     // IDs para mensajes de error (accesibilidad)
     const errorIds = {
@@ -749,7 +766,10 @@ export default function NuevoAlquilerPage() {
                         </button>
                         <button
                             type="button"
-                            onClick={() => navigate('/app/')}
+                            onClick={() => {
+                                allowNavigation();
+                                navigate('/app/');
+                            }}
                             className="px-6 py-4 border-2 border-gray-300 text-gray-700 rounded-xl font-bold hover:bg-gray-50 focus:bg-gray-50 transition-colors focus:outline-none focus:ring-4 focus:ring-gray-300 flex items-center gap-2"
                             aria-label="Cancelar creación de alquiler y volver"
                         >

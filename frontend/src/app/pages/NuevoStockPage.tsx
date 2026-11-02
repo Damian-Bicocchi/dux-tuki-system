@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { SuccessModal } from "../components/SuccessModal";
 import { FailureModal } from "../components/FailureModal";
+import { useUnsavedChangesWarning } from "../hooks/useUnsavedChangesWarning";
 import { getAuthHeaders } from "../../../../backend/utils/putHeaders";
 
 interface Categoria {
@@ -46,7 +47,7 @@ export default function NuevoStockPage() {
 
   const [nombre, setNombre] = useState("");
   const [categoria, setCategoria] = useState("");
-  const [cantidad, setCantidad] = useState(1);
+  const [cantidad, setCantidad] = useState<number | "">(1);
   const [precioPorDia, setPrecioPorDia] = useState<number | "">("");
   const [depositoGarantia, setDepositoGarantia] = useState<number | "">("");
   
@@ -73,6 +74,15 @@ export default function NuevoStockPage() {
 
   const [showFailure, setShowFailure] = useState(false);
   const [failureMsg, setFailureMsg] = useState({ title: "", message: "" });
+
+  const isDirty =
+    !showSuccess &&
+    (nombre.trim() !== "" ||
+      categoria !== "" ||
+      cantidad !== 1 ||
+      precioPorDia !== "" ||
+      depositoGarantia !== "");
+  const { allowNavigation } = useUnsavedChangesWarning(isDirty);
 
   const cargarCategoriasAPI = async () => {
     try {
@@ -486,7 +496,10 @@ export default function NuevoStockPage() {
               value={cantidad}
               disabled={enviandoFormulario}
               onChange={(e) => {
-                setCantidad(parseInt(e.target.value) || 0);
+                const raw = e.target.value;
+                setCantidad(
+                  raw === "" ? "" : Math.max(0, parseInt(raw, 10) || 0),
+                );
                 if (errors.cantidad) setErrors((p) => ({ ...p, cantidad: undefined }));
               }}
               className={`${inputClass(!!errors.cantidad)} [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`}
@@ -578,7 +591,10 @@ export default function NuevoStockPage() {
             <button
               type="button"
               disabled={enviandoFormulario}
-              onClick={() => navigate("/app/stock")}
+              onClick={() => {
+                allowNavigation();
+                navigate("/app/stock");
+              }}
               className="w-full py-4 border-2 border-gray-200 bg-white text-gray-700 rounded-xl font-bold hover:bg-gray-50 active:scale-[0.98] transition-all focus:outline-none focus:ring-4 focus:ring-gray-200 disabled:opacity-50"
             >
               Cancelar
