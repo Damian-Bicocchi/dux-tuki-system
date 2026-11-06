@@ -14,6 +14,8 @@ import {
   AlertCircle,
   Clock,
   AlertTriangle,
+  Hourglass,
+  XCircle,
 } from 'lucide-react';
 import { getClienteById, type Cliente, type Alquiler, type EstadoAlquiler } from '../data/clientesData';
 
@@ -22,14 +24,17 @@ type SortField = 'fechaInicio' | 'fechaFin';
 type SortDir = 'asc' | 'desc';
 
 const ESTADO_META: Record<EstadoAlquiler, { label: string; bg: string; text: string; icon: React.ElementType }> = {
+  pendiente: { label: 'Pendiente', bg: 'bg-amber-100', text: 'text-amber-900', icon: Hourglass },
   activo: { label: 'Activo', bg: 'bg-green-100', text: 'text-green-800', icon: Clock },
   vencido: { label: 'Vencido', bg: 'bg-red-100', text: 'text-red-700', icon: AlertCircle },
   entregado: { label: 'Entregado', bg: 'bg-emerald-100', text: 'text-emerald-800', icon: CheckCircle2 },
   entregado_tardio: { label: 'Entregado tarde', bg: 'bg-orange-100', text: 'text-orange-700', icon: AlertTriangle },
+  cancelado: { label: 'Cancelado', bg: 'bg-gray-100', text: 'text-gray-700', icon: XCircle },
 };
 
 const ESTADOS_FILTRO: Array<{ key: EstadoAlquiler | 'todos'; label: string }> = [
   { key: 'todos', label: 'Todos' },
+  { key: 'pendiente', label: 'Pendientes' },
   { key: 'activo', label: 'Activos' },
   { key: 'vencido', label: 'Vencidos' },
   { key: 'entregado', label: 'Entregados' },
@@ -93,7 +98,9 @@ export default function ClienteDetallePage() {
       return sortDir === 'asc' ? cmp : -cmp;
     });
 
-  const totalGastado = cliente.alquileres.reduce((sum, a) => sum + a.monto, 0);
+  const totalGastado = cliente.alquileres
+    .filter((a) => a.estado !== 'cancelado')
+    .reduce((sum, a) => sum + a.monto, 0);
 
   function toggleSort(field: SortField) {
     if (sortField === field) {

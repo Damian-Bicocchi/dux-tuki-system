@@ -37,10 +37,16 @@ router.get('/:id', checkPermission('permiso_para_listar_clientes'), (req, res) =
         if (!cliente) return res.status(404).json({ error: 'Cliente no encontrado' });
 
         db.all(
-            `SELECT al.*, 
-                    COUNT(ai.id) AS cantidad_items
+            `SELECT al.*,
+                    COUNT(ai.id) AS cantidad_items,
+                    GROUP_CONCAT(a.nombre, ', ') AS equipos,
+                    ac.estado_entrega AS cierre_estado_entrega,
+                    ac.fecha_cierre AS cierre_fecha_cierre,
+                    COALESCE(ac.recargo_tarde, 0) AS cierre_recargo_tarde
                 FROM alquileres al
                 LEFT JOIN alquiler_items ai ON al.id = ai.alquiler_id
+                LEFT JOIN articulos a ON a.id = ai.articulo_id
+                LEFT JOIN alquiler_cierres ac ON ac.alquiler_id = al.id
                 WHERE al.cliente_id = ?
                 GROUP BY al.id
                 ORDER BY al.fecha_inicio DESC`,
