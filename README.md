@@ -1,229 +1,55 @@
+# Dux Tuki System
 
-  # Aplicación móvil de gestión
+Sistema de gestión de alquileres de equipos.
 
-  This is a code bundle for Aplicación móvil de gestión. The original project is available at https://www.figma.com/design/Hyqh83JKzuBDUNOKxqJnwN/Aplicaci%C3%B3n-m%C3%B3vil-de-gesti%C3%B3n.
+## Requisitos previos
 
-  ## Running the code
+- [Docker](https://www.docker.com/products/docker-desktop/) instalado y corriendo.
+- [Docker Compose](https://docs.docker.com/compose/) (viene incluido con Docker Desktop).
 
-  Run `npm i` to install the dependencies.
+## Pasos para ejecutar la aplicación
 
-  Run `npm run dev` to start the development server.
-
-# Guía de instalación y ejecución — Dux Tuki System
-
-Repositorio oficial:
-
-[https://github.com/Damian-Bicocchi/dux-tuki-system](https://github.com/Damian-Bicocchi/dux-tuki-system)
-
----
-
-# Requisitos previos
-
-Antes de ejecutar el proyecto necesitás tener instalado:
-
-* Git
-* NVM
-* Node.js
-* npm
-* VS Code (opcional pero recomendado)
-
----
-
----
-
-# 1. Instalar NVM
-
-NVM permite administrar múltiples versiones de Node.js.
-
-## Descargar e instalar NVM
-
-```bash
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
-```
-
----
-
-## Cargar NVM en la shell actual
-
-```bash
-\. "$HOME/.nvm/nvm.sh"
-```
-
----
-
-# 2. Instalar Node.js
-
-```bash
-nvm install 24
-```
-
----
-
-# 3. Verificar instalación
-
-## Verificar Node.js
-
-```bash
-node -v
-```
-
-Debería mostrar algo similar a:
-
-```bash
-v24.16.0
-```
-
----
-
-## Verificar npm
-
-```bash
-npm -v
-```
-
-Debería mostrar algo similar a:
-
-```bash
-11.13.0
-```
-
----
-
-# 4. Clonar el repositorio
+### 1. Clonar el repositorio
 
 ```bash
 git clone https://github.com/Damian-Bicocchi/dux-tuki-system.git
+cd dux-tuki-system
 ```
 
----
-
-# 5. Entrar al proyecto
+### 2. Levantar los contenedores
 
 ```bash
-cd tuki-system/Aplicación\ móvil\ de\ gestión/
+docker compose up --build
 ```
 
----
+Esto va a construir las imágenes y levantar dos servicios:
 
-# 6. Instalar dependencias
+- **Backend** (API Express + SQLite) en el puerto `3001`
+- **Frontend** (React + Nginx) en el puerto `5173`
+
+### 3. Acceder a la aplicación
+
+- **Frontend:** [http://localhost:5173](http://localhost:5173)
+- **API Backend:** [http://localhost:3001](http://localhost:3001)
+
+### 4. Credenciales por defecto
+
+| Usuario            | Contraseña |
+|--------------------|------------|
+| admin@gmail.com    | Hola1234   |
+
+### 5. Detener la aplicación
+
+Presioná `Ctrl + C` en la terminal donde está corriendo, o ejecutá:
 
 ```bash
-npm install
+docker compose down
 ```
 
-Esto descargará todas las dependencias necesarias definidas en el proyecto.
-
----
-
-# 7. Ejecutar el proyecto
+### 6. Limpiar todo (incluyendo la base de datos)
 
 ```bash
-npm run dev
+docker compose down -v
 ```
 
----
-
-# 8. Abrir en el navegador
-
-Normalmente el proyecto quedará disponible en:
-
-```text
-http://localhost:5173
-```
-
-O en:
-
-```text
-http://localhost:3000
-```
-
-Dependiendo de la configuración del proyecto.
-
----
-
-# Problemas comunes
-
-## Error: command not found: nvm
-
-Ejecutar:
-
-```bash
-\. "$HOME/.nvm/nvm.sh"
-```
-
----
-
-## Error: npm command not found
-
-Verificar que Node.js esté instalado:
-
-```bash
-node -v
-npm -v
-```
-
----
-
-## Error durante npm install
-
-Eliminar dependencias e intentar nuevamente:
-
-```bash
-rm -rf node_modules
-rm package-lock.json
-npm install
-```
-
----
-
-# Tecnologías utilizadas
-
-El proyecto puede incluir:
-
-* React
-* Vite
-* npm
-* JavaScript o TypeScript
-
----
-
-# Recomendaciones
-
-* Utilizar VS Code
-* Instalar la extensión oficial de React
-* Mantener Node actualizado mediante NVM
-* Ejecutar siempre el proyecto dentro de su carpeta
-
----
-
-# Comandos útiles
-
-## Cambiar versión de Node
-
-```bash
-nvm use 24
-```
-
----
-
-## Listar versiones instaladas
-
-```bash
-nvm ls
-```
-
----
-
-## Actualizar dependencias
-
-```bash
-npm update
-```
-
----
-
-# Licencia
-
-Este proyecto pertenece a sus respectivos autores.
-
-  
+Esto elimina los contenedores y el volumen donde se persiste la base de datos SQLite. La próxima vez que levantes la aplicación, se va a crear una base de datos nueva con los datos de ejemplo.
