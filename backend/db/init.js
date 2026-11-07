@@ -107,9 +107,10 @@ function initializeTables() {
                 id         INTEGER PRIMARY KEY AUTOINCREMENT,
                 username   TEXT NOT NULL UNIQUE,
                 password   TEXT NOT NULL,
-                is_admin   INTEGER NOT NULL DEFAULT 0,
-                role_id    INTEGER,
-                created_at TEXT DEFAULT (datetime('now','localtime')),
+                is_admin      INTEGER NOT NULL DEFAULT 0,
+                role_id       INTEGER,
+                token_version INTEGER NOT NULL DEFAULT 0,
+                created_at    TEXT DEFAULT (datetime('now','localtime')),
                 FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE SET NULL
             )
         `);
@@ -120,12 +121,16 @@ function initializeTables() {
             
             const hasIsAdmin = columns.some((col) => col.name === 'is_admin');
             const hasRoleId = columns.some((col) => col.name === 'role_id');
+            const hasTokenVersion = columns.some((col) => col.name === 'token_version');
 
             if (!hasIsAdmin) {
                 db.run(`ALTER TABLE usuarios ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0`);
             }
             if (!hasRoleId) {
                 db.run(`ALTER TABLE usuarios ADD COLUMN role_id INTEGER REFERENCES roles(id)`);
+            }
+            if (!hasTokenVersion) {
+                db.run(`ALTER TABLE usuarios ADD COLUMN token_version INTEGER NOT NULL DEFAULT 0`);
             }
         });
 

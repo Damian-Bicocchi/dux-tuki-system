@@ -17,14 +17,53 @@ export function SuccessModal({
   onClose,
 }: SuccessModalProps) {
   const btnRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
   const titleId = "success-modal-title";
   const descId = "success-modal-desc";
 
-  // Enfocar el botón cuando el modal se abre
+  // Enfocar el modal al abrir y restaurar el foco al cerrar
   useEffect(() => {
-    if (isOpen) {
-      btnRef.current?.focus();
-    }
+    if (!isOpen) return;
+
+    previouslyFocusedRef.current = document.activeElement as HTMLElement;
+    const timer = window.setTimeout(() => btnRef.current?.focus(), 50);
+
+    return () => {
+      window.clearTimeout(timer);
+      previouslyFocusedRef.current?.focus?.();
+    };
+  }, [isOpen]);
+
+  // Mantener el foco dentro del modal
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleTab = (event: KeyboardEvent) => {
+      if (event.key !== 'Tab' || !panelRef.current) return;
+
+      const focusable = Array.from(
+        panelRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((element) => !element.hasAttribute('disabled'));
+
+      if (focusable.length === 0) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener('keydown', handleTab);
+    return () => document.removeEventListener('keydown', handleTab);
   }, [isOpen]);
 
   // Cerrar con Escape
@@ -67,7 +106,10 @@ export function SuccessModal({
       />
 
       {/* Panel — bottom sheet en móvil, centrado en desktop */}
-      <div className="relative w-full sm:max-w-sm sm:mx-4 bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden">
+      <div
+        ref={panelRef}
+        className="relative w-full sm:max-w-sm sm:mx-4 bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden"
+      >
         {/* Franja verde superior */}
         <div className="bg-[#218a72] h-1.5 w-full" aria-hidden="true" />
 

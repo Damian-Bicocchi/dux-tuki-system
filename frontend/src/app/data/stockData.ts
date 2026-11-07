@@ -1,3 +1,7 @@
+import type { EstadoAlquiler } from '../config/rentalStatus';
+
+export type { EstadoAlquiler } from '../config/rentalStatus';
+
 export interface StockItem {
   id: number;
   nombre: string;
@@ -8,14 +12,12 @@ export interface StockItem {
   deposito_garantia: number;
 }
 
-export type EstadoAlquilerStock = 'activo' | 'vencido' | 'finalizado';
-
 export interface AlquilerDeEquipo {
   id: number;
   cliente: string;
   fechaInicio: string;
   fechaFin: string;
-  estado: EstadoAlquilerStock;
+  estado: EstadoAlquiler;
   precio: number;
 }
 

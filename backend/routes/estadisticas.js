@@ -83,6 +83,7 @@ const db = new Proxy(
                         inversion_estimada: inversion,
                         total_alquileres: ingresosRow.total_alquileres,
                         total_clientes: extrasRow.total_clientes,
+                        alquileres_con_recargos: extrasRow.con_recargos,
                         alquileres_por_estado: {
                             total: extrasRow.total_alquileres_historicos,
                             activos: extrasRow.activos,
@@ -90,7 +91,6 @@ const db = new Proxy(
                             vencidos: extrasRow.vencidos,
                             devueltos: extrasRow.devueltos,
                             cancelados: extrasRow.cancelados,
-                            con_recargos: extrasRow.con_recargos,
                         },
                     });
                 });

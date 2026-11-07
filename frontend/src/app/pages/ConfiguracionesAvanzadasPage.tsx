@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { UsuariosTab } from './administracion/tabs/UsuariosTab';
 import { RolesTab } from './administracion/tabs/RolesTab';
+import { handleTabListKeyDown } from '../utils/tabListKeyboard';
 
 type TabId = 'usuarios' | 'roles';
 
@@ -37,6 +38,7 @@ export default function ConfiguracionesAvanzadasPage() {
       <div
         role="tablist"
         aria-label="Secciones de administración"
+        onKeyDown={handleTabListKeyDown}
         className="border-b border-gray-200 mb-8"
       >
         <div className="flex gap-2">
@@ -45,7 +47,10 @@ export default function ConfiguracionesAvanzadasPage() {
               key={tab.id}
               type="button"
               role="tab"
+              id={`admin-tab-${tab.id}`}
+              aria-controls={`admin-panel-${tab.id}`}
               aria-selected={activeTab === tab.id}
+              tabIndex={activeTab === tab.id ? 0 : -1}
               onClick={() => setActiveTab(tab.id)}
               className={`px-5 py-3 font-semibold rounded-t-xl transition-colors ${
                 activeTab === tab.id
@@ -61,6 +66,8 @@ export default function ConfiguracionesAvanzadasPage() {
 
       <section
         role="tabpanel"
+        id={`admin-panel-${activeTab}`}
+        aria-labelledby={`admin-tab-${activeTab}`}
         className="bg-white border border-gray-200 rounded-2xl p-6"
       >
         {ActiveComponent && <ActiveComponent />}

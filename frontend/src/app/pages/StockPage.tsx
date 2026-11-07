@@ -5,6 +5,7 @@ import { calcularEstado, type StockItem } from "../data/stockData";
 import { CategoriasTab } from "../pages/administracion/tabs/CategoriasTab";
 import { getAuthHeaders } from "../../../../backend/utils/putHeaders";
 import { Can } from "../components/ui/Can";
+import { handleTabListKeyDown } from "../utils/tabListKeyboard";
 
 interface Categoria {
   id: number;
@@ -93,12 +94,20 @@ export default function StockPage() {
       </div>
 
       {/* Navegación por pestañas */}
-      <div role="tablist" aria-label="Secciones de Stock" className="border-b border-gray-200 mb-6">
+      <div
+        role="tablist"
+        aria-label="Secciones de Stock"
+        onKeyDown={handleTabListKeyDown}
+        className="border-b border-gray-200 mb-6"
+      >
         <div className="flex gap-2">
           <button
             type="button"
             role="tab"
+            id="stock-tab-inventario"
+            aria-controls="stock-panel-inventario"
             aria-selected={activeTab === "inventario"}
+            tabIndex={activeTab === "inventario" ? 0 : -1}
             onClick={() => setActiveTab("inventario")}
             className={`flex items-center gap-2 px-5 py-3 font-semibold rounded-t-xl transition-colors ${
               activeTab === "inventario"
@@ -114,7 +123,10 @@ export default function StockPage() {
             <button
               type="button"
               role="tab"
+              id="stock-tab-categorias"
+              aria-controls="stock-panel-categorias"
               aria-selected={activeTab === "categorias"}
+              tabIndex={activeTab === "categorias" ? 0 : -1}
               onClick={() => setActiveTab("categorias")}
               className={`flex items-center gap-2 px-5 py-3 font-semibold rounded-t-xl transition-colors ${
                 activeTab === "categorias"
@@ -131,31 +143,51 @@ export default function StockPage() {
 
       {/* Contenido según la pestaña activa */}
       {activeTab === "categorias" ? (
-        <section role="tabpanel" className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+        <section
+          role="tabpanel"
+          id="stock-panel-categorias"
+          aria-labelledby="stock-tab-categorias"
+          className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm"
+        >
           <Can do="permiso_para_gestionar_categorias">
             <CategoriasTab />
           </Can>
         </section>
       ) : (
-        <section role="tabpanel">
+        <section
+          role="tabpanel"
+          id="stock-panel-inventario"
+          aria-labelledby="stock-tab-inventario"
+        >
           {/* Buscador e Input Select */}
           <div className="mb-5 flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+              <Search
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+                size={20}
+                aria-hidden="true"
+              />
               <input
                 type="search"
+                maxLength={100}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                aria-label="Buscar equipos en el inventario"
                 placeholder="Buscar equipo..."
                 className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 bg-white rounded-xl focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72]"
               />
             </div>
 
             <div className="flex items-center gap-2 flex-1 sm:max-w-[300px]">
-              <Package size={18} className="text-gray-500 hidden sm:block" />
+              <Package
+                size={18}
+                className="text-gray-500 hidden sm:block"
+                aria-hidden="true"
+              />
               <select
                 value={filterCategoria}
                 onChange={(e) => setFilterCategoria(e.target.value)}
+                aria-label="Filtrar inventario por categoría"
                 className="w-full px-4 py-3 border-2 border-gray-200 bg-white rounded-xl focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72]"
               >
                 <option value="todas">Todas las categorías</option>

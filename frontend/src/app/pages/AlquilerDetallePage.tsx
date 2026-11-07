@@ -4,8 +4,6 @@ import {
   ArrowLeft,
   CalendarDays,
   Clock,
-  AlertCircle,
-  CheckCircle2,
   Package,
   Banknote,
   FileText,
@@ -18,14 +16,12 @@ import {
 import { Can } from "../components/ui/Can";
 import { SuccessModal } from "../components/SuccessModal";
 import { useUnsavedChangesWarning } from "../hooks/useUnsavedChangesWarning";
+import {
+  ESTADO_ALQUILER_META,
+  estadoEfectivoAlquiler,
+} from "../config/rentalStatus";
+import type { EstadoAlquiler } from "../config/rentalStatus";
 import { getAuthHeaders } from '../../../../backend/utils/putHeaders';
-
-type EstadoDetalle =
-  | "pendiente"
-  | "activo"
-  | "vencido"
-  | "finalizado"
-  | "cancelado";
 
 interface AlquilerItemApi {
   id: number;
@@ -39,7 +35,7 @@ interface AlquilerApi {
   cliente_nombre: string;
   fecha_inicio: string;
   fecha_fin: string;
-  estado: "pendiente" | "activo" | "vencido" | "devuelto" | "cancelado";
+  estado: EstadoAlquiler;
   deposito_garantia: number;
   notas?: string;
   cancelacion_motivo?: string | null;
@@ -73,71 +69,7 @@ function formatMonto(monto: number): string {
   }).format(monto);
 }
 
-function mapEstadoDetalle(
-  estado: AlquilerApi["estado"],
-  fechaInicio: string,
-  fechaFin: string,
-): EstadoDetalle {
-  if (estado === "cancelado") return "cancelado";
-  if (estado === "devuelto") return "finalizado";
-  if (estado === "vencido") return "vencido";
 
-  const hoy = new Date().toISOString().slice(0, 10);
-
-  if (estado === "pendiente") {
-    if (fechaFin < hoy) return "vencido";
-    return "pendiente";
-  }
-
-  if (estado === "activo" && fechaFin < hoy) return "vencido";
-  return "activo";
-}
-
-const ESTADO_META: Record<
-  EstadoDetalle,
-  { label: string; bg: string; text: string; border: string; icon: React.ElementType; desc: string }
-> = {
-  pendiente: {
-    label: "Pendiente",
-    bg: "bg-amber-50",
-    text: "text-amber-800",
-    border: "border-amber-200",
-    icon: Clock,
-    desc: "El alquiler está registrado y todavía no comenzó.",
-  },
-  activo: {
-    label: "Activo / En Curso",
-    bg: "bg-emerald-50",
-    text: "text-emerald-800",
-    border: "border-emerald-200",
-    icon: Clock,
-    desc: "El cliente posee el equipo actualmente y el tiempo está corriendo.",
-  },
-  vencido: {
-    label: "Plazo Vencido",
-    bg: "bg-rose-50",
-    text: "text-rose-800",
-    border: "border-rose-200",
-    icon: AlertCircle,
-    desc: "La fecha estipulada de devolución ha expirado. Requiere acción inmediata.",
-  },
-  finalizado: {
-    label: "Finalizado / Entregado",
-    bg: "bg-slate-100",
-    text: "text-slate-700",
-    border: "border-slate-300",
-    icon: CheckCircle2,
-    desc: "El proceso de alquiler ha concluido y el inventario fue procesado.",
-  },
-  cancelado: {
-    label: "Cancelado",
-    bg: "bg-red-50",
-    text: "text-red-800",
-    border: "border-red-200",
-    icon: XCircle,
-    desc: "El alquiler fue cancelado antes de su fecha de inicio.",
-  },
-};
 
 function InfoRow({
   icon: Icon,
@@ -252,16 +184,13 @@ export default function AlquilerDetallePage() {
 
   const hoy = new Date().toISOString().slice(0, 10);
   const estadoVistaParaDirty = alquiler
-    ? mapEstadoDetalle(
-        alquiler.estado,
-        alquiler.fecha_inicio,
-        alquiler.fecha_fin,
-      )
+    ? estadoEfectivoAlquiler(alquiler.estado, alquiler.fecha_fin)
     : null;
   const puedeCancelar = Boolean(
     alquiler &&
-      ["pendiente", "activo"].includes(alquiler.estado) &&
-      alquiler.fecha_inicio > hoy,
+      (alquiler.estado === "pendiente" ||
+        (alquiler.estado === "activo" &&
+          alquiler.fecha_inicio > hoy)),
   );
   const puedeIniciar = Boolean(
     alquiler &&
@@ -319,8 +248,8 @@ export default function AlquilerDetallePage() {
     );
   }
 
-  const estadoVista = estadoVistaParaDirty as EstadoDetalle;
-  const meta = ESTADO_META[estadoVista];
+  const estadoVista = estadoVistaParaDirty as EstadoAlquiler;
+  const meta = ESTADO_ALQUILER_META[estadoVista];
   const EstadoIcon = meta.icon;
   const dias = calcularDias(alquiler.fecha_inicio, alquiler.fecha_fin);
 
@@ -501,10 +430,10 @@ export default function AlquilerDetallePage() {
       </header>
 
       {/* Contenido Principal */}
-      <main className="px-4 -mt-4 max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="px-4 -mt-4 max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
         <section 
           aria-labelledby="estado-contrato-titulo"
-          className={`lg:col-span-3 bg-white rounded-xl border ${meta.border} p-4 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3`}
+          className={`md:col-span-3 bg-white rounded-xl border ${meta.border} p-4 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3`}
         >
           <div className="flex items-start gap-3">
             <div
@@ -518,7 +447,7 @@ export default function AlquilerDetallePage() {
                 Estado del Contrato
               </span>
               <h2 className="text-lg sm:text-xl font-extrabold text-gray-900 leading-tight">{meta.label}</h2>
-              <p className="text-xs sm:text-sm text-gray-600 mt-0.5">{meta.desc}</p>
+              <p className="text-xs sm:text-sm text-gray-600 mt-0.5">{meta.description}</p>
             </div>
           </div>
 
@@ -630,9 +559,13 @@ export default function AlquilerDetallePage() {
 
                 <form onSubmit={handleCancelar} className="p-5 space-y-4">
                   <p className="text-xs text-gray-600 leading-relaxed">
-                    Solo podés cancelar antes de la fecha de inicio (
-                    {formatFecha(alquiler.fecha_inicio)}). El alquiler quedará
-                    cancelado y el stock se liberará.
+                    {alquiler.fecha_inicio > hoy
+                      ? `Solo podés cancelar antes de la fecha de inicio (${formatFecha(
+                          alquiler.fecha_inicio,
+                        )}). El alquiler quedará cancelado y el stock se liberará.`
+                      : `El alquiler sigue pendiente, por lo que podés cancelarlo aunque su fecha de inicio (${formatFecha(
+                          alquiler.fecha_inicio,
+                        )}) ya haya pasado. El stock se liberará.`}
                   </p>
 
                   <div>
@@ -648,6 +581,7 @@ export default function AlquilerDetallePage() {
                     <textarea
                       id="cancelacion-motivo"
                       rows={3}
+                      maxLength={300}
                       required
                       value={motivoCancelacion}
                       onChange={(e) => {
@@ -723,7 +657,7 @@ export default function AlquilerDetallePage() {
                   </legend>
                   <div className="grid grid-cols-2 gap-3">
                     <label
-                      className={`p-3 rounded-lg border text-left flex flex-col transition-all cursor-pointer ${
+                      className={`p-3 rounded-lg border text-left flex flex-col transition-all cursor-pointer focus-within:ring-4 focus-within:ring-[#218a72]/40 focus-within:border-[#218a72] ${
                         !entregaParcial
                           ? "border-[#218a72] bg-[#218a72]/5 ring-2 ring-[#218a72]/20"
                           : "border-gray-200 hover:border-gray-300"
@@ -740,7 +674,7 @@ export default function AlquilerDetallePage() {
                       <span className="text-xs text-gray-500">Todo devuelto</span>
                     </label>
                     <label
-                      className={`p-3 rounded-lg border text-left flex flex-col transition-all cursor-pointer ${
+                      className={`p-3 rounded-lg border text-left flex flex-col transition-all cursor-pointer focus-within:ring-4 focus-within:ring-[#218a72]/40 focus-within:border-[#218a72] ${
                         entregaParcial
                           ? "border-amber-500 bg-amber-50/50 ring-2 ring-amber-500/20"
                           : "border-gray-200 hover:border-gray-300"
@@ -769,6 +703,7 @@ export default function AlquilerDetallePage() {
                       <textarea
                         id="textarea-parcial"
                         rows={2}
+                        maxLength={300}
                         value={detalleParcial}
                         onChange={(e) => setDetalleParcial(e.target.value)}
                         placeholder="Ej: Falta 1 cable HDMI y el trípode."
@@ -874,6 +809,7 @@ export default function AlquilerDetallePage() {
                         <input
                           id="descripcion-danos"
                           type="text"
+                          maxLength={300}
                           value={detalleDanos}
                           onChange={(e) => setDetalleDanos(e.target.value)}
                           placeholder="Ej: Lente rayado"
@@ -930,6 +866,7 @@ export default function AlquilerDetallePage() {
                   <textarea
                     id="notas-recepcion"
                     rows={2}
+                    maxLength={500}
                     value={notasEntrega}
                     onChange={(e) => setNotasEntrega(e.target.value)}
                     placeholder="Comentarios opcionales..."
@@ -1043,7 +980,7 @@ export default function AlquilerDetallePage() {
             </section>
           )}
         </div>
-      </main>
+      </div>
     </div>
   );
 }

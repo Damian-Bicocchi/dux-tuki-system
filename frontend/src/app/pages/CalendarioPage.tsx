@@ -30,7 +30,6 @@ const todayStr = toDateStr(new Date());
 const API_URL = 'http://localhost:3001/api';
 
 export const getAlquileresEmpiezanFecha = async (fecha: string): Promise<Alquiler[]> => {
-  console.log(`${API_URL}/empiezan?fecha=${(fecha)}`);
   const response = await fetch(`${API_URL}/alquileres/empiezan?fecha=${(fecha)}`, {headers: getAuthHeaders()});
   if (!response.ok) {
     throw new Error('Error al obtener alquileres por fecha de inicio');
@@ -95,7 +94,7 @@ export default function CalendarioPage() {
   }, [selectedDate]);
 
   return (
-    <main className="px-5 py-6 pb-10 max-w-5xl mx-auto space-y-5" aria-label="Calendario de Alquileres">
+    <section className="px-5 py-6 pb-10 max-w-5xl mx-auto space-y-5" aria-label="Calendario de Alquileres">
       
       {/* Región asíncrona para lectores de pantalla */}
       <div className="sr-only" aria-live="polite" aria-atomic="true">
@@ -183,7 +182,7 @@ export default function CalendarioPage() {
           )}
         />
       </div>
-    </main>
+    </section>
   );
 }
 

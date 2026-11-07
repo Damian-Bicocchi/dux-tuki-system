@@ -69,6 +69,7 @@ export default function ClientesPage() {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} aria-hidden="true" />
           <input
             type="search"
+            maxLength={100}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Buscar por nombre, DNI o correo..."
@@ -102,42 +103,39 @@ export default function ClientesPage() {
           </div>
         ) : (
           filteredClientes.map((cliente) => (
-            <button
-              key={cliente.id}
-              onClick={() => navigate(`/app/clientes/${cliente.id}`)}
-              className="w-full text-left bg-white border-2 border-gray-100 rounded-2xl p-5 hover:border-[#218a72] hover:shadow-sm active:scale-[0.99] transition-all focus:outline-none focus:ring-4 focus:ring-[#218a72]/20"
-              role="listitem"
-              aria-label={`Ver detalle de ${cliente.nombre}, ${cliente.alquileres.length} alquileres`}
-            >
-              <div className="flex items-center gap-4">
-                <div
-                  className="w-12 h-12 rounded-full bg-[#218a72] text-white flex items-center justify-center font-bold text-lg flex-shrink-0"
-                  aria-hidden="true"
-                >
-                  {cliente.nombre.charAt(0)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-bold text-gray-900 text-base mb-1.5">{cliente.nombre}</h3>
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
-                      <Mail size={14} className="flex-shrink-0" aria-hidden="true" />
-                      <span className="truncate">{cliente.email}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
-                      <IdCard size={14} className="flex-shrink-0" aria-hidden="true" />
-                      <span>DNI: {cliente.dni}</span>
+            <div key={cliente.id} role="listitem">
+              <button
+                onClick={() => navigate(`/app/clientes/${cliente.id}`)}
+                className="w-full text-left bg-white border-2 border-gray-100 rounded-2xl p-5 hover:border-[#218a72] hover:shadow-sm active:scale-[0.99] transition-all focus:outline-none focus:ring-4 focus:ring-[#218a72]/20"
+                aria-label={`Ver detalle del cliente ${cliente.nombre}`}
+              >
+                <div className="flex items-center gap-4">
+                  <div
+                    className="w-12 h-12 rounded-full bg-[#218a72] text-white flex items-center justify-center font-bold text-lg flex-shrink-0"
+                    aria-hidden="true"
+                  >
+                    {cliente.nombre.charAt(0)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-gray-900 text-base mb-1.5">{cliente.nombre}</h3>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 text-sm text-gray-500">
+                        <Mail size={14} className="flex-shrink-0" aria-hidden="true" />
+                        <span className="truncate">{cliente.email}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-gray-500">
+                        <IdCard size={14} className="flex-shrink-0" aria-hidden="true" />
+                        <span>DNI: {cliente.dni}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <div className="text-right">
-                    <div className="font-bold text-gray-900 text-base">{cliente.alquileres.length}</div>
-                    <div className="text-xs text-gray-500">alquileres</div>
+                  <div className="flex items-center gap-1.5 flex-shrink-0 text-sm font-semibold text-[#218a72]">
+                    <span>Ver detalle</span>
+                    <ChevronRight size={18} className="text-[#218a72]" aria-hidden="true" />
                   </div>
-                  <ChevronRight size={18} className="text-gray-400" aria-hidden="true" />
                 </div>
-              </div>
-            </button>
+              </button>
+            </div>
           ))
         )}
       </div>

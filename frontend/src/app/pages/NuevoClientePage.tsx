@@ -162,6 +162,7 @@ export default function NuevoClientePage() {
                     <input
                         id="nombre"
                         type="text"
+                        maxLength={80}
                         value={formData.nombre}
                         onChange={(e) => handleChange('nombre', e.target.value)}
                         placeholder="Ej: Juan Pérez"
@@ -216,6 +217,7 @@ export default function NuevoClientePage() {
                         id="email"
                         type="email"
                         inputMode="email"
+                        maxLength={254}
                         value={formData.email}
                         onChange={(e) => handleChange('email', e.target.value)}
                         placeholder="Ej: juan@email.com"

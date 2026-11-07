@@ -1,23 +1,10 @@
 // repositories/alquiler.repository.js
 const { getDb } = require('../db');
+const { estadoEfectivoAlquiler } = require('../utils/rentalStatus');
 
 class AlquilerRepository {
     _estadoEfectivo(row) {
-        if (!row) return row;
-
-        const hoy = new Date().toISOString().split('T')[0];
-        const fechaFin = row.fecha_fin || row.fechaFin;
-        const estado = row.estado;
-
-        if (estado === 'devuelto' || estado === 'cancelado') {
-            return estado;
-        }
-
-        if (fechaFin && fechaFin < hoy) {
-            return 'vencido';
-        }
-
-        return estado;
+        return estadoEfectivoAlquiler(row);
     }
 
     getStockTotalArticulo(articulo_id) {

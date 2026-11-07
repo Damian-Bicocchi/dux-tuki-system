@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken'); // 1. IMPORTAR JWT
 const { getDb } = require('../db');
 const authenticate = require('../middlewares/auth');
 const requireAdmin = require('../middlewares/requireAdmin');
+const usuariosRepository = require('../repositories/usuarios.repository');
 const { JWT_SECRET } = require('../config/env');
 
 const router = express.Router();
@@ -65,7 +66,7 @@ router.post('/login', (req, res) => {
 
     // Consulta corregida con las columnas reales de la tabla roles: r.nombre y r.permisos
     const sql = `
-        SELECT u.id, u.username, u.password, u.is_admin,
+        SELECT u.id, u.username, u.password, u.is_admin, u.token_version,
                r.id AS role_id, r.nombre AS role_name, r.permisos AS role_permissions
         FROM usuarios u
         LEFT JOIN roles r ON u.role_id = r.id
@@ -98,19 +99,16 @@ router.post('/login', (req, res) => {
                 }
             }
 
-            // Construir el payload del token JWT
-            const payload = {
-                id: row.id,
-                username: row.username,
-                isAdmin: Boolean(row.is_admin),
-                role: row.role_name ? {
-                    id: row.role_id,
-                    name: row.role_name,
-                    permissions: parsedPermissions
-                } : null
-            };
-
-            const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '8h' });
+            // El token sólo identifica al usuario y su versión. Los permisos
+            // se leen siempre desde la base de datos en cada petición.
+            const token = jwt.sign(
+                {
+                    id: row.id,
+                    tokenVersion: Number(row.token_version || 0),
+                },
+                JWT_SECRET,
+                { expiresIn: '8h' },
+            );
 
             res.json({
                 message: 'Login exitoso',
@@ -119,11 +117,27 @@ router.post('/login', (req, res) => {
                     id: row.id,
                     username: row.username,
                     isAdmin: Boolean(row.is_admin),
-                    role: payload.role
-                }
+                    role: row.role_name
+                        ? {
+                              id: row.role_id,
+                              name: row.role_name,
+                              permissions: parsedPermissions,
+                          }
+                        : null,
+                },
             });
         });
     });
+});
+
+// POST /api/usuarios/logout — revocar el/los tokens vigentes del usuario
+router.post('/logout', authenticate, async (req, res) => {
+    try {
+        await usuariosRepository.incrementTokenVersion(req.user.id);
+        res.json({ message: 'Sesión cerrada correctamente' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // GET /api/usuarios — listar usuarios con su rol (sólo administradores)

@@ -535,6 +535,7 @@ export function RolesTab() {
           <input
             id="search-roles-input"
             type="search"
+            maxLength={100}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Buscar por nombre o descripción..."

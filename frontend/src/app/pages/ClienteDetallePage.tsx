@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router';
+import { Link, useParams, useNavigate } from 'react-router';
 import {
   ArrowLeft,
   Mail,
@@ -8,38 +8,21 @@ import {
   Package,
   SlidersHorizontal,
   ArrowUpDown,
-  ArrowUp,
-  ArrowDown,
-  CheckCircle2,
-  AlertCircle,
-  Clock,
-  AlertTriangle,
-  Hourglass,
-  XCircle,
+  Pencil,
 } from 'lucide-react';
 import { getClienteById, type Cliente, type Alquiler, type EstadoAlquiler } from '../data/clientesData';
+import {
+  ESTADO_ALQUILER_FILTROS,
+  ESTADO_ALQUILER_META,
+} from '../config/rentalStatus';
+import { handleTabListKeyDown } from '../utils/tabListKeyboard';
+import { Can } from '../components/ui/Can';
+import { ClienteEditModal } from '../components/ClienteEditModal';
+import { SuccessModal } from '../components/SuccessModal';
 
 type TabKey = 'datos' | 'alquileres';
 type SortField = 'fechaInicio' | 'fechaFin';
 type SortDir = 'asc' | 'desc';
-
-const ESTADO_META: Record<EstadoAlquiler, { label: string; bg: string; text: string; icon: React.ElementType }> = {
-  pendiente: { label: 'Pendiente', bg: 'bg-amber-100', text: 'text-amber-900', icon: Hourglass },
-  activo: { label: 'Activo', bg: 'bg-green-100', text: 'text-green-800', icon: Clock },
-  vencido: { label: 'Vencido', bg: 'bg-red-100', text: 'text-red-700', icon: AlertCircle },
-  entregado: { label: 'Entregado', bg: 'bg-emerald-100', text: 'text-emerald-800', icon: CheckCircle2 },
-  entregado_tardio: { label: 'Entregado tarde', bg: 'bg-orange-100', text: 'text-orange-700', icon: AlertTriangle },
-  cancelado: { label: 'Cancelado', bg: 'bg-gray-100', text: 'text-gray-700', icon: XCircle },
-};
-
-const ESTADOS_FILTRO: Array<{ key: EstadoAlquiler | 'todos'; label: string }> = [
-  { key: 'todos', label: 'Todos' },
-  { key: 'pendiente', label: 'Pendientes' },
-  { key: 'activo', label: 'Activos' },
-  { key: 'vencido', label: 'Vencidos' },
-  { key: 'entregado', label: 'Entregados' },
-  { key: 'entregado_tardio', label: 'Entregados tarde' },
-];
 
 function formatFecha(fecha: string) {
   return new Date(fecha + 'T00:00:00').toLocaleDateString('es-AR', {
@@ -61,6 +44,8 @@ export default function ClienteDetallePage() {
   const [filtroEstado, setFiltroEstado] = useState<EstadoAlquiler | 'todos'>('todos');
   const [sortField, setSortField] = useState<SortField>('fechaInicio');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showEditSuccess, setShowEditSuccess] = useState(false);
 
   useEffect(() => {
     const fetchCliente = async () => {
@@ -111,13 +96,14 @@ export default function ClienteDetallePage() {
     }
   }
 
-  function SortIcon({ field }: { field: SortField }) {
-    if (sortField !== field) return <ArrowUpDown size={14} className="text-gray-400" />;
-    return sortDir === 'asc' ? (
-      <ArrowUp size={14} className="text-[#218a72]" />
-    ) : (
-      <ArrowDown size={14} className="text-[#218a72]" />
-    );
+  function sortStateLabel(field: SortField) {
+    if (sortField !== field) return 'sin ordenar';
+    return sortDir === 'asc' ? 'más antiguos primero' : 'más recientes primero';
+  }
+
+  function sortBadgeLabel(field: SortField) {
+    if (sortField !== field) return 'Ordenar';
+    return sortDir === 'asc' ? 'Más antiguos' : 'Más recientes';
   }
 
   return (
@@ -145,11 +131,18 @@ export default function ClienteDetallePage() {
       </header>
 
       {/* Tabs */}
-      <div className="flex border-b-2 border-gray-200 bg-white sticky top-0 z-10" role="tablist" aria-label="Secciones del cliente">
+      <div
+        className="flex border-b-2 border-gray-200 bg-white sticky top-0 z-10"
+        role="tablist"
+        aria-label="Secciones del cliente"
+        onKeyDown={handleTabListKeyDown}
+      >
         <button
           role="tab"
+          id="cliente-tab-datos"
           aria-selected={tab === 'datos'}
           aria-controls="panel-datos"
+          tabIndex={tab === 'datos' ? 0 : -1}
           onClick={() => setTab('datos')}
           className={`flex-1 py-3.5 text-sm font-bold transition-colors focus:outline-none focus:ring-inset focus:ring-2 focus:ring-[#218a72] ${
             tab === 'datos'
@@ -161,8 +154,10 @@ export default function ClienteDetallePage() {
         </button>
         <button
           role="tab"
+          id="cliente-tab-alquileres"
           aria-selected={tab === 'alquileres'}
           aria-controls="panel-alquileres"
+          tabIndex={tab === 'alquileres' ? 0 : -1}
           onClick={() => setTab('alquileres')}
           className={`flex-1 py-3.5 text-sm font-bold transition-colors focus:outline-none focus:ring-inset focus:ring-2 focus:ring-[#218a72] ${
             tab === 'alquileres'
@@ -176,7 +171,25 @@ export default function ClienteDetallePage() {
 
       {/* Panel Datos */}
       {tab === 'datos' && (
-        <div id="panel-datos" role="tabpanel" aria-label="Datos del cliente" className="px-5 py-6 space-y-4 max-w-4xl mx-auto">
+        <div
+          id="panel-datos"
+          role="tabpanel"
+          aria-labelledby="cliente-tab-datos"
+          className="px-5 py-6 space-y-4 max-w-4xl mx-auto"
+        >
+          <Can do="permiso_para_editar_clientes">
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowEditModal(true)}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#218a72] hover:bg-[#1b6f5c] text-white text-sm font-bold transition-colors focus:outline-none focus:ring-4 focus:ring-[#218a72]/30"
+              >
+                <Pencil size={16} aria-hidden="true" />
+                Editar datos
+              </button>
+            </div>
+          </Can>
+
           <div className="bg-white border-2 border-gray-100 rounded-2xl divide-y-2 divide-gray-100 shadow-sm">
             <InfoRow icon={IdCard} label="DNI" value={cliente.dni} />
             <InfoRow icon={Mail} label="Correo" value={cliente.email} isEmail />
@@ -187,9 +200,9 @@ export default function ClienteDetallePage() {
           <div>
             <h2 className="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide">Resumen de alquileres</h2>
             <div className="grid grid-cols-2 gap-2">
-              {(Object.keys(ESTADO_META) as EstadoAlquiler[]).map((estado) => {
+              {(Object.keys(ESTADO_ALQUILER_META) as EstadoAlquiler[]).map((estado) => {
                 const count = cliente.alquileres.filter((a) => a.estado === estado).length;
-                const meta = ESTADO_META[estado];
+                const meta = ESTADO_ALQUILER_META[estado];
                 return (
                   <div
                     key={estado}
@@ -211,20 +224,25 @@ export default function ClienteDetallePage() {
 
       {/* Panel Alquileres */}
       {tab === 'alquileres' && (
-        <div id="panel-alquileres" role="tabpanel" aria-label="Alquileres del cliente" className="px-5 py-4 space-y-4 max-w-4xl mx-auto">
+        <div
+          id="panel-alquileres"
+          role="tabpanel"
+          aria-labelledby="cliente-tab-alquileres"
+          className="px-5 py-4 space-y-4 max-w-4xl mx-auto"
+        >
           <div>
             <div className="flex items-center gap-2 mb-2">
               <SlidersHorizontal size={15} className="text-gray-500" aria-hidden="true" />
               <span className="text-xs font-bold text-gray-600 uppercase tracking-wide">Filtrar por estado</span>
             </div>
             <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide" role="group" aria-label="Filtros de estado">
-              {ESTADOS_FILTRO.map(({ key, label }) => (
+              {ESTADO_ALQUILER_FILTROS.map(({ value, label }) => (
                 <button
-                  key={key}
-                  onClick={() => setFiltroEstado(key as EstadoAlquiler | 'todos')}
-                  aria-pressed={filtroEstado === key}
+                  key={value}
+                  onClick={() => setFiltroEstado(value as EstadoAlquiler | 'todos')}
+                  aria-pressed={filtroEstado === value}
                   className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border-2 transition-colors focus:outline-none focus:ring-2 focus:ring-[#218a72]/40 ${
-                    filtroEstado === key
+                    filtroEstado === value
                       ? 'bg-[#218a72] text-white border-[#218a72]'
                       : 'bg-white text-gray-600 border-gray-300 hover:border-[#218a72]'
                   }`}
@@ -240,32 +258,60 @@ export default function ClienteDetallePage() {
               <ArrowUpDown size={15} className="text-gray-500" aria-hidden="true" />
               <span className="text-xs font-bold text-gray-600 uppercase tracking-wide">Ordenar por</span>
             </div>
-            <div className="flex gap-2" role="group" aria-label="Ordenar alquileres">
+            <div
+              className="flex flex-wrap gap-2"
+              role="group"
+              aria-label="Ordenar alquileres"
+            >
               <button
                 onClick={() => toggleSort('fechaInicio')}
                 aria-pressed={sortField === 'fechaInicio'}
+                aria-label={`Ordenar por fecha de inicio, ${sortStateLabel('fechaInicio')}`}
+                title={`Fecha de inicio: ${sortStateLabel('fechaInicio')}`}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border-2 transition-colors focus:outline-none focus:ring-2 focus:ring-[#218a72]/40 ${
                   sortField === 'fechaInicio'
                     ? 'bg-[#218a72] text-white border-[#218a72]'
-                    : 'bg-white text-gray-600 border-gray-300 hover:border-[#218a72]'
+                    : 'bg-white text-gray-700 border-gray-300 hover:border-[#218a72]'
                 }`}
               >
                 Fecha inicio
-                <SortIcon field="fechaInicio" />
+                <span
+                  className={`text-[10px] font-semibold ${
+                    sortField === 'fechaInicio'
+                      ? 'text-white'
+                      : 'text-gray-500'
+                  }`}
+                >
+                  {sortBadgeLabel('fechaInicio')}
+                </span>
               </button>
               <button
                 onClick={() => toggleSort('fechaFin')}
                 aria-pressed={sortField === 'fechaFin'}
+                aria-label={`Ordenar por fecha de fin, ${sortStateLabel('fechaFin')}`}
+                title={`Fecha de fin: ${sortStateLabel('fechaFin')}`}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border-2 transition-colors focus:outline-none focus:ring-2 focus:ring-[#218a72]/40 ${
                   sortField === 'fechaFin'
                     ? 'bg-[#218a72] text-white border-[#218a72]'
-                    : 'bg-white text-gray-600 border-gray-300 hover:border-[#218a72]'
+                    : 'bg-white text-gray-700 border-gray-300 hover:border-[#218a72]'
                 }`}
               >
                 Fecha fin
-                <SortIcon field="fechaFin" />
+                <span
+                  className={`text-[10px] font-semibold ${
+                    sortField === 'fechaFin'
+                      ? 'text-white'
+                      : 'text-gray-500'
+                  }`}
+                >
+                  {sortBadgeLabel('fechaFin')}
+                </span>
               </button>
             </div>
+            <p className="text-[11px] text-gray-600 mt-2">
+              Tocá una opción para cambiar el orden. La etiqueta indica si se
+              muestran primero los alquileres más recientes o los más antiguos.
+            </p>
           </div>
 
           {alquileresFiltrados.length === 0 ? (
@@ -273,18 +319,37 @@ export default function ClienteDetallePage() {
               No hay alquileres con el filtro seleccionado
             </div>
           ) : (
-            <div
+            <ul
               className="space-y-3"
-              role="list"
               aria-label={`${alquileresFiltrados.length} alquiler${alquileresFiltrados.length !== 1 ? 'es' : ''}`}
             >
               {alquileresFiltrados.map((alquiler) => (
                 <AlquilerCard key={alquiler.id} alquiler={alquiler} />
               ))}
-            </div>
+            </ul>
           )}
         </div>
       )}
+
+      {showEditModal && (
+        <ClienteEditModal
+          cliente={cliente}
+          isOpen={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          onSaved={(actualizado) => {
+            setCliente(actualizado);
+            setShowEditModal(false);
+            setShowEditSuccess(true);
+          }}
+        />
+      )}
+
+      <SuccessModal
+        isOpen={showEditSuccess}
+        title="Datos actualizados"
+        message="La información del cliente se guardó correctamente."
+        onClose={() => setShowEditSuccess(false)}
+      />
     </div>
   );
 }
@@ -318,38 +383,44 @@ function InfoRow({
 }
 
 function AlquilerCard({ alquiler }: { alquiler: Alquiler }) {
-  const meta = ESTADO_META[alquiler.estado];
+  const meta = ESTADO_ALQUILER_META[alquiler.estado];
   const StatusIcon = meta.icon;
+  const estadoLabel =
+    alquiler.estado === 'devuelto' && alquiler.entregaTardia
+      ? 'Devuelto tarde'
+      : meta.label;
 
   return (
-    <article
-      className="bg-white border-2 border-gray-100 rounded-2xl p-4 shadow-sm"
-      role="listitem"
-      aria-label={`${alquiler.equipo}, estado: ${meta.label}`}
-    >
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <h3 className="font-bold text-gray-900 text-sm leading-snug flex-1">{alquiler.equipo}</h3>
-        <span
-          className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold flex-shrink-0 ${meta.bg} ${meta.text}`}
-          aria-hidden="true"
-        >
-          <StatusIcon size={12} />
-          {meta.label}
-        </span>
-      </div>
-      <div className="flex items-center justify-between text-xs text-gray-500">
-        <div className="space-y-0.5">
-          <div>
-            <span className="font-semibold text-gray-700">Inicio:</span> {formatFecha(alquiler.fechaInicio)}
+    <li className="bg-white border-2 border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+      <Link
+        to={`/app/alquileres/${alquiler.id}`}
+        className="block p-4 hover:border-[#218a72] focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 transition-colors"
+        aria-label={`Ver detalle del alquiler: ${alquiler.equipo}, estado: ${estadoLabel}`}
+      >
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <h3 className="font-bold text-gray-900 text-sm leading-snug flex-1">{alquiler.equipo}</h3>
+          <span
+            className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold flex-shrink-0 ${meta.badge}`}
+            aria-hidden="true"
+          >
+            <StatusIcon size={12} />
+            {estadoLabel}
+          </span>
+        </div>
+        <div className="flex items-center justify-between text-xs text-gray-500">
+          <div className="space-y-0.5">
+            <div>
+              <span className="font-semibold text-gray-700">Inicio:</span> {formatFecha(alquiler.fechaInicio)}
+            </div>
+            <div>
+              <span className="font-semibold text-gray-700">Fin:</span> {formatFecha(alquiler.fechaFin)}
+            </div>
           </div>
-          <div>
-            <span className="font-semibold text-gray-700">Fin:</span> {formatFecha(alquiler.fechaFin)}
+          <div className="text-right">
+            <div className="font-extrabold text-gray-900 text-base">{formatMonto(alquiler.monto)}</div>
           </div>
         </div>
-        <div className="text-right">
-          <div className="font-extrabold text-gray-900 text-base">{formatMonto(alquiler.monto)}</div>
-        </div>
-      </div>
-    </article>
+      </Link>
+    </li>
   );
 }
