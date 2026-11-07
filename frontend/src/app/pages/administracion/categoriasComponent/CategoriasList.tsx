@@ -91,6 +91,7 @@ export default function CategoriasList({
                   maxLength={30}
                   value={nombre}
                   onChange={(e) => setNombre(e.target.value)}
+                  aria-label={`Editar nombre de la categoría ${categoria.nombre}`}
                   className="flex-1 border rounded-lg px-3 py-2 mr-4 disabled:bg-gray-100"
                   autoFocus
                   disabled={guardando}
@@ -99,18 +100,20 @@ export default function CategoriasList({
                 <div className="flex gap-2">
                   <button
                     onClick={guardar}
+                    aria-label={`Guardar cambios de ${categoria.nombre}`}
                     className="text-green-600 hover:text-green-700 disabled:opacity-50"
                     disabled={guardando}
                   >
-                    <Check size={20} />
+                    <Check size={20} aria-hidden="true" />
                   </button>
 
                   <button
                     onClick={() => setEditando(null)}
+                    aria-label={`Cancelar edición de ${categoria.nombre}`}
                     className="text-red-600 hover:text-red-700 disabled:opacity-50"
                     disabled={guardando}
                   >
-                    <X size={20} />
+                    <X size={20} aria-hidden="true" />
                   </button>
                 </div>
               </>
@@ -120,9 +123,10 @@ export default function CategoriasList({
 
                 <button
                   onClick={() => comenzarEdicion(categoria)}
+                  aria-label={`Editar categoría ${categoria.nombre}`}
                   className="text-gray-500 hover:text-[#218a72]"
                 >
-                  <Pencil size={18} />
+                  <Pencil size={18} aria-hidden="true" />
                 </button>
               </>
             )}

@@ -41,7 +41,9 @@ export const ItemRow: React.FC<ItemRowProps> = ({
 
     const [searchTerm, setSearchTerm] = useState('');
     const [isOpen, setIsOpen] = useState(false);
+    const [activeIndex, setActiveIndex] = useState(-1);
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const listboxId = `equipo-listbox-${index}`;
 
     useEffect(() => {
         const seleccionado = listaStock.find((eq) => String(eq.id) === String(item.articulo_id));
@@ -56,6 +58,7 @@ export const ItemRow: React.FC<ItemRowProps> = ({
         const handleClickOutside = (event: MouseEvent) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
                 setIsOpen(false);
+                setActiveIndex(-1);
                 const seleccionado = listaStock.find((eq) => String(eq.id) === String(item.articulo_id));
                 setSearchTerm(seleccionado ? seleccionado.nombre : '');
             }
@@ -72,21 +75,73 @@ export const ItemRow: React.FC<ItemRowProps> = ({
         onChange(index, 'articulo_id', eq.id);
         setSearchTerm(eq.nombre);
         setIsOpen(false);
+        setActiveIndex(-1);
     };
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
         setSearchTerm(value);
         setIsOpen(true);
+        setActiveIndex(-1);
 
         if (value.trim() === '') {
             onChange(index, 'articulo_id', '');
         }
     };
 
+    const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        const tieneOpciones = listaFiltrada.length > 0;
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setIsOpen(true);
+            if (tieneOpciones) {
+                setActiveIndex((prev) =>
+                    prev < listaFiltrada.length - 1 ? prev + 1 : 0,
+                );
+            }
+            return;
+        }
+
+        if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setIsOpen(true);
+            if (tieneOpciones) {
+                setActiveIndex((prev) =>
+                    prev > 0 ? prev - 1 : listaFiltrada.length - 1,
+                );
+            }
+            return;
+        }
+
+        if (e.key === 'Enter') {
+            if (
+                isOpen &&
+                activeIndex >= 0 &&
+                listaFiltrada[activeIndex]
+            ) {
+                e.preventDefault();
+                handleSelectOption(listaFiltrada[activeIndex]);
+            }
+            return;
+        }
+
+        if (e.key === 'Escape') {
+            setIsOpen(false);
+            setActiveIndex(-1);
+            return;
+        }
+
+        if (e.key === 'Tab') {
+            setIsOpen(false);
+            setActiveIndex(-1);
+        }
+    };
+
     const handleClearSelection = () => {
         setSearchTerm('');
         setIsOpen(false);
+        setActiveIndex(-1);
         onChange(index, 'articulo_id', '');
     };
 
@@ -112,8 +167,21 @@ export const ItemRow: React.FC<ItemRowProps> = ({
                             value={searchTerm}
                             onChange={handleInputChange}
                             onFocus={() => setIsOpen(true)}
+                            onKeyDown={handleInputKeyDown}
                             required={!item.articulo_id}
                             autoComplete="off"
+                            role="combobox"
+                            aria-expanded={isOpen}
+                            aria-autocomplete="list"
+                            aria-controls={listboxId}
+                            aria-activedescendant={
+                                isOpen &&
+                                activeIndex >= 0 &&
+                                listaFiltrada[activeIndex]
+                                    ? `equipo-option-${index}-${listaFiltrada[activeIndex].id}`
+                                    : undefined
+                            }
+                            aria-haspopup="listbox"
                             aria-invalid={hasError}
                             aria-describedby={hasError ? errorId : undefined}
                             className={`w-full px-3 py-2 border-2 rounded-xl text-sm pr-14 focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors ${
@@ -137,15 +205,36 @@ export const ItemRow: React.FC<ItemRowProps> = ({
 
                     {/* Menú Desplegable */}
                     {isOpen && (
-                        <ul className="absolute z-50 left-0 right-0 mt-1 max-h-52 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg py-1 text-sm">
+                        <ul
+                            id={listboxId}
+                            role="listbox"
+                            aria-label={`Equipos disponibles para la fila ${index + 1}`}
+                            className="absolute z-50 left-0 right-0 mt-1 max-h-52 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg py-1 text-sm"
+                        >
                             {listaFiltrada.length > 0 ? (
-                                listaFiltrada.map((eq) => (
+                                listaFiltrada.map((eq, optionIndex) => (
                                     <li
                                         key={eq.id}
+                                        id={`equipo-option-${index}-${eq.id}`}
+                                        role="option"
+                                        aria-selected={
+                                            String(eq.id) ===
+                                            String(item.articulo_id)
+                                        }
+                                        onMouseDown={(event) =>
+                                            event.preventDefault()
+                                        }
+                                        onMouseEnter={() =>
+                                            setActiveIndex(optionIndex)
+                                        }
                                         onClick={() => handleSelectOption(eq)}
-                                        className={`px-3 py-2 cursor-pointer transition-colors hover:bg-[#218a72]/10 hover:text-[#218a72] ${
+                                        className={`px-3 py-2 cursor-pointer transition-colors ${
+                                            activeIndex === optionIndex
+                                                ? 'bg-[#218a72]/10 text-[#218a72]'
+                                                : 'hover:bg-[#218a72]/10 hover:text-[#218a72]'
+                                        } ${
                                             String(eq.id) === String(item.articulo_id)
-                                                ? 'bg-[#218a72]/10 text-[#218a72] font-semibold'
+                                                ? 'font-semibold'
                                                 : 'text-gray-700'
                                         }`}
                                     >
@@ -153,7 +242,11 @@ export const ItemRow: React.FC<ItemRowProps> = ({
                                     </li>
                                 ))
                             ) : (
-                                <li className="px-3 py-2 text-gray-400 text-xs italic text-center">
+                                <li
+                                    role="option"
+                                    aria-disabled="true"
+                                    className="px-3 py-2 text-gray-400 text-xs italic text-center"
+                                >
                                     No se encontraron resultados
                                 </li>
                             )}

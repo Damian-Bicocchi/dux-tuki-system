@@ -142,9 +142,13 @@ export default function StockDetallePage() {
         const itemMapeado: StockItem = {
           id: articuloData.id,
           nombre: articuloData.nombre,
-          categoria: articuloData.categoria_nombre || "Otros", 
-          disponibles: articuloData.stock_total - (articuloData.cantidad_alquilados || 0),
+          categoria: articuloData.categoria_nombre || "Otros",
+          disponibles:
+            articuloData.stock_total -
+            (articuloData.cantidad_alquilados || 0),
           total: articuloData.stock_total,
+          precio_por_dia: Number(articuloData.precio_por_dia || 0),
+          deposito_garantia: Number(articuloData.deposito_garantia || 0),
         };
 
                 setItem(itemMapeado);

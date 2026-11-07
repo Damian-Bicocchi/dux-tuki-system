@@ -8,12 +8,17 @@ import {
   Package,
   SlidersHorizontal,
   ArrowUpDown,
+  Pencil,
 } from 'lucide-react';
 import { getClienteById, type Cliente, type Alquiler, type EstadoAlquiler } from '../data/clientesData';
 import {
   ESTADO_ALQUILER_FILTROS,
   ESTADO_ALQUILER_META,
 } from '../config/rentalStatus';
+import { handleTabListKeyDown } from '../utils/tabListKeyboard';
+import { Can } from '../components/ui/Can';
+import { ClienteEditModal } from '../components/ClienteEditModal';
+import { SuccessModal } from '../components/SuccessModal';
 
 type TabKey = 'datos' | 'alquileres';
 type SortField = 'fechaInicio' | 'fechaFin';
@@ -39,6 +44,8 @@ export default function ClienteDetallePage() {
   const [filtroEstado, setFiltroEstado] = useState<EstadoAlquiler | 'todos'>('todos');
   const [sortField, setSortField] = useState<SortField>('fechaInicio');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showEditSuccess, setShowEditSuccess] = useState(false);
 
   useEffect(() => {
     const fetchCliente = async () => {
@@ -124,11 +131,18 @@ export default function ClienteDetallePage() {
       </header>
 
       {/* Tabs */}
-      <div className="flex border-b-2 border-gray-200 bg-white sticky top-0 z-10" role="tablist" aria-label="Secciones del cliente">
+      <div
+        className="flex border-b-2 border-gray-200 bg-white sticky top-0 z-10"
+        role="tablist"
+        aria-label="Secciones del cliente"
+        onKeyDown={handleTabListKeyDown}
+      >
         <button
           role="tab"
+          id="cliente-tab-datos"
           aria-selected={tab === 'datos'}
           aria-controls="panel-datos"
+          tabIndex={tab === 'datos' ? 0 : -1}
           onClick={() => setTab('datos')}
           className={`flex-1 py-3.5 text-sm font-bold transition-colors focus:outline-none focus:ring-inset focus:ring-2 focus:ring-[#218a72] ${
             tab === 'datos'
@@ -140,8 +154,10 @@ export default function ClienteDetallePage() {
         </button>
         <button
           role="tab"
+          id="cliente-tab-alquileres"
           aria-selected={tab === 'alquileres'}
           aria-controls="panel-alquileres"
+          tabIndex={tab === 'alquileres' ? 0 : -1}
           onClick={() => setTab('alquileres')}
           className={`flex-1 py-3.5 text-sm font-bold transition-colors focus:outline-none focus:ring-inset focus:ring-2 focus:ring-[#218a72] ${
             tab === 'alquileres'
@@ -155,7 +171,25 @@ export default function ClienteDetallePage() {
 
       {/* Panel Datos */}
       {tab === 'datos' && (
-        <div id="panel-datos" role="tabpanel" aria-label="Datos del cliente" className="px-5 py-6 space-y-4 max-w-4xl mx-auto">
+        <div
+          id="panel-datos"
+          role="tabpanel"
+          aria-labelledby="cliente-tab-datos"
+          className="px-5 py-6 space-y-4 max-w-4xl mx-auto"
+        >
+          <Can do="permiso_para_editar_clientes">
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowEditModal(true)}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#218a72] hover:bg-[#1b6f5c] text-white text-sm font-bold transition-colors focus:outline-none focus:ring-4 focus:ring-[#218a72]/30"
+              >
+                <Pencil size={16} aria-hidden="true" />
+                Editar datos
+              </button>
+            </div>
+          </Can>
+
           <div className="bg-white border-2 border-gray-100 rounded-2xl divide-y-2 divide-gray-100 shadow-sm">
             <InfoRow icon={IdCard} label="DNI" value={cliente.dni} />
             <InfoRow icon={Mail} label="Correo" value={cliente.email} isEmail />
@@ -190,7 +224,12 @@ export default function ClienteDetallePage() {
 
       {/* Panel Alquileres */}
       {tab === 'alquileres' && (
-        <div id="panel-alquileres" role="tabpanel" aria-label="Alquileres del cliente" className="px-5 py-4 space-y-4 max-w-4xl mx-auto">
+        <div
+          id="panel-alquileres"
+          role="tabpanel"
+          aria-labelledby="cliente-tab-alquileres"
+          className="px-5 py-4 space-y-4 max-w-4xl mx-auto"
+        >
           <div>
             <div className="flex items-center gap-2 mb-2">
               <SlidersHorizontal size={15} className="text-gray-500" aria-hidden="true" />
@@ -291,6 +330,26 @@ export default function ClienteDetallePage() {
           )}
         </div>
       )}
+
+      {showEditModal && (
+        <ClienteEditModal
+          cliente={cliente}
+          isOpen={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          onSaved={(actualizado) => {
+            setCliente(actualizado);
+            setShowEditModal(false);
+            setShowEditSuccess(true);
+          }}
+        />
+      )}
+
+      <SuccessModal
+        isOpen={showEditSuccess}
+        title="Datos actualizados"
+        message="La información del cliente se guardó correctamente."
+        onClose={() => setShowEditSuccess(false)}
+      />
     </div>
   );
 }

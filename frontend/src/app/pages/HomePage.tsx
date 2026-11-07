@@ -202,7 +202,7 @@ export default function HomePage({ userName }: HomePageProps) {
     const actions = allActions.filter((action) => hasPermission(action.permission));
 
     return (
-        <main role="main" aria-label="Contenido principal">
+        <div role="region" aria-label="Contenido principal">
             {/* Live region para anuncios dinámicos */}
             <div
                 role="status"
@@ -523,6 +523,6 @@ export default function HomePage({ userName }: HomePageProps) {
                     </span>
                 </button>
             </Can>
-        </main>
+        </div>
     );
 }

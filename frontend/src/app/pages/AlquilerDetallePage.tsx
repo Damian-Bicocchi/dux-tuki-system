@@ -430,7 +430,7 @@ export default function AlquilerDetallePage() {
       </header>
 
       {/* Contenido Principal */}
-      <main className="px-4 -mt-4 max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="px-4 -mt-4 max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
         <section 
           aria-labelledby="estado-contrato-titulo"
           className={`md:col-span-3 bg-white rounded-xl border ${meta.border} p-4 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3`}
@@ -657,7 +657,7 @@ export default function AlquilerDetallePage() {
                   </legend>
                   <div className="grid grid-cols-2 gap-3">
                     <label
-                      className={`p-3 rounded-lg border text-left flex flex-col transition-all cursor-pointer ${
+                      className={`p-3 rounded-lg border text-left flex flex-col transition-all cursor-pointer focus-within:ring-4 focus-within:ring-[#218a72]/40 focus-within:border-[#218a72] ${
                         !entregaParcial
                           ? "border-[#218a72] bg-[#218a72]/5 ring-2 ring-[#218a72]/20"
                           : "border-gray-200 hover:border-gray-300"
@@ -674,7 +674,7 @@ export default function AlquilerDetallePage() {
                       <span className="text-xs text-gray-500">Todo devuelto</span>
                     </label>
                     <label
-                      className={`p-3 rounded-lg border text-left flex flex-col transition-all cursor-pointer ${
+                      className={`p-3 rounded-lg border text-left flex flex-col transition-all cursor-pointer focus-within:ring-4 focus-within:ring-[#218a72]/40 focus-within:border-[#218a72] ${
                         entregaParcial
                           ? "border-amber-500 bg-amber-50/50 ring-2 ring-amber-500/20"
                           : "border-gray-200 hover:border-gray-300"
@@ -980,7 +980,7 @@ export default function AlquilerDetallePage() {
             </section>
           )}
         </div>
-      </main>
+      </div>
     </div>
   );
 }

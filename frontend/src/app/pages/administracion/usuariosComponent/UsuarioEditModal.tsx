@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import type { Role } from '../../../data/rolesData';
 import type { AsignarRolInput, Usuario } from '../../../data/usuariosData';
@@ -34,6 +34,54 @@ export function UsuarioEditModal({
     : String(usuario.role_id ?? '');
   useUnsavedChangesWarning(rolSeleccionado !== valorInicial);
 
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const selectRef = useRef<HTMLSelectElement>(null);
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    previouslyFocusedRef.current = document.activeElement as HTMLElement;
+    const timer = window.setTimeout(() => selectRef.current?.focus(), 50);
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onClose();
+        return;
+      }
+
+      if (event.key !== 'Tab' || !dialogRef.current) return;
+
+      const focusable = Array.from(
+        dialogRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((element) => !element.hasAttribute('disabled'));
+
+      if (focusable.length === 0) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener('keydown', handleKeyDown);
+      previouslyFocusedRef.current?.focus?.();
+    };
+  }, [isOpen]);
+
   if (!isOpen) {
     return null;
   }
@@ -64,7 +112,10 @@ export function UsuarioEditModal({
       aria-modal="true"
       role="dialog"
     >
-      <div className="bg-white rounded-2xl w-full max-w-md p-6">
+      <div
+        ref={dialogRef}
+        className="bg-white rounded-2xl w-full max-w-md p-6"
+      >
         <div className="flex justify-between items-center mb-6">
           <h2
             id="editar-usuario-title"
@@ -102,6 +153,7 @@ export function UsuarioEditModal({
               Rol
             </label>
             <select
+              ref={selectRef}
               id="rol-edit"
               value={rolSeleccionado}
               onChange={(e) => setRolSeleccionado(e.target.value)}

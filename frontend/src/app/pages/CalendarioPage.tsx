@@ -94,7 +94,7 @@ export default function CalendarioPage() {
   }, [selectedDate]);
 
   return (
-    <main className="px-5 py-6 pb-10 max-w-5xl mx-auto space-y-5" aria-label="Calendario de Alquileres">
+    <section className="px-5 py-6 pb-10 max-w-5xl mx-auto space-y-5" aria-label="Calendario de Alquileres">
       
       {/* Región asíncrona para lectores de pantalla */}
       <div className="sr-only" aria-live="polite" aria-atomic="true">
@@ -182,7 +182,7 @@ export default function CalendarioPage() {
           )}
         />
       </div>
-    </main>
+    </section>
   );
 }
 

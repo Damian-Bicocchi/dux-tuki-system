@@ -19,8 +19,11 @@ export interface Cliente {
   email: string;
   dni: string;
   telefono?: string;
+  notas?: string | null;
   alquileres: Alquiler[];
 }
+
+export type ClienteInput = Omit<Cliente, 'id' | 'alquileres'>;
 
 const API_URL = 'http://localhost:3001/api/clientes';
 
@@ -54,6 +57,7 @@ export async function getClientes(): Promise<Cliente[]> {
       email: json.email,
       dni: json.dni,
       telefono: json.telefono,
+      notas: json.notas,
       alquileres: json.alquileres || [],
     }));
     
@@ -115,11 +119,30 @@ export async function getClienteById(id: number): Promise<Cliente | undefined> {
     email: json.email,
     dni: json.dni,
     telefono: json.telefono,
+    notas: json.notas,
     alquileres: Array.isArray(json.alquileres) ? json.alquileres.map(mapAlquiler) : [],
   };
 }
 
-export async function addCliente(data: Omit<Cliente, 'id' | 'alquileres'>): Promise<Cliente> {
+export async function updateCliente(
+  id: number,
+  data: ClienteInput,
+): Promise<Omit<Cliente, 'alquileres'>> {
+  const response = await fetch(`${API_URL}/${id}`, {
+    method: 'PUT',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || 'Error al actualizar el cliente');
+  }
+
+  return await response.json();
+}
+
+export async function addCliente(data: ClienteInput): Promise<Cliente> {
   try {
     // Migrado a POST en el backend con autenticación
     const response = await fetch(API_URL, {
