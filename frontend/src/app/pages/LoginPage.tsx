@@ -120,6 +120,7 @@ export default function LoginPage() {
                             autoComplete="email"
                             required
                             inputMode="email"
+                            maxLength={254}
                             aria-required="true"
                             aria-describedby="email-help"
                             placeholder="ejemplo@correo.com"
@@ -147,6 +148,7 @@ export default function LoginPage() {
                                 name="password"
                                 type={showPassword ? 'text' : 'password'}
                                 autoComplete="current-password"
+                                maxLength={72}
                                 required
                                 aria-required="true"
                                 aria-describedby="password-help"

@@ -23,6 +23,8 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const LOGOUT_URL = 'http://localhost:3001/api/usuarios/logout';
+
 function readStoredUser(): User | null {
   const storedToken = localStorage.getItem('token');
   const storedUser = localStorage.getItem('user');
@@ -51,6 +53,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
+    const currentToken = token ?? localStorage.getItem('token');
+
+    if (currentToken) {
+      // Se dispara la revocación en el backend antes de limpiar el token local.
+      // Si falla, de todos modos cerramos la sesión en este navegador.
+      void fetch(LOGOUT_URL, {
+        method: 'POST',
+        keepalive: true,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${currentToken}`,
+        },
+      }).catch(() => {});
+    }
+
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setToken(null);

@@ -1,10 +1,7 @@
-export type EstadoAlquiler =
-  | 'pendiente'
-  | 'activo'
-  | 'vencido'
-  | 'entregado'
-  | 'entregado_tardio'
-  | 'cancelado';
+import type { EstadoAlquiler } from '../config/rentalStatus';
+import { estadoEfectivoAlquiler, fechaHoyLocal } from '../config/rentalStatus';
+
+export type { EstadoAlquiler } from '../config/rentalStatus';
 
 export interface Alquiler {
   id: number;
@@ -12,6 +9,7 @@ export interface Alquiler {
   fechaInicio: string;
   fechaFin: string;
   estado: EstadoAlquiler;
+  entregaTardia?: boolean;
   monto: number;
 }
 
@@ -67,38 +65,22 @@ export async function getClientes(): Promise<Cliente[]> {
   }
 }
 
-// Fecha local (YYYY-MM-DD), igual que el backend usa date('now','localtime')
-function hoyLocal(): string {
-  const d = new Date();
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  return `${d.getFullYear()}-${mm}-${dd}`;
-}
-
-// Traduce el estado guardado en la BD (pendiente/activo/vencido/devuelto/cancelado)
-// al estado que se muestra en el detalle del cliente.
 function mapEstadoAlquiler(json: any): EstadoAlquiler {
-  const fechaFin: string = json.fecha_fin;
-
-  if (json.estado === 'cancelado') return 'cancelado';
-
-  if (json.estado === 'devuelto') {
-    const fechaCierre: string | null = json.cierre_fecha_cierre
-      ? String(json.cierre_fecha_cierre).slice(0, 10)
-      : null;
-    const tarde =
-      (fechaCierre !== null && fechaCierre > fechaFin) ||
-      Number(json.cierre_recargo_tarde || 0) > 0;
-    return tarde ? 'entregado_tardio' : 'entregado';
-  }
-
-  if (json.estado === 'vencido' || fechaFin < hoyLocal()) return 'vencido';
-
-  return json.estado === 'activo' ? 'activo' : 'pendiente';
+  return estadoEfectivoAlquiler(
+    json.estado as EstadoAlquiler,
+    json.fecha_fin,
+    fechaHoyLocal(),
+  );
 }
 
 function mapAlquiler(json: any): Alquiler {
   const cantidad = Number(json.cantidad_items || 0);
+  const entregaTardia =
+    json.estado === 'devuelto' &&
+    ((json.cierre_fecha_cierre &&
+      String(json.cierre_fecha_cierre).slice(0, 10) > json.fecha_fin) ||
+      Number(json.cierre_recargo_tarde || 0) > 0);
+
   return {
     id: json.id,
     equipo:
@@ -107,6 +89,7 @@ function mapAlquiler(json: any): Alquiler {
     fechaInicio: json.fecha_inicio,
     fechaFin: json.fecha_fin,
     estado: mapEstadoAlquiler(json),
+    entregaTardia: Boolean(entregaTardia),
     monto: Number(json.precio_total || 0),
   };
 }

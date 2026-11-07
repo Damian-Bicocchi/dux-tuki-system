@@ -6,6 +6,11 @@ const alquilerController = require('../controllers/alquiler.controller');
 // 1. IMPORTAR MIDDLEWARES DE AUTENTICACIÓN Y PERMISOS
 const authenticate = require('../middlewares/auth');
 const checkPermission = require('../middlewares/checkPermission');
+const {
+    ESTADOS_ALQUILER,
+    estadoEfectivoAlquiler,
+    fechaHoyLocal,
+} = require('../utils/rentalStatus');
 
 const router = express.Router();
 router.use(authenticate);
@@ -13,21 +18,6 @@ router.use(authenticate);
 // 2. PROTEGER TODAS LAS RUTAS DE ESTE ARCHIVO CON AUTHENTICATE
 // Cualquier petición a /api/alquileres primero verificará que el token JWT sea válido.
 router.use(authenticate);
-
-function estadoEfectivoAlquiler(alquiler) {
-    if (!alquiler) return alquiler;
-
-    const hoy = new Date().toISOString().split('T')[0];
-    if (['devuelto', 'cancelado'].includes(alquiler.estado)) {
-        return alquiler.estado;
-    }
-
-    if (alquiler.fecha_fin && alquiler.fecha_fin < hoy) {
-        return 'vencido';
-    }
-
-    return alquiler.estado;
-}
 
 const db = new Proxy(
     {},
@@ -906,7 +896,7 @@ router.patch(
                 });
             }
 
-            const hoy = new Date().toISOString().slice(0, 10);
+            const hoy = fechaHoyLocal();
             if (alquiler.fecha_inicio > hoy) {
                 return res.status(409).json({
                     error: 'Todavía no llegó la fecha de inicio del alquiler',
@@ -981,10 +971,15 @@ router.patch(
                 });
             }
 
-            const hoy = new Date().toISOString().slice(0, 10);
-            if (alquiler.fecha_inicio <= hoy) {
+            // Un alquiler pendiente se puede cancelar aunque su fecha de inicio
+            // ya haya pasado (por ejemplo, si nunca se inició).
+            const hoy = fechaHoyLocal();
+            if (
+                alquiler.estado !== 'pendiente' &&
+                alquiler.fecha_inicio <= hoy
+            ) {
                 return res.status(409).json({
-                    error: 'Solo se pueden cancelar alquileres que todavía no comenzaron',
+                    error: 'Solo se pueden cancelar alquileres pendientes o activos que todavía no comenzaron',
                 });
             }
 
@@ -1014,12 +1009,9 @@ router.patch(
     checkPermission('permiso_para_editar_alquileres'),
     (req, res) => {
         const { estado } = req.body;
-        const estadosValidos = [
-            'pendiente',
-            'activo',
-            'vencido',
-            'devuelto',
-        ];
+        const estadosValidos = ESTADOS_ALQUILER.filter(
+            (estadoValido) => estadoValido !== 'cancelado',
+        );
         if (estado === 'cancelado') {
             return res.status(400).json({
                 error: 'Para cancelar un alquiler usá el endpoint /cancelar con motivo y recargo',

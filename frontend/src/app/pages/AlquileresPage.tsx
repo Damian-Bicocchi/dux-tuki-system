@@ -14,8 +14,12 @@ import {
 } from 'lucide-react';
 import { getAuthHeaders } from '../../../../backend/utils/putHeaders';
 import { Can } from '../components/ui/Can';
-
-type EstadoAlquiler = 'pendiente' | 'activo' | 'devuelto' | 'cancelado';
+import {
+    ESTADO_ALQUILER_FILTROS,
+    ESTADO_ALQUILER_META,
+    estadoEfectivoAlquiler,
+} from '../config/rentalStatus';
+import type { EstadoAlquiler } from '../config/rentalStatus';
 
 interface AlquilerResumenApi {
     id: number;
@@ -31,14 +35,6 @@ interface AlquilerResumenApi {
 
 const API_URL = 'http://localhost:3001/api/alquileres';
 
-const ESTADOS: Array<{ value: EstadoAlquiler | 'todos'; label: string }> = [
-    { value: 'todos', label: 'Todos' },
-    { value: 'pendiente', label: 'Pendientes' },
-    { value: 'activo', label: 'Activos' },
-    { value: 'devuelto', label: 'Devueltos' },
-    { value: 'cancelado', label: 'Cancelados' },
-];
-
 function formatFecha(fecha: string) {
     return new Date(`${fecha}T00:00:00`).toLocaleDateString('es-AR', {
         day: '2-digit',
@@ -53,38 +49,6 @@ function formatMonto(monto: number) {
         currency: 'ARS',
         maximumFractionDigits: 0,
     }).format(monto || 0);
-}
-
-type EstadoListaVisible = EstadoAlquiler | 'vencido';
-
-function mapEstadoLista(
-    estado: EstadoAlquiler,
-    fechaFin: string,
-): EstadoListaVisible {
-    const hoy = new Date().toISOString().slice(0, 10);
-
-    if ((estado === 'pendiente' || estado === 'activo') && fechaFin < hoy) {
-        return 'vencido';
-    }
-
-    return estado;
-}
-
-function getEstadoStyles(estado: EstadoListaVisible) {
-    switch (estado) {
-        case 'pendiente':
-            return 'bg-amber-100 text-amber-900 border-amber-300';
-        case 'activo':
-            return 'bg-green-100 text-green-800 border-green-300';
-        case 'vencido':
-            return 'bg-rose-100 text-rose-800 border-rose-300';
-        case 'devuelto':
-            return 'bg-slate-100 text-slate-800 border-slate-300';
-        case 'cancelado':
-            return 'bg-red-100 text-red-800 border-red-300';
-        default:
-            return 'bg-slate-100 text-slate-800 border-slate-300';
-    }
 }
 
 export default function AlquileresPage() {
@@ -142,7 +106,9 @@ export default function AlquileresPage() {
 
         return alquileres.filter((alquiler) => {
             const matchEstado =
-                filterEstado === 'todos' || alquiler.estado === filterEstado;
+                filterEstado === 'todos' ||
+                estadoEfectivoAlquiler(alquiler.estado, alquiler.fecha_fin) ===
+                    filterEstado;
             const matchSearch =
                 !term ||
                 alquiler.cliente_nombre.toLowerCase().includes(term) ||
@@ -172,7 +138,7 @@ export default function AlquileresPage() {
                         aria-label="Crear un nuevo alquiler"
                     >
                         <Plus size={18} aria-hidden="true" />
-                        Crear alquiler
+                        Nuevo alquiler
                     </button>
                 </Can>
             </div>
@@ -186,6 +152,7 @@ export default function AlquileresPage() {
                     />
                     <input
                         type="search"
+                        maxLength={100}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         placeholder="Buscar por cliente"
@@ -210,7 +177,7 @@ export default function AlquileresPage() {
                         className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-2xl bg-white focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors"
                         aria-label="Filtrar por estado"
                     >
-                        {ESTADOS.map((estado) => (
+                        {ESTADO_ALQUILER_FILTROS.map((estado) => (
                             <option key={estado.value} value={estado.value}>
                                 {estado.label}
                             </option>
@@ -253,14 +220,14 @@ export default function AlquileresPage() {
                             className="inline-flex items-center gap-2 rounded-2xl bg-[#218a72] px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#1b6f5c] focus:outline-none focus:ring-4 focus:ring-[#218a72]/20"
                         >
                             <Plus size={18} aria-hidden="true" />
-                            Crear alquiler
+                            Nuevo alquiler
                         </button>
                     </Can>
                 </div>
             ) : (
                 <div className="space-y-3">
                     {filteredAlquileres.map((alquiler) => {
-                        const estadoVista = mapEstadoLista(
+                        const estadoVista = estadoEfectivoAlquiler(
                             alquiler.estado,
                             alquiler.fecha_fin,
                         );
@@ -299,10 +266,9 @@ export default function AlquileresPage() {
                                     </div>
 
                                     <span
-                                        className={`px-3 py-1.5 rounded-full text-xs font-bold border-2 whitespace-nowrap ${getEstadoStyles(estadoVista)}`}
+                                        className={`px-3 py-1.5 rounded-full text-xs font-bold border-2 whitespace-nowrap ${ESTADO_ALQUILER_META[estadoVista].badge}`}
                                     >
-                                        {estadoVista.charAt(0).toUpperCase() +
-                                            estadoVista.slice(1)}
+                                        {ESTADO_ALQUILER_META[estadoVista].label}
                                     </span>
                                 </div>
 

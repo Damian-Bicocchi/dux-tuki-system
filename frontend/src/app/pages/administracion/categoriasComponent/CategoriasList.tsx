@@ -88,6 +88,7 @@ export default function CategoriasList({
             {editando === categoria.id ? (
               <>
                 <input
+                  maxLength={30}
                   value={nombre}
                   onChange={(e) => setNombre(e.target.value)}
                   className="flex-1 border rounded-lg px-3 py-2 mr-4 disabled:bg-gray-100"

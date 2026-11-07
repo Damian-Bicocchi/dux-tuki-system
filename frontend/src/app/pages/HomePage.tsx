@@ -6,6 +6,7 @@ import { getAuthHeaders } from '../../../../backend/utils/putHeaders';
 import { usePermission } from '../hooks/usePermission';
 import { useAuth } from '../context/AuthContext';
 import { Can } from '../components/ui/Can';
+import { estadoEfectivoAlquiler } from '../config/rentalStatus';
 import type { PermissionKey } from '../../config/permissions';
 import {
     Plus,
@@ -82,15 +83,15 @@ export default function HomePage({ userName }: HomePageProps) {
                 ]);
 
                 if (isMounted) {
-                    const hoy = new Date().toISOString().slice(0, 10);
                     const activos = alquileres.filter(
-                        (a) => a.estado === 'activo' && a.fecha_fin >= hoy,
+                        (a) =>
+                            estadoEfectivoAlquiler(a.estado, a.fecha_fin) ===
+                            'activo',
                     ).length;
                     const vencidos = alquileres.filter(
                         (a) =>
-                            a.estado === 'vencido' ||
-                            (['activo', 'pendiente'].includes(a.estado) &&
-                                a.fecha_fin < hoy),
+                            estadoEfectivoAlquiler(a.estado, a.fecha_fin) ===
+                            'vencido',
                     ).length;
 
                     setStats({

@@ -111,7 +111,7 @@ router.delete('/:id', checkPermission('permiso_para_editar_clientes'), (req, res
     const db = getDb();
     db.get(
         `SELECT COUNT(*) as total FROM alquileres
-            WHERE cliente_id = ? AND estado IN ('pendiente','activo')`,
+            WHERE cliente_id = ? AND estado IN ('pendiente','activo','vencido')`,
         [req.params.id],
         (err, row) => {
             if (err) return res.status(500).json({ error: err.message });

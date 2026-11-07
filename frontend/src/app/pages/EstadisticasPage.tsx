@@ -27,6 +27,7 @@ interface ResumenApi {
   inversion_estimada: number;
   total_alquileres: number;
   total_clientes: number;
+  alquileres_con_recargos: number;
   alquileres_por_estado: {
     total: number;
     activos: number;
@@ -34,7 +35,6 @@ interface ResumenApi {
     vencidos: number;
     devueltos: number;
     cancelados: number;
-    con_recargos: number;
   };
 }
 
@@ -247,11 +247,13 @@ export default function EstadisticasPage() {
       vencidos: counts?.vencidos ?? 0,
       devueltos: counts?.devueltos ?? 0,
       cancelados: counts?.cancelados ?? 0,
-      conRecargos: counts?.con_recargos ?? 0,
     };
   }, [resumen]);
 
   const totalClientes = Number(resumen?.total_clientes ?? 0);
+  const alquileresConRecargos = Number(
+    resumen?.alquileres_con_recargos ?? 0,
+  );
   const alquileresValidos = stats.total - stats.cancelados;
   const promedioAlquileres =
     totalClientes > 0 ? Math.round(alquileresValidos / totalClientes) : 0;
@@ -423,12 +425,12 @@ export default function EstadisticasPage() {
             value={stats.cancelados}
             tone="bg-gray-50 text-gray-700 border-gray-200"
           />
-          <MetricCard
-            label="Con recargos"
-            value={stats.conRecargos}
-            tone="bg-red-50 text-red-800 border-red-200"
-          />
         </div>
+
+        <p className="text-xs text-gray-600 -mt-3 mb-6">
+          Alquileres con recargos de cierre:{' '}
+          <strong className="text-gray-900">{alquileresConRecargos}</strong>
+        </p>
       </section>
 
       {/* Clientes */}

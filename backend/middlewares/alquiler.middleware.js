@@ -1,4 +1,6 @@
 // middlewares/alquiler.middleware.js
+const { ESTADOS_ALQUILER } = require('../utils/rentalStatus');
+
 class AlquilerMiddleware {
     validarEstructuraCrearOEditar(req, res, next) {
         const { cliente_id, fecha_inicio, fecha_fin, items } = req.body;
@@ -39,18 +41,11 @@ class AlquilerMiddleware {
 
     validarCambioEstado(req, res, next) {
         const { estado } = req.body;
-        const estadosValidos = [
-            'pendiente',
-            'activo',
-            'vencido',
-            'devuelto',
-            'cancelado',
-        ];
-        if (!estadosValidos.includes(estado)) {
+        if (!ESTADOS_ALQUILER.includes(estado)) {
             return res
                 .status(400)
                 .json({
-                    error: `Estado inválido. Opciones: ${estadosValidos.join(', ')}`,
+                    error: `Estado inválido. Opciones: ${ESTADOS_ALQUILER.join(', ')}`,
                 });
         }
         next();

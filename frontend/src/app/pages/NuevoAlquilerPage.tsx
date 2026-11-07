@@ -562,6 +562,7 @@ export default function NuevoAlquilerPage() {
                             <input
                                 id="cliente-search"
                                 type="text"
+                                maxLength={100}
                                 placeholder="Buscar por nombre o DNI..."
                                 value={buscarCliente}
                                 onChange={(e) => {

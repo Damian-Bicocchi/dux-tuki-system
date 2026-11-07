@@ -1,11 +1,7 @@
 import { getAuthHeaders } from '../../../../backend/utils/putHeaders';
+import type { EstadoAlquiler } from '../config/rentalStatus';
 
-export type EstadoAlquiler =
-  | 'pendiente'
-  | 'activo'
-  | 'vencido'
-  | 'devuelto'
-  | 'cancelado';
+export type { EstadoAlquiler } from '../config/rentalStatus';
 
 export interface AlquilerResumen {
   id: number;

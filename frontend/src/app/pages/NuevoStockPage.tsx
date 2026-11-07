@@ -344,6 +344,7 @@ export default function NuevoStockPage() {
             <input
               id="nombre"
               type="text"
+              maxLength={30}
               role="combobox"
               required
               aria-expanded={isDropdownOpen}

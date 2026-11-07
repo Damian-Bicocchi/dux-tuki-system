@@ -30,7 +30,6 @@ const todayStr = toDateStr(new Date());
 const API_URL = 'http://localhost:3001/api';
 
 export const getAlquileresEmpiezanFecha = async (fecha: string): Promise<Alquiler[]> => {
-  console.log(`${API_URL}/empiezan?fecha=${(fecha)}`);
   const response = await fetch(`${API_URL}/alquileres/empiezan?fecha=${(fecha)}`, {headers: getAuthHeaders()});
   if (!response.ok) {
     throw new Error('Error al obtener alquileres por fecha de inicio');

@@ -21,6 +21,7 @@ import SettingsPanel, {
 import NotificationsPanel from "../components/NotificationsPanel";
 import { UnsavedChangesProvider } from "../hooks/useUnsavedChangesWarning";
 import { usePermission } from "../hooks/usePermission";
+import { useAuth } from "../context/AuthContext";
 import type { PermissionKey } from "../../config/permissions";
 
 const DEFAULT_SETTINGS: AccessibilitySettings = {
@@ -34,6 +35,7 @@ const DEFAULT_SETTINGS: AccessibilitySettings = {
 export default function RootLayout() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] =
@@ -166,6 +168,7 @@ export default function RootLayout() {
   const handleLogoutConfirm = () => {
     setShowLogoutConfirm(false);
     setLiveMessage("Cerrando sesión");
+    logout();
     setTimeout(() => {
       navigate("/", { replace: true });
     }, 100);

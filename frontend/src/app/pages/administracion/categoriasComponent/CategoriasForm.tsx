@@ -84,6 +84,7 @@ export default function CategoriasForm({ onCategoriaCreada }: CategoriasFormProp
           <input
             id="categoria-input"
             type="text"
+            maxLength={30}
             value={nombre}
             onChange={(e) => setNombre(e.target.value)}
             placeholder="Ej. Audio"

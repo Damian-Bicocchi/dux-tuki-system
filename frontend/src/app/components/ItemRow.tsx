@@ -84,6 +84,12 @@ export const ItemRow: React.FC<ItemRowProps> = ({
         }
     };
 
+    const handleClearSelection = () => {
+        setSearchTerm('');
+        setIsOpen(false);
+        onChange(index, 'articulo_id', '');
+    };
+
     // Determinar si hay error para este item
     const hasError = !!item.error;
 
@@ -101,6 +107,7 @@ export const ItemRow: React.FC<ItemRowProps> = ({
                         <input
                             id={equipoInputId}
                             type="text"
+                            maxLength={100}
                             placeholder="Buscar o seleccionar equipo..."
                             value={searchTerm}
                             onChange={handleInputChange}
@@ -109,12 +116,22 @@ export const ItemRow: React.FC<ItemRowProps> = ({
                             autoComplete="off"
                             aria-invalid={hasError}
                             aria-describedby={hasError ? errorId : undefined}
-                            className={`w-full px-3 py-2 border-2 rounded-xl text-sm pr-8 focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors ${
+                            className={`w-full px-3 py-2 border-2 rounded-xl text-sm pr-14 focus:outline-none focus:ring-4 focus:ring-[#218a72]/20 focus:border-[#218a72] transition-colors ${
                                 hasError
                                     ? 'border-red-500 bg-red-50'
                                     : 'border-gray-300 bg-white'
                             }`}
                         />
+                        {(searchTerm !== '' || item.articulo_id !== '') && (
+                            <button
+                                type="button"
+                                onClick={handleClearSelection}
+                                className="absolute right-8 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-[#218a72]"
+                                aria-label={`Quitar equipo seleccionado de la fila ${index + 1}`}
+                            >
+                                <X size={14} aria-hidden="true" />
+                            </button>
+                        )}
                         <ChevronDown className="w-4 h-4 text-gray-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                     </div>
 

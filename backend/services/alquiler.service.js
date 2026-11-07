@@ -1,23 +1,10 @@
 // services/alquiler.service.js
 const alquilerRepository = require('../repositories/alquiler.repository');
+const { estadoEfectivoAlquiler } = require('../utils/rentalStatus');
 
 class AlquilerService {
     _estadoEfectivo(row) {
-        if (!row) return row;
-
-        const hoy = new Date().toISOString().split('T')[0];
-        const fechaFin = row.fecha_fin || row.fechaFin;
-        const estado = row.estado;
-
-        if (estado === 'devuelto' || estado === 'cancelado') {
-            return estado;
-        }
-
-        if (fechaFin && fechaFin < hoy) {
-            return 'vencido';
-        }
-
-        return estado;
+        return estadoEfectivoAlquiler(row);
     }
 
     // Helpers internos heredados de tu archivo original
@@ -250,32 +237,14 @@ class AlquilerService {
         const rows =
             await alquilerRepository.findAlquileresByArticuloId(articuloId);
 
-        return rows.map((row) => {
-            const estadoBackend = this._estadoEfectivo(row);
-            let estadoFrontend = 'finalizado';
-            if (estadoBackend === 'vencido') {
-                estadoFrontend = 'vencido';
-            } else if (
-                estadoBackend === 'pendiente' ||
-                estadoBackend === 'activo'
-            ) {
-                estadoFrontend = 'activo';
-            } else if (
-                estadoBackend === 'devuelto' ||
-                estadoBackend === 'cancelado'
-            ) {
-                estadoFrontend = 'finalizado';
-            }
-
-            return {
-                id: row.id,
-                cliente: row.cliente,
-                estado: estadoFrontend,
-                fechaInicio: row.fecha_inicio,
-                fechaFin: row.fecha_fin,
-                precio: row.precio,
-            };
-        });
+        return rows.map((row) => ({
+            id: row.id,
+            cliente: row.cliente,
+            estado: this._estadoEfectivo(row),
+            fechaInicio: row.fecha_inicio,
+            fechaFin: row.fecha_fin,
+            precio: row.precio,
+        }));
     }
 
     async getAlquileresEmpiezanFecha(fecha) {

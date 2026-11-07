@@ -8,9 +8,7 @@ import {
     Save,
     ArrowUp,
     ArrowDown,
-    CheckCircle2,
     AlertCircle,
-    Clock,
     ChevronRight,
     ChevronLeft,
     Filter,
@@ -19,15 +17,19 @@ import {
     calcularEstado,
     type StockItem,
     type AlquilerDeEquipo,
-    type EstadoAlquilerStock,
 } from '../data/stockData';
+import type { EstadoAlquiler } from '../config/rentalStatus';
+import {
+    ESTADO_ALQUILER_FILTROS,
+    ESTADO_ALQUILER_META,
+} from '../config/rentalStatus';
 import { SuccessModal } from '../components/SuccessModal';
 import { useUnsavedChangesWarning } from '../hooks/useUnsavedChangesWarning';
 import { getAuthHeaders } from '../../../../backend/utils/putHeaders';
 import { Can } from '../components/ui/Can';
 
 type SortDir = 'asc' | 'desc';
-type FiltroEstado = 'todos' | EstadoAlquilerStock;
+type FiltroEstado = 'todos' | EstadoAlquiler;
 
 interface CategoriaAPI {
     id: number;
@@ -50,34 +52,7 @@ function formatMonto(monto: number) {
     }).format(monto);
 }
 
-const ESTADO_META: Record<
-    EstadoAlquilerStock,
-    {
-        label: string;
-        bg: string;
-        text: string;
-        icon: React.ElementType;
-    }
-> = {
-    activo: {
-        label: 'Activo',
-        bg: 'bg-green-100',
-        text: 'text-green-900',
-        icon: Clock,
-    },
-    vencido: {
-        label: 'Vencido',
-        bg: 'bg-red-100',
-        text: 'text-red-900',
-        icon: AlertCircle,
-    },
-    finalizado: {
-        label: 'Finalizado',
-        bg: 'bg-gray-100',
-        text: 'text-gray-900',
-        icon: CheckCircle2,
-    },
-};
+
 
 export default function StockDetallePage() {
     const { id } = useParams<{ id: string }>();
@@ -372,6 +347,7 @@ export default function StockDetallePage() {
                 <input
                   id="edit-nombre"
                   type="text"
+                  maxLength={30}
                   required
                   value={form.nombre}
                   onChange={(e) => setForm((p) => ({ ...p, nombre: e.target.value }))}
@@ -505,18 +481,16 @@ export default function StockDetallePage() {
                                         }
                                         className="w-full h-full bg-transparent text-sm font-bold text-gray-800 text-center text-last-center appearance-none pl-10 pr-10 cursor-pointer focus:outline-none"
                                     >
-                                        <option value="todos">
-                                            Todos los estados
-                                        </option>
-                                        <option value="activo">
-                                            Solo Activos
-                                        </option>
-                                        <option value="vencido">
-                                            Solo Vencidos
-                                        </option>
-                                        <option value="finalizado">
-                                            Solo Finalizados
-                                        </option>
+                                        {ESTADO_ALQUILER_FILTROS.map((filtro) => (
+                                            <option
+                                                key={filtro.value}
+                                                value={filtro.value}
+                                            >
+                                                {filtro.value === 'todos'
+                                                    ? 'Todos los estados'
+                                                    : filtro.label}
+                                            </option>
+                                        ))}
                                     </select>
 
                                     <div
@@ -571,7 +545,7 @@ export default function StockDetallePage() {
                   aria-label={`Lista de alquileres filtrados. Viendo página ${pagina} de ${totalPaginas}`}
                 >
                   {alquileresPaginados.map((alq) => {
-                    const meta = ESTADO_META[alq.estado];
+                                        const meta = ESTADO_ALQUILER_META[alq.estado];
                     const StatusIcon = meta.icon;
                     return (
                       <button

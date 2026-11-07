@@ -115,6 +115,7 @@ export function UsuarioForm({
           type="email"
           id="email"
           name="email"
+          maxLength={254}
           value={username}
           onChange={(e) => {
             setUsername(e.target.value);
@@ -148,6 +149,7 @@ export function UsuarioForm({
             type={showPassword ? "text" : "password"}
             id="password"
             name="password"
+            maxLength={72}
             value={password}
             onChange={(e) => {
               setPassword(e.target.value);
@@ -200,6 +202,7 @@ export function UsuarioForm({
             type={showConfirmPassword ? "text" : "password"}
             id="confirmPassword"
             name="confirmPassword"
+            maxLength={72}
             value={confirmPassword}
             onChange={(e) => {
               setConfirmPassword(e.target.value);
